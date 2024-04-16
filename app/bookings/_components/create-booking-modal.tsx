@@ -65,24 +65,21 @@ import {
   SelectNationalities,
   SelectTours,
 } from "@/drizzle/schema";
-import { listCountryCities } from "@/utils/list-country-cities";
 import capitalize from "@/utils/capitalize";
 import { listCountryGuides } from "@/utils/list-country-guides";
-import { listCityHotels } from "@/utils/list-city-hotels";
-import { listCityActivities } from "@/utils/list-city-activities";
 import { addBookings } from "@/utils/db-queries/booking";
-import { useMutation } from "@tanstack/react-query";
-import getQueryClient from "@/utils/get-query-provider";
 
 export default function CreateBookingModal({
   countries,
   companies,
   tours,
   nationalities,
+  hotels,
 }: {
   countries: SelectCountries[];
   companies: SelectCompanies[];
   nationalities: SelectNationalities[];
+  hotels: SelectHotels[];
   tours: SelectTours[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -91,7 +88,7 @@ export default function CreateBookingModal({
       <div className="mb-4 flex w-full justify-end">
         <Button onClick={() => setIsOpen(true)}>Add</Button>
       </div>
-      <DialogContent className="h-screen min-w-[1360px] overflow-y-auto">
+      <DialogContent className="min-w-[1360px] gap-y-4 overflow-y-auto">
         <DialogHeader className="capitalize">
           <DialogTitle>Add New Booking</DialogTitle>
         </DialogHeader>
@@ -100,6 +97,7 @@ export default function CreateBookingModal({
           companies={companies}
           tours={tours}
           nationalities={nationalities}
+          hotels={hotels}
           closeModal={() => setIsOpen(false)}
         />
       </DialogContent>
@@ -116,7 +114,7 @@ const formSchema = z.object({
     .optional(),
   referenceBookingId: z.string().optional(),
   country: z.string({ required_error: "Please select a country" }),
-  city: z.string({ required_error: "Please select a city" }),
+  // city: z.string({ required_error: "Please select a city" }),
   tour: z.string({ required_error: "Please select a tour" }),
   company: z.string({ required_error: "Please select a company" }),
   guide: z.string({ required_error: "Please select a guide" }),
@@ -126,11 +124,11 @@ const formSchema = z.object({
   hotels: z.array(z.string()).refine((value) => value.some((item) => item), {
     message: "Please select at least one hotel.",
   }),
-  activities: z
-    .array(z.string())
-    .refine((value) => value.some((item) => item), {
-      message: "Please select at least one hotel.",
-    }),
+  // activities: z
+  //   .array(z.string())
+  //   .refine((value) => value.some((item) => item), {
+  //     message: "Please select at least one hotel.",
+  //   }),
   singleRoom: z.number().optional(),
   doubleRoom: z.number().optional(),
   tripleRoom: z.number().optional(),
@@ -148,12 +146,14 @@ function From({
   countries,
   companies,
   tours,
+  hotels,
   nationalities,
   closeModal,
 }: {
   countries: SelectCountries[];
   companies: SelectCompanies[];
   tours: SelectTours[];
+  hotels: SelectHotels[];
   nationalities: SelectNationalities[];
   closeModal: () => void;
 }) {
@@ -161,17 +161,17 @@ function From({
   const [companyOpen, setCompanyOpen] = useState(false);
   const [hotelsOpen, setHotelsOpen] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
-  const [cityOpen, setCityOpen] = useState(false);
+  // const [cityOpen, setCityOpen] = useState(false);
+  // const [activityOpen, setActivityOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
-  const [activityOpen, setActivityOpen] = useState(false);
   const [touristsNames, setTouristsNames] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [countryId, setCountryId] = useState("");
-  const [cityId, setCityId] = useState("");
-  const [citiesList, setCitiesList] = useState<SelectCountries[]>([]);
+  // const [cityId, setCityId] = useState("");
+  // const [citiesList, setCitiesList] = useState<SelectCountries[]>([]);
+  // const [hotelsList, setHotelsList] = useState<SelectHotels[]>([]);
   const [guidesList, setGuidesList] = useState<SelectGuides[]>([]);
-  const [hotelsList, setHotelsList] = useState<SelectHotels[]>([]);
-  const [activitiesList, setActivitiesList] = useState<SelectActivities[]>([]);
+  // const [activitiesList, setActivitiesList] = useState<SelectActivities[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [internalBookingId, setInternalBookingId] = useState("");
 
@@ -179,7 +179,7 @@ function From({
     resolver: zodResolver(formSchema),
     defaultValues: {
       hotels: [],
-      activities: [],
+      // activities: [],
     },
   });
 
@@ -194,7 +194,7 @@ function From({
         double: values.doubleRoom ?? 0,
         generalNote: values.generalNote ?? null,
         hotels: values.hotels,
-        activities: values.activities,
+        // activities: values.activities,
         internalBookingId,
         internalFlights: values.internalFlights,
         internalFlightsNote: values.internalFlightsNote ?? null,
@@ -210,7 +210,7 @@ function From({
         triple: values.tripleRoom ?? 0,
         visa: values.visa,
         country: values.country,
-        city: values.city,
+        // city: values.city,
         guide: values.guide,
       });
     } catch (error) {
@@ -224,15 +224,15 @@ function From({
 
   useEffect(() => {
     if (!countryId) return;
-    listCountryCities({ countryId, setCitiesList });
+    // listCountryCities({ countryId, setCitiesList });
     listCountryGuides({ countryId, setGuidesList });
   }, [countryId]);
 
-  useEffect(() => {
-    if (!countryId || !cityId) return;
-    listCityHotels({ countryId, cityId, setHotelsList });
-    listCityActivities({ countryId, cityId, setActivitiesList });
-  }, [countryId, cityId]);
+  // useEffect(() => {
+  //   if (!countryId || !cityId) return;
+  //   listCityHotels({ countryId, cityId, setHotelsList });
+  //   listCityActivities({ countryId, cityId, setActivitiesList });
+  // }, [countryId, cityId]);
 
   return (
     <Form {...form}>
@@ -256,6 +256,65 @@ function From({
               </FormItem>
             )}
           />
+          <FormItem className="flex flex-col justify-start">
+            <FormLabel>Tourist names</FormLabel>
+            <div className="flex gap-x-2">
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={
+                  !form.watch("pax") ||
+                  touristsNames.length >= form.watch("pax")
+                }
+              />
+              <Button
+                type="button"
+                variant={"secondary"}
+                disabled={
+                  !name ||
+                  !form.watch("pax") ||
+                  touristsNames.length >= form.watch("pax")
+                }
+                onClick={() => {
+                  setTouristsNames((prev) => [...prev, name]);
+                  setName("");
+                }}
+                className="flex gap-x-1"
+              >
+                <Plus size={16} />
+                Add
+              </Button>
+            </div>
+            <FormDescription className="flex gap-x-2">
+              <p>This fields depends on the PAX number</p>
+              <span>
+                {touristsNames.length}/
+                {!isNaN(form.watch("pax")) ? form.watch("pax") : 0}
+              </span>
+            </FormDescription>
+            <div>
+              <ul className="flex flex-wrap gap-2 p-2 text-white">
+                {touristsNames.map((name, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-1 text-sm font-medium"
+                  >
+                    {name}
+                    <XCircle
+                      size={18}
+                      className="cursor-pointer"
+                      onClick={() =>
+                        setTouristsNames((prev) =>
+                          prev.filter((_, index) => index != i),
+                        )
+                      }
+                    />
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <FormMessage />
+          </FormItem>
           <FormField
             control={form.control}
             name="internalBookingId"
@@ -417,7 +476,7 @@ function From({
                               field.onChange(name === field.value ? "" : name);
                               setCountryOpen(false);
                               setCountryId(id);
-                              setCityId("");
+                              // setCityId("");
                             }}
                           >
                             <Check
@@ -439,7 +498,7 @@ function From({
               </FormItem>
             )}
           />
-          <FormField
+          {/* <FormField
             control={form.control}
             name="city"
             render={({ field }) => (
@@ -490,7 +549,7 @@ function From({
                 <FormMessage />
               </FormItem>
             )}
-          />
+          /> */}
           <FormField
             control={form.control}
             name="guide"
@@ -498,7 +557,7 @@ function From({
               <FormItem className="flex flex-col justify-start">
                 <FormLabel className="block">Guide</FormLabel>
                 <Popover open={guideOpen} onOpenChange={setGuideOpen}>
-                  <PopoverTrigger asChild disabled={!citiesList.length}>
+                  <PopoverTrigger asChild disabled={!guidesList.length}>
                     <Button
                       variant="outline"
                       role="combobox"
@@ -549,7 +608,7 @@ function From({
               <FormItem className="flex flex-col justify-start">
                 <FormLabel className="block">Hotels</FormLabel>
                 <Popover open={hotelsOpen} onOpenChange={setHotelsOpen}>
-                  <PopoverTrigger asChild disabled={!hotelsList.length}>
+                  <PopoverTrigger asChild disabled={!hotels.length}>
                     <Button
                       variant="outline"
                       role="combobox"
@@ -567,7 +626,7 @@ function From({
                       <CommandInput placeholder="Search hotel..." />
                       <CommandEmpty>No hotel found.</CommandEmpty>
                       <CommandGroup>
-                        {hotelsList.map(({ id, name }) => (
+                        {hotels.map(({ id, name }) => (
                           <CommandItem key={id}>
                             <FormField
                               control={form.control}
@@ -614,7 +673,7 @@ function From({
               </FormItem>
             )}
           />
-          <FormField
+          {/* <FormField
             control={form.control}
             name="activities"
             render={({ field }) => (
@@ -687,7 +746,7 @@ function From({
                 <FormMessage />
               </FormItem>
             )}
-          />
+          /> */}
           <FormField
             control={form.control}
             name="company"
@@ -711,18 +770,18 @@ function From({
                       <CommandInput placeholder="Search company..." />
                       <CommandEmpty>No company found.</CommandEmpty>
                       <CommandGroup>
-                        {companies.map(({ id, name }) => (
+                        {companies.map(({ id, name, companyId }) => (
                           <CommandItem
                             key={id}
                             value={name ?? ""}
                             onSelect={() => {
                               field.onChange(name === field.value ? "" : name);
                               setCompanyOpen(false);
-                              const id = `${name ?? ""}-${format(new Date(), "dd-MM-yyyy")}-${(
+                              const id = `${companyId ?? ""}-${(
                                 Math.random() * 36
                               )
                                 .toString(36)
-                                .substring(2)}`;
+                                .substring(2, 7)}`;
                               form.setValue(
                                 "internalBookingId",
                                 name === field.value ? "" : id,
@@ -963,58 +1022,6 @@ function From({
               </FormItem>
             )}
           />
-          <FormItem className="flex flex-col justify-start">
-            <FormLabel>Tourist names</FormLabel>
-            <div className="flex gap-x-2">
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={touristsNames.length >= form.watch("pax")}
-              />
-              <Button
-                type="button"
-                variant={"secondary"}
-                disabled={!name || touristsNames.length >= form.watch("pax")}
-                onClick={() => {
-                  setTouristsNames((prev) => [...prev, name]);
-                  setName("");
-                }}
-                className="flex gap-x-1"
-              >
-                <Plus size={16} />
-                Add
-              </Button>
-            </div>
-            <FormDescription className="flex gap-x-2">
-              <p>This fields depends on the PAX number</p>
-              <span>
-                {touristsNames.length}/
-                {!isNaN(form.watch("pax")) ? form.watch("pax") : 0}
-              </span>
-            </FormDescription>
-            <div>
-              <ul className="flex flex-wrap gap-2 p-2 text-white">
-                {touristsNames.map((name, i) => (
-                  <li
-                    key={i}
-                    className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-1 text-sm font-medium"
-                  >
-                    {name}
-                    <XCircle
-                      size={18}
-                      className="cursor-pointer"
-                      onClick={() =>
-                        setTouristsNames((prev) =>
-                          prev.filter((_, index) => index != i),
-                        )
-                      }
-                    />
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <FormMessage />
-          </FormItem>
           <FormField
             control={form.control}
             name="internalFlightsNote"

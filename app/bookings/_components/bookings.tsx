@@ -5,6 +5,7 @@ import {
   SelectBookings,
   SelectCompanies,
   SelectCountries,
+  SelectHotels,
   SelectNationalities,
   SelectTours,
 } from "@/drizzle/schema";
@@ -20,11 +21,13 @@ export default function Bookings({
   companies,
   countries,
   tours,
+  hotels,
   nationalities,
 }: {
   countries: SelectCountries[];
   companies: SelectCompanies[];
   tours: SelectTours[];
+  hotels: SelectHotels[];
   nationalities: SelectNationalities[];
 }) {
   const [initialValues, setInitialValues] = useState<SelectBookings | null>(
@@ -47,6 +50,11 @@ export default function Bookings({
           setIsDeleteModalOpen,
         })}
         data={data}
+        onRowClick={(row: SelectBookings) => {
+          setInitialValues(row);
+          setIsEditModalOpen(true);
+          setIsDeleteModalOpen(false);
+        }}
       />
       {!!initialValues && (
         <EditBookingModal
@@ -54,7 +62,8 @@ export default function Bookings({
           countries={countries}
           nationalities={nationalities}
           tours={tours}
-          initialValues={{ ...initialValues }}
+          hotels={hotels}
+          initialValues={initialValues}
           setInitialValues={setInitialValues}
           isOpen={isEditModalOpen}
           setIsOpen={setIsEditModalOpen}

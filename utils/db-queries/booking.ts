@@ -47,14 +47,20 @@ export async function filterBookings(filters: BookingFilters) {
 }
 
 export async function addBookings(
-  booking: Omit<SelectBookings, "id" | "createdAt" | "updatedAt">,
+  booking: Omit<
+    SelectBookings,
+    "id" | "createdAt" | "updatedAt" | "city" | "activities"
+  >,
 ) {
   await db.insert(bookings).values(booking);
   revalidatePath("/bookings");
 }
 
 export async function updateBooking(
-  booking: Omit<SelectBookings, "createdAt" | "updatedAt">,
+  booking: Omit<
+    SelectBookings,
+    "createdAt" | "updatedAt" | "city" | "activities"
+  >,
 ) {
   await db.update(bookings).set(booking).where(eq(bookings.id, booking.id));
   revalidatePath("/bookings");

@@ -38,17 +38,15 @@ const supabase = createClient();
 
 export default function EditItineraryModal({
   isOpen,
-  cities,
-  activities,
   initialValues,
+  selectedCountries,
   setIsOpen,
   setItineraries,
   setInitialValues,
 }: {
   isOpen: boolean;
   initialValues: Itinerary;
-  cities: SelectCities[];
-  activities: SelectActivities[];
+  selectedCountries: SelectCountries[];
   setIsOpen: (value: boolean) => void;
   setInitialValues: (initialValues: Itinerary | null) => void;
   setItineraries: (cb: (itinerary: Itinerary[]) => Itinerary[]) => void;
@@ -60,9 +58,8 @@ export default function EditItineraryModal({
     SelectActivities[]
   >(initialValues.activities);
 
-  const [citiesList, setCitiesList] = useState<SelectCities[]>(cities);
-  const [activitiesList, setActivitiesList] =
-    useState<SelectActivities[]>(activities);
+  const [citiesList, setCitiesList] = useState<SelectCities[]>([]);
+  const [activitiesList, setActivitiesList] = useState<SelectActivities[]>([]);
   const [errorMessage, setErrorMessage] = useState({
     nameError: "",
     countryError: "",
@@ -95,6 +92,58 @@ export default function EditItineraryModal({
     setIsOpen(false);
     resetItineraryInputs();
   }
+
+  const getCities = useCallback(async () => {
+    setCitiesList([]);
+    try {
+      const { data, error } = await supabase
+        .from("cities")
+        .select("id, name, countryId:country_id")
+        .in(
+          "country_id",
+          selectedCountries.map(({ id }) => id),
+        );
+
+      if (error) throw error;
+
+      const cities = z.array(citySchema).parse(data);
+      setCitiesList(cities);
+    } catch (err) {
+      console.error(err);
+    }
+  }, [selectedCountries]);
+
+  const getActivities = useCallback(async () => {
+    setActivitiesList([]);
+    try {
+      const { data, error } = await supabase
+        .from("activities")
+        .select("id, name, countryId:country_id, cityId:city_id")
+        .in(
+          "city_id",
+          selectedCities.map(({ id }) => id),
+        );
+
+      if (error) throw error;
+
+      const activities = z.array(activitySchema).parse(data);
+      setActivitiesList(activities);
+    } catch (err) {
+      console.error(err);
+    }
+  }, [selectedCities]);
+
+  useEffect(() => {
+    if (!selectedCountries.length) return;
+    getCities();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCountries]);
+
+  useEffect(() => {
+    if (!selectedCities.length) return;
+    getActivities();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCities]);
 
   return (
     <Dialog

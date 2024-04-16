@@ -5,10 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const list = [
-  { name: "Country names", link: "/create/countries" },
+  { name: "Countries", link: "/create/countries" },
   { name: "Nationalities", link: "/create/nationalities" },
-  { name: "Guide names", link: "/create/guides" },
-  { name: "City names", link: "/create/cities" },
+  { name: "Guides", link: "/create/guides" },
+  { name: "Cities", link: "/create/cities" },
   { name: "Activities", link: "/create/activities" },
   { name: "Tours", link: "/create/tours" },
   { name: "Companies", link: "/create/companies" },

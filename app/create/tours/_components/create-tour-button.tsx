@@ -102,10 +102,6 @@ export default function CreateButton({
         value: selectedCountries.length,
         message: "Please add a country",
       },
-      cityError: {
-        value: selectedCities.length,
-        message: "Please add a city",
-      },
     };
 
     Object.entries(inputs).forEach((input) => {
@@ -120,9 +116,9 @@ export default function CreateButton({
   async function handleAddTour(e: FormEvent) {
     e.preventDefault();
     resetErrorMessage();
-    // if (!checkForErrorMessage()) {
-    //   return;
-    // }
+    if (!checkForErrorMessage()) {
+      return;
+    }
     setIsLoading(true);
     try {
       await addTour({
@@ -241,6 +237,11 @@ export default function CreateButton({
             }
             type="country"
           />
+          {!selectedCountries.length && errorMessage.countryError && (
+            <p className="p-2 text-sm text-red-500">
+              {errorMessage.countryError}
+            </p>
+          )}
           <ul className="flex gap-x-2 p-2 text-white">
             {selectedCountries.map(({ id, name }) => (
               <li
@@ -263,11 +264,6 @@ export default function CreateButton({
               </li>
             ))}
           </ul>
-          {!selectedCountries.length && errorMessage.countryError && (
-            <p className="p-2 text-sm text-red-500">
-              {errorMessage.countryError}
-            </p>
-          )}
         </div>
         <p className="font-bold">Itinerary</p>
         <span className="font-medium">Day {itineraries.length + 1}</span>
@@ -301,9 +297,6 @@ export default function CreateButton({
               </li>
             ))}
           </ul>
-          {!selectedCities.length && errorMessage.cityError && (
-            <p className="p-2 text-sm text-red-500">{errorMessage.cityError}</p>
-          )}
         </div>
         {/* Activities */}
         <div>
@@ -387,11 +380,10 @@ export default function CreateButton({
         </div>
         {itineraryInitialValues && (
           <EditItineraryModal
-            cities={citiesList}
-            activities={activitiesList}
-            isOpen={isEditItineraryModalOpen}
-            setIsOpen={setIsEditItineraryModalOpen}
             initialValues={itineraryInitialValues}
+            isOpen={isEditItineraryModalOpen}
+            selectedCountries={selectedCountries}
+            setIsOpen={setIsEditItineraryModalOpen}
             setInitialValues={setItineraryInitialValues}
             setItineraries={setItineraries}
           />

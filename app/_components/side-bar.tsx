@@ -14,7 +14,7 @@ export default function SideBar() {
         className={cn(
           "flex items-center gap-x-2 rounded bg-white px-8 py-1.5 font-medium text-black",
           {
-            "bg-yellow-500 text-black": pathname.includes("/create"),
+            "bg-yellow-400 text-black": pathname.includes("/create"),
           },
         )}
       >
@@ -25,7 +25,7 @@ export default function SideBar() {
         className={cn(
           "flex items-center gap-x-2 rounded bg-white px-8 py-1.5 font-medium text-black",
           {
-            "bg-yellow-500 text-black": pathname.includes("/bookings"),
+            "bg-yellow-400 text-black": pathname.includes("/bookings"),
           },
         )}
       >

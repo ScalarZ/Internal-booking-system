@@ -201,26 +201,15 @@ export function columns({
       header: "Action",
       cell: ({ row }) => {
         return (
-          <div className="flex max-w-max gap-x-2">
-            <Edit
-              size={20}
-              className="cursor-pointer text-neutral-600"
-              onClick={() => {
-                setInitialValues(row.original);
-                setIsEditModalOpen(true);
-                setIsDeleteModalOpen(false);
-              }}
-            />
-            <Trash
-              size={20}
-              className="cursor-pointer text-red-500"
-              onClick={() => {
-                setInitialValues(row.original);
-                setIsDeleteModalOpen(true);
-                setIsEditModalOpen(false);
-              }}
-            />
-          </div>
+          <Trash
+            size={20}
+            className="cursor-pointer text-red-500"
+            onClick={() => {
+              setInitialValues(row.original);
+              setIsDeleteModalOpen(true);
+              setIsEditModalOpen(false);
+            }}
+          />
         );
       },
     },

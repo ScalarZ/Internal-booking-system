@@ -103,12 +103,30 @@ export default function EditTourModal({
     setSelectedActivities([]);
   }
 
+  function checkForErrorMessage() {
+    const inputs = {
+      nameError: { value: name, message: "Please fill up this field" },
+      countryError: {
+        value: selectedCountries.length,
+        message: "Please add a country",
+      },
+    };
+
+    Object.entries(inputs).forEach((input) => {
+      if (!input[1].value) {
+        setErrorMessage((prev) => ({ ...prev, [input[0]]: input[1].message }));
+      }
+    });
+
+    return Object.values(inputs).every((input) => input.value);
+  }
+
   async function handleUpdateCountry(e: FormEvent) {
     e.preventDefault();
     resetErrorMessage();
-    // if (!checkForErrorMessage()) {
-    //   return;
-    // }
+    if (!checkForErrorMessage()) {
+      return;
+    }
     setIsLoading(true);
     try {
       await updateTour({
@@ -140,6 +158,7 @@ export default function EditTourModal({
   }
 
   const getCities = useCallback(async () => {
+    setCitiesList([]);
     try {
       const { data, error } = await supabase
         .from("cities")
@@ -159,6 +178,7 @@ export default function EditTourModal({
   }, [selectedCountries]);
 
   const getActivities = useCallback(async () => {
+    setActivitiesList([]);
     try {
       const { data, error } = await supabase
         .from("activities")
@@ -199,7 +219,7 @@ export default function EditTourModal({
     >
       <DialogContent className="gap-y-2">
         <DialogHeader>
-          <DialogTitle>Add new City</DialogTitle>
+          <DialogTitle>Update Tour</DialogTitle>
         </DialogHeader>
         <div className="mb-4">
           <Label htmlFor="country">Name</Label>
@@ -226,6 +246,11 @@ export default function EditTourModal({
             }
             type="country"
           />
+          {!selectedCountries.length && errorMessage.countryError && (
+            <p className="p-2 text-sm text-red-500">
+              {errorMessage.countryError}
+            </p>
+          )}
           <ul className="flex gap-x-2 p-2 text-white">
             {selectedCountries.map(({ id, name }) => (
               <li
@@ -248,11 +273,6 @@ export default function EditTourModal({
               </li>
             ))}
           </ul>
-          {!selectedCountries.length && errorMessage.countryError && (
-            <p className="p-2 text-sm text-red-500">
-              {errorMessage.countryError}
-            </p>
-          )}
         </div>
         <p className="font-bold">Itinerary</p>
         <span className="font-medium">Day {itineraries.length + 1}</span>
@@ -286,9 +306,6 @@ export default function EditTourModal({
               </li>
             ))}
           </ul>
-          {!selectedCities.length && errorMessage.cityError && (
-            <p className="p-2 text-sm text-red-500">{errorMessage.cityError}</p>
-          )}
         </div>
         {/* Activities */}
         <div>
@@ -370,13 +387,12 @@ export default function EditTourModal({
             </div>
           ))}
         </div>
-        {itineraryInitialValues && (
+        {!!itineraryInitialValues && (
           <EditItineraryModal
-            cities={citiesList}
-            activities={activitiesList}
             isOpen={isEditItineraryModalOpen}
-            setIsOpen={setIsEditItineraryModalOpen}
             initialValues={itineraryInitialValues}
+            selectedCountries={selectedCountries}
+            setIsOpen={setIsEditItineraryModalOpen}
             setInitialValues={setItineraryInitialValues}
             setItineraries={setItineraries}
           />
