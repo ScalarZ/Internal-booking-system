@@ -2,14 +2,14 @@
 
 import { db } from "@/drizzle/db";
 import { SelectBookings, bookings } from "@/drizzle/schema";
-import { and, between, eq } from "drizzle-orm";
+import { and, between, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 const uuidV4Regex =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function getBookings() {
-  return db.select().from(bookings);
+  return db.select().from(bookings).orderBy(desc(bookings.updatedAt));
 }
 
 export async function filterBookings(filters: BookingFilters) {
