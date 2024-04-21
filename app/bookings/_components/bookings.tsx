@@ -7,6 +7,7 @@ import {
   SelectCountries,
   SelectHotels,
   SelectNationalities,
+  SelectNileCruises,
   SelectTours,
 } from "@/drizzle/schema";
 import React, { useEffect, useState } from "react";
@@ -21,14 +22,14 @@ export default function Bookings({
   companies,
   countries,
   tours,
-  hotels,
   nationalities,
+  nileCruises,
 }: {
   countries: SelectCountries[];
   companies: SelectCompanies[];
   tours: SelectTours[];
-  hotels: SelectHotels[];
   nationalities: SelectNationalities[];
+  nileCruises: SelectNileCruises[];
 }) {
   const [initialValues, setInitialValues] = useState<SelectBookings | null>(
     null,
@@ -59,10 +60,9 @@ export default function Bookings({
       {!!initialValues && (
         <EditBookingModal
           companies={companies}
-          countries={countries}
           nationalities={nationalities}
           tours={tours}
-          hotels={hotels}
+          nileCruises={nileCruises}
           initialValues={initialValues}
           setInitialValues={setInitialValues}
           isOpen={isEditModalOpen}

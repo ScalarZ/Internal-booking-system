@@ -9,6 +9,7 @@ const list = [
   { name: "Nationalities", link: "/create/nationalities" },
   { name: "Guides", link: "/create/guides" },
   { name: "Cities", link: "/create/cities" },
+  { name: "Nile cruise", link: "/create/nile-cruise" },
   { name: "Activities", link: "/create/activities" },
   { name: "Tours", link: "/create/tours" },
   { name: "Companies", link: "/create/companies" },

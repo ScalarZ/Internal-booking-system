@@ -2,7 +2,7 @@
 
 import { db } from "@/drizzle/db";
 import { SelectBookings, bookings } from "@/drizzle/schema";
-import { and, between, desc, eq } from "drizzle-orm";
+import { and, arrayContains, between, desc, eq, gte, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 const uuidV4Regex =
@@ -15,10 +15,10 @@ export async function getBookings() {
 export async function filterBookings(filters: BookingFilters) {
   const query = db.select().from(bookings);
 
-  const eqList: ReturnType<typeof eq>[] = [];
+  const whereList: ReturnType<typeof eq>[] = [];
 
   if (filters.id)
-    eqList.push(
+    whereList.push(
       eq(
         bookings.id,
         uuidV4Regex.test(filters.id)
@@ -26,30 +26,23 @@ export async function filterBookings(filters: BookingFilters) {
           : "00000000-0000-4000-8000-000000000000",
       ),
     );
-  if (filters.country) eqList.push(eq(bookings.country, filters.country));
-  if (filters.arrivalDate?.from && filters.arrivalDate?.to)
-    eqList.push(
-      between(
-        bookings.arrivalDate,
-        filters.arrivalDate.from,
-        filters.arrivalDate.to,
-      ),
+
+  if (filters.country)
+    whereList.push(arrayContains(bookings.countries, [filters.country]));
+
+  if (filters.dateRange?.from && filters.dateRange?.to)
+    whereList.push(
+      gte(bookings.arrivalDate, filters.dateRange?.from),
+      lte(bookings.departureDate, filters.dateRange?.to),
     );
-  if (filters.departureDate?.from && filters.departureDate?.to)
-    eqList.push(
-      between(
-        bookings.departureDate,
-        filters.departureDate.from,
-        filters.departureDate.to,
-      ),
-    );
-  return query.where(and(...eqList));
+
+  return query.where(and(...whereList)).orderBy(desc(bookings.updatedAt));
 }
 
 export async function addBookings(
   booking: Omit<
     SelectBookings,
-    "id" | "createdAt" | "updatedAt" | "city" | "activities"
+    "id" | "createdAt" | "updatedAt" | "cities" | "activities" | "guide"
   >,
 ) {
   await db.insert(bookings).values(booking);
@@ -59,7 +52,7 @@ export async function addBookings(
 export async function updateBooking(
   booking: Omit<
     SelectBookings,
-    "createdAt" | "updatedAt" | "city" | "activities"
+    "createdAt" | "updatedAt" | "cities" | "activities" | "guide"
   >,
 ) {
   await db.update(bookings).set(booking).where(eq(bookings.id, booking.id));

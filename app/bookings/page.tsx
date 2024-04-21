@@ -7,17 +7,17 @@ import { getBookings } from "@/utils/db-queries/booking";
 import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
 import getQueryClient from "@/utils/get-query-provider";
 import { getNationalities } from "@/utils/db-queries/nationality";
-import { getHotels } from "@/utils/db-queries/hotel";
+import { getNileCruises } from "@/utils/db-queries/nile-cruise";
 
 export default async function BookingPage() {
   try {
-    const [countries, companies, tours, nationalities, hotels] =
+    const [countries, companies, tours, nationalities, nileCruises] =
       await Promise.all([
         getCountries(),
         getCompanies(),
         getTours(),
         getNationalities(),
-        getHotels(),
+        getNileCruises(),
       ]);
     const queryClient = getQueryClient();
     await queryClient.prefetchQuery({
@@ -29,17 +29,16 @@ export default async function BookingPage() {
       <HydrationBoundary state={dehydratedState}>
         <div className="relative p-4">
           <CreateBookingModal
-            countries={countries}
+            nileCruises={nileCruises}
             companies={companies}
             nationalities={nationalities}
             tours={tours}
-            hotels={hotels}
           />
           <Bookings
+            nileCruises={nileCruises}
             countries={countries}
             companies={companies}
             tours={tours}
-            hotels={hotels}
             nationalities={nationalities}
           />
         </div>

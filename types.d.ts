@@ -1,14 +1,10 @@
 type BookingFilters = {
-  id?: string | null;
-  country?: string | null;
-  arrivalDate?: {
+  id?: string;
+  country?: string;
+  dateRange?: {
     from?: Date;
     to?: Date;
-  } | null;
-  departureDate?: {
-    from?: Date;
-    to?: Date;
-  } | null;
+  };
 };
 
 type SelectCitiesWithCountries = SelectCities & {
@@ -34,6 +30,7 @@ type SelectCitiesWithCountries = SelectCities & {
 };
 
 type Itinerary = {
+  id: string;
   day: string;
   cities: SelectCities[];
   activities: SelectActivities[];

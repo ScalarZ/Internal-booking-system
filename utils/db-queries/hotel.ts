@@ -2,7 +2,7 @@
 
 import { db } from "@/drizzle/db";
 import { SelectHotels, hotels } from "@/drizzle/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function getHotels() {
@@ -54,4 +54,8 @@ export async function getCityHotels({
   } catch (error) {
     return { error };
   }
+}
+
+export async function getCitiesHotels(citiesId: string[]) {
+  return db.select().from(hotels).where(inArray(hotels.cityId, citiesId));
 }

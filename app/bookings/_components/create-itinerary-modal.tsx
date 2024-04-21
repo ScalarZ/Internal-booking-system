@@ -33,42 +33,40 @@ import {
 import { createClient } from "@/utils/supabase/client";
 import { activitySchema, citySchema } from "@/utils/zod-schema";
 import { z } from "zod";
+import { generateRandomId } from "@/utils/generate-random-id";
 
 const supabase = createClient();
 
-export default function EditItineraryModal({
+const initialErrorMessage = {
+  activityError: "",
+  cityError: "",
+};
+
+export default function AddItineraryModal({
+  day,
   isOpen,
-  initialValues,
   selectedCountries,
   setIsOpen,
   setItineraries,
-  setInitialValues,
 }: {
+  day: string;
   isOpen: boolean;
-  initialValues: Itinerary;
   selectedCountries: SelectCountries[];
   setIsOpen: (value: boolean) => void;
-  setInitialValues: (initialValues: Itinerary | null) => void;
   setItineraries: (cb: (itinerary: Itinerary[]) => Itinerary[]) => void;
 }) {
-  const [selectedCities, setSelectedCities] = useState<SelectCities[]>(
-    initialValues.cities,
-  );
+  const [selectedCities, setSelectedCities] = useState<SelectCities[]>([]);
   const [selectedActivities, setSelectedActivities] = useState<
     SelectActivities[]
-  >(initialValues.activities);
+  >([]);
 
   const [citiesList, setCitiesList] = useState<SelectCities[]>([]);
   const [activitiesList, setActivitiesList] = useState<SelectActivities[]>([]);
-  const [errorMessage, setErrorMessage] = useState({
-    nameError: "",
-    countryError: "",
-    cityError: "",
-  });
+  const [errorMessage, setErrorMessage] = useState(initialErrorMessage);
 
   function resetModalInputs() {
     resetItineraryInputs();
-    setErrorMessage({ nameError: "", countryError: "", cityError: "" });
+    setErrorMessage(initialErrorMessage);
   }
 
   function resetItineraryInputs() {
@@ -76,21 +74,45 @@ export default function EditItineraryModal({
     setCitiesList([]);
     setSelectedActivities([]);
     setActivitiesList([]);
-    setInitialValues(null);
   }
 
-  function editItinerary() {
-    setItineraries((prev) =>
-      prev.map((itinerary) => {
-        if (itinerary.day === initialValues?.day) {
-          itinerary.cities = selectedCities;
-          itinerary.activities = selectedActivities;
-        }
-        return itinerary;
-      }),
-    );
+  function AddItinerary() {
+    if (!checkForItineraryErrorMessage()) return;
+    setItineraries((prev) => [
+      ...prev,
+      {
+        id: generateRandomId(),
+        day: `Day ${prev.length + 1}`,
+        cities: selectedCities,
+        activities: selectedActivities,
+      },
+    ]);
     setIsOpen(false);
     resetItineraryInputs();
+  }
+
+  function checkForItineraryErrorMessage() {
+    const inputs = {
+      cityError: {
+        value: selectedCities.length,
+        message: "Please select a city",
+      },
+      activityError: {
+        value: selectedActivities.length,
+        message: "Please select an activity",
+      },
+    };
+
+    Object.entries(inputs).forEach((input) => {
+      if (!input[1].value) {
+        setErrorMessage((prev) => ({
+          ...prev,
+          [input[0]]: input[1].message,
+        }));
+      }
+    });
+
+    return Object.values(inputs).every((input) => input.value);
   }
 
   const getCities = useCallback(async () => {
@@ -155,9 +177,9 @@ export default function EditItineraryModal({
     >
       <DialogContent className="gap-y-2">
         <DialogHeader>
-          <DialogTitle>Edit Itinerary</DialogTitle>
+          <DialogTitle>Add Itinerary</DialogTitle>
         </DialogHeader>
-        <span className="font-medium">{initialValues?.day}</span>
+        <span className="font-medium">{day}</span>
         {/* Cities */}
         <div>
           <Select<SelectCities>
@@ -169,7 +191,10 @@ export default function EditItineraryModal({
             }
             type="city"
           />
-          <ul className="flex gap-2 p-2 text-white flex-wrap">
+          {!selectedCities.length && errorMessage.cityError && (
+            <p className="p-2 text-sm text-red-500">{errorMessage.cityError}</p>
+          )}
+          <ul className="flex flex-wrap gap-2 p-2 text-white">
             {selectedCities.map(({ id, name }) => (
               <li
                 key={id}
@@ -188,9 +213,6 @@ export default function EditItineraryModal({
               </li>
             ))}
           </ul>
-          {!selectedCities.length && errorMessage.cityError && (
-            <p className="p-2 text-sm text-red-500">{errorMessage.cityError}</p>
-          )}
         </div>
         {/* Activities */}
         <div>
@@ -203,7 +225,12 @@ export default function EditItineraryModal({
             }
             type="activity"
           />
-          <ul className="flex gap-2 p-2 text-white flex-wrap">
+          {!selectedActivities.length && errorMessage.activityError && (
+            <p className="p-2 text-sm text-red-500">
+              {errorMessage.activityError}
+            </p>
+          )}
+          <ul className="flex flex-wrap gap-2 p-2 text-white">
             {selectedActivities.map(({ id, name }) => (
               <li
                 key={id}
@@ -229,8 +256,8 @@ export default function EditItineraryModal({
           <Button type="button" variant={"outline"}>
             Cancel
           </Button>
-          <Button className="flex gap-x-1" onClick={editItinerary}>
-            Update
+          <Button className="flex gap-x-1" onClick={AddItinerary}>
+            Add
           </Button>
         </DialogFooter>
       </DialogContent>

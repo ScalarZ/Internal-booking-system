@@ -134,8 +134,14 @@ export const tours = pgTable("tours", {
   itinerary: jsonb("itinerary").array().$type<Itinerary[]>(),
 });
 
+export const nileCruises = pgTable("nile_cruises", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name"),
+});
+
 export const bookings = pgTable("bookings", {
   id: uuid("id").defaultRandom().primaryKey(),
+  status: boolean("status").default(true),
   pax: integer("pax"),
   tourists: jsonb("tourists").array().$type<string[]>(),
   referenceBookingId: text("reference_booking_id"),
@@ -143,8 +149,10 @@ export const bookings = pgTable("bookings", {
   tour: text("tour"),
   company: text("company"),
   currency: text("currency"),
-  arrivalDate: timestamp("arrival_date").defaultNow(),
-  departureDate: timestamp("departure_date").defaultNow(),
+  arrivalDate: timestamp("arrival_date", { withTimezone: true }).defaultNow(),
+  departureDate: timestamp("departure_date", {
+    withTimezone: true,
+  }).defaultNow(),
   hotels: jsonb("hotels").array().$type<string[]>(),
   activities: jsonb("activities").array().$type<string[]>(),
   single: integer("single"),
@@ -158,11 +166,13 @@ export const bookings = pgTable("bookings", {
   nationality: text("nationality"),
   language: text("language"),
   generalNote: text("general_note"),
-  country: text("country"),
-  city: text("city"),
+  countries: jsonb("countries").array().$type<string[]>(),
+  cities: jsonb("cities").array().$type<string[]>(),
   guide: text("guide"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  itinerary: jsonb("itinerary").array().$type<Itinerary[]>(),
+  nileCruises: jsonb("nile_cruises").array().$type<string[]>()
 });
 
 export type SelectCountries = typeof countries.$inferSelect;
@@ -175,3 +185,4 @@ export type SelectHotels = typeof hotels.$inferSelect;
 export type SelectRepresentatives = typeof representatives.$inferSelect;
 export type SelectBookings = typeof bookings.$inferSelect;
 export type SelectNationalities = typeof nationalities.$inferSelect;
+export type SelectNileCruises = typeof nileCruises.$inferSelect;

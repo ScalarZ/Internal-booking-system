@@ -44,8 +44,20 @@ import { activitySchema, citySchema } from "@/utils/zod-schema";
 import { z } from "zod";
 import EditItineraryModal from "./edit-itinerary-modal";
 import { updateTour } from "@/utils/db-queries/tour";
+import { Reorder } from "framer-motion";
+import { generateRandomId } from "@/utils/generate-random-id";
 
 const supabase = createClient();
+
+const initialError = {
+  nameError: "",
+  countryError: "",
+};
+
+const itineraryInitialError = {
+  cityError: "",
+  activityError: "",
+};
 
 export default function EditTourModal({
   isOpen,
@@ -76,31 +88,34 @@ export default function EditTourModal({
   const [isEditItineraryModalOpen, setIsEditItineraryModalOpen] =
     useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState({
-    nameError: "",
-    countryError: "",
-    cityError: "",
-  });
+  const [errorMessage, setErrorMessage] = useState(initialError);
   const [itineraries, setItineraries] = useState<Itinerary[]>(
     initialValues.itinerary ?? [],
   );
+  const [itineraryErrorMessage, setItineraryErrorMessage] = useState(
+    itineraryInitialError,
+  );
 
   function resetErrorMessage() {
-    setErrorMessage({ nameError: "", countryError: "", cityError: "" });
+    setErrorMessage(initialError);
   }
+
   function resetModalInputs() {
     setName("");
-    resetItineraryInputs();
-    setInitialValues(null);
+    setSelectedCountries([]);
+    setSelectedCities([]);
+    setSelectedActivities([]);
+    setCitiesList([]);
+    setActivitiesList([]);
+    setItineraries([]);
     resetErrorMessage();
+    setInitialValues(null);
   }
 
   function resetItineraryInputs() {
-    setSelectedCountries([]);
     setSelectedCities([]);
-    setCitiesList([]);
-    setActivitiesList([]);
     setSelectedActivities([]);
+    setActivitiesList([]);
   }
 
   function checkForErrorMessage() {
@@ -115,6 +130,30 @@ export default function EditTourModal({
     Object.entries(inputs).forEach((input) => {
       if (!input[1].value) {
         setErrorMessage((prev) => ({ ...prev, [input[0]]: input[1].message }));
+      }
+    });
+
+    return Object.values(inputs).every((input) => input.value);
+  }
+
+  function checkForItineraryErrorMessage() {
+    const inputs = {
+      cityError: {
+        value: selectedCities.length,
+        message: "Please select a city",
+      },
+      activityError: {
+        value: selectedActivities.length,
+        message: "Please select an activity",
+      },
+    };
+
+    Object.entries(inputs).forEach((input) => {
+      if (!input[1].value) {
+        setItineraryErrorMessage((prev) => ({
+          ...prev,
+          [input[0]]: input[1].message,
+        }));
       }
     });
 
@@ -145,18 +184,21 @@ export default function EditTourModal({
   }
 
   function addItinerary() {
+    if (!checkForItineraryErrorMessage()) {
+      return;
+    }
     setItineraries((prev) => [
       ...prev,
       {
+        id: generateRandomId(),
         day: `Day ${itineraries.length + 1}`,
-        countries: selectedCountries,
         cities: selectedCities,
         activities: selectedActivities,
       },
     ]);
     resetItineraryInputs();
+    setItineraryErrorMessage(itineraryInitialError);
   }
-
   const getCities = useCallback(async () => {
     setCitiesList([]);
     try {
@@ -287,6 +329,11 @@ export default function EditTourModal({
             }
             type="city"
           />
+          {!selectedCities.length && itineraryErrorMessage.cityError && (
+            <p className="p-2 text-sm text-red-500">
+              {itineraryErrorMessage.cityError}
+            </p>
+          )}
           <ul className="flex gap-x-2 p-2 text-white">
             {selectedCities.map(({ id, name }) => (
               <li
@@ -318,6 +365,12 @@ export default function EditTourModal({
             }
             type="activity"
           />
+          {!selectedActivities.length &&
+            itineraryErrorMessage.activityError && (
+              <p className="p-2 text-sm text-red-500">
+                {itineraryErrorMessage.activityError}
+              </p>
+            )}
           <ul className="flex gap-x-2 p-2 text-white">
             {selectedActivities.map(({ id, name }) => (
               <li
@@ -344,48 +397,90 @@ export default function EditTourModal({
           Add day
         </Button>
         <div className="max-h-[340px] overflow-y-auto">
-          {itineraries.map(({ day, activities, cities }) => (
-            <div
-              key={day}
-              className="flex items-start justify-between border-t border-neutral-200 p-2 first:border-none"
-            >
-              <div>
-                <p>{day}</p>
-                <p>Cities: {cities.map(({ name }) => name).join(", ")}</p>
-                <p>
-                  Activities: {activities.map(({ name }) => name).join(", ")}
-                </p>
-              </div>
-              <div className="flex gap-x-2">
-                <Edit
-                  size={18}
-                  className="cursor-pointer text-neutral-600"
-                  onClick={() => {
-                    setItineraryInitialValues({
-                      day,
-                      cities,
-                      activities,
-                    });
-                    setIsEditItineraryModalOpen(true);
-                  }}
-                />
-                <Trash
-                  size={18}
-                  className="cursor-pointer text-red-500"
-                  onClick={() => {
-                    setItineraries((prev) =>
-                      prev
-                        .filter((itinerary) => itinerary.day !== day)
-                        .map((itinerary, i) => ({
-                          ...itinerary,
-                          day: `Day ${i + 1}`,
-                        })),
-                    );
-                  }}
-                />
-              </div>
-            </div>
-          ))}
+          <Reorder.Group
+            values={itineraries.map(({ id }) => id)}
+            onReorder={(newOrd) =>
+              setItineraries((prev) =>
+                (
+                  newOrd.map((id) => {
+                    const itinerary = prev.find((item) => item.id === id)!;
+                    return itinerary;
+                  }) as Itinerary[]
+                ).map((itinerary, i) => ({
+                  ...itinerary,
+                  day: `Day ${i + 1}`,
+                })),
+              )
+            }
+            layoutScroll
+          >
+            {itineraries.map(({ id, day, activities, cities }) => (
+              <Reorder.Item
+                key={id}
+                value={id}
+                className="flex cursor-grab items-start justify-between border-t border-neutral-200 bg-white p-2 first:border-none"
+              >
+                <div className="flex flex-col gap-y-1">
+                  <span className="font-medium">{day}</span>
+                  <div className="flex items-center gap-x-2 text-sm">
+                    <span className="font-medium">Cities:</span>
+                    <ul className="flex gap-x-1 text-white">
+                      {cities.map(({ id, name }) => (
+                        <li
+                          key={id}
+                          className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-0.5 text-sm font-medium"
+                        >
+                          {name}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="flex items-center gap-x-2 text-sm">
+                    <span className="font-medium">Activities:</span>
+                    <ul className="flex gap-x-1 text-white">
+                      {activities.map(({ id, name }) => (
+                        <li
+                          key={id}
+                          className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-0.5 text-sm font-medium"
+                        >
+                          {name}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <div className="flex gap-x-2">
+                  <Edit
+                    size={18}
+                    className="cursor-pointer text-neutral-600"
+                    onClick={() => {
+                      setItineraryInitialValues({
+                        id,
+                        day,
+                        cities,
+                        activities,
+                      });
+                      setIsEditItineraryModalOpen(true);
+                    }}
+                  />
+                  <Trash
+                    size={18}
+                    className="cursor-pointer text-red-500"
+                    onClick={() => {
+                      setItineraries((prev) =>
+                        prev
+                          .filter((itinerary) => itinerary.day !== day)
+                          .map((itinerary, i) => ({
+                            ...itinerary,
+                            day: `Day ${i + 1}`,
+                          })),
+                      );
+                    }}
+                  />
+                </div>
+              </Reorder.Item>
+            ))}
+          </Reorder.Group>
         </div>
         {!!itineraryInitialValues && (
           <EditItineraryModal

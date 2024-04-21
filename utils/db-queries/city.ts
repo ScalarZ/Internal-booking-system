@@ -9,16 +9,6 @@ export async function getCities() {
   return db.query.cities.findMany({ with: { country: true } });
 }
 
-export async function getCountryCities(cityId: string) {
-  try {
-    return {
-      data: await db.select().from(cities).where(eq(cities.countryId, cityId)),
-    };
-  } catch (error) {
-    return { error };
-  }
-}
-
 export async function addCity(city: Omit<SelectCities, "id">) {
   await db.insert(cities).values(city);
   revalidatePath("/create/cities");
@@ -35,4 +25,14 @@ export async function updateCity(city: SelectCities) {
 export async function deleteCity(city: { id: string }) {
   await db.delete(cities).where(eq(cities.id, city.id));
   revalidatePath("/create/cities");
+}
+
+export async function getCountryCities(cityId: string) {
+  try {
+    return {
+      data: await db.select().from(cities).where(eq(cities.countryId, cityId)),
+    };
+  } catch (error) {
+    return { error };
+  }
 }

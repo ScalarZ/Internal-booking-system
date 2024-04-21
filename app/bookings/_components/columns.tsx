@@ -20,20 +20,34 @@ export function columns({
       header: "ID",
     },
     {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) =>
+        row.original.status ? (
+          <Check className="text-green-500" />
+        ) : (
+          <X className="text-red-500" />
+        ),
+    },
+    {
       accessorKey: "company",
       header: "Company",
     },
     {
-      accessorKey: "country",
-      header: "Country",
-    },
-    {
-      accessorKey: "city",
-      header: "City",
-    },
-    {
-      accessorKey: "guide",
-      header: "Guide",
+      accessorKey: "countries",
+      header: "Countries",
+      cell: ({ row }) => (
+        <ul className="flex gap-x-1 text-white">
+          {row.original.countries?.map((name, i) => (
+            <li
+              key={i}
+              className="flex items-center gap-x-1 rounded-full bg-blue-500 px-2 py-1 text-xs font-semibold"
+            >
+              {name}
+            </li>
+          ))}
+        </ul>
+      ),
     },
     {
       accessorKey: "currency",
@@ -89,22 +103,6 @@ export function columns({
     {
       accessorKey: "internalBookingId",
       header: "Internal booking ID",
-    },
-    {
-      accessorKey: "activities",
-      header: "Activities",
-      cell: ({ row }) => (
-        <ul className="flex gap-x-1 text-white">
-          {row.original.activities?.map((name, i) => (
-            <li
-              key={i}
-              className="flex items-center gap-x-1 rounded-full bg-blue-500 px-2 py-1 text-xs font-semibold"
-            >
-              {name}
-            </li>
-          ))}
-        </ul>
-      ),
     },
     {
       accessorKey: "referenceBookingId",

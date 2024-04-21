@@ -41,3 +41,7 @@ export async function deleteTour(tour: { id: string }) {
   await db.delete(tours).where(eq(tours.id, tour.id));
   revalidatePath("/create/tours");
 }
+
+export async function getTourCities(tourName: string) {
+  return db.select().from(tours).where(eq(tours.name, tourName));
+}

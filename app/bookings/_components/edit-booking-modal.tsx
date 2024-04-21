@@ -7,7 +7,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Command,
@@ -44,8 +43,10 @@ import {
   CalendarIcon,
   Check,
   ChevronsUpDown,
+  Edit,
   Loader,
   Plus,
+  Trash,
   XCircle,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -58,37 +59,36 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
-  SelectActivities,
   SelectBookings,
+  SelectCities,
   SelectCompanies,
   SelectCountries,
-  SelectGuides,
   SelectHotels,
   SelectNationalities,
+  SelectNileCruises,
   SelectTours,
 } from "@/drizzle/schema";
-import { listCountryCities } from "@/utils/list-country-cities";
 import capitalize from "@/utils/capitalize";
-import { listCountryGuides } from "@/utils/list-country-guides";
-import { listCityHotels } from "@/utils/list-city-hotels";
-import { listCityActivities } from "@/utils/list-city-activities";
 import { updateBooking } from "@/utils/db-queries/booking";
+import { getCitiesHotels } from "@/utils/db-queries/hotel";
+import EditItineraryModal from "@/app/create/tours/_components/edit-itinerary-modal";
+import AddItineraryModal from "./create-itinerary-modal";
+import { Reorder } from "framer-motion";
+import { getTourCities } from "@/utils/db-queries/tour";
 
 export default function EditBookingModal({
-  countries,
   companies,
   tours,
-  hotels,
+  nileCruises,
   nationalities,
   initialValues,
   isOpen,
   setIsOpen,
   setInitialValues,
 }: {
-  countries: SelectCountries[];
   companies: SelectCompanies[];
   tours: SelectTours[];
-  hotels: SelectHotels[];
+  nileCruises: SelectNileCruises[];
   nationalities: SelectNationalities[];
   isOpen: boolean;
   initialValues: SelectBookings;
@@ -103,11 +103,10 @@ export default function EditBookingModal({
         </DialogHeader>
         <From
           initialValues={initialValues}
-          countries={countries}
           companies={companies}
           nationalities={nationalities}
           tours={tours}
-          hotels={hotels}
+          nileCruises={nileCruises}
           closeModal={() => setIsOpen(false)}
           setInitialValues={setInitialValues}
         />
@@ -117,29 +116,22 @@ export default function EditBookingModal({
 }
 
 const formSchema = z.object({
-  pax: z.number().min(1, "Please enter a number"),
+  pax: z.number({ required_error: "Please enter a number" }).min(1),
   internalBookingId: z
     .string({
       required_error: "Please enter an internal booking id",
     })
     .optional(),
   referenceBookingId: z.string().optional(),
-  country: z.string({ required_error: "Please select a country" }),
-  // city: z.string({ required_error: "Please select a city" }),
   tour: z.string({ required_error: "Please select a tour" }),
   company: z.string({ required_error: "Please select a company" }),
-  guide: z.string({ required_error: "Please select a guide" }),
   currency: z.string({ required_error: "Please select a currency" }),
   arrivalDate: z.date({ required_error: "Please select an arrival date" }),
   departureDate: z.date({ required_error: "Please select an departure date" }),
   hotels: z.array(z.string()).refine((value) => value.some((item) => item), {
     message: "Please select at least one hotel.",
   }),
-  // activities: z
-  //   .array(z.string())
-  //   .refine((value) => value.some((item) => item), {
-  //     message: "Please select at least one hotel.",
-  //   }),
+  nileCruises: z.array(z.string()).optional(),
   singleRoom: z.number().optional(),
   doubleRoom: z.number().optional(),
   tripleRoom: z.number().optional(),
@@ -151,52 +143,52 @@ const formSchema = z.object({
   nationality: z.string({ required_error: "Please select a nationality" }),
   language: z.string({ required_error: "Please select a language" }),
   generalNote: z.string().optional(),
+  status: z.boolean().default(true),
 });
 
 export function From({
-  countries,
   companies,
   tours,
-  hotels,
+  nileCruises,
   nationalities,
   initialValues,
   setInitialValues,
   closeModal,
 }: {
-  countries: SelectCountries[];
   companies: SelectCompanies[];
   tours: SelectTours[];
-  hotels: SelectHotels[];
   nationalities: SelectNationalities[];
+  nileCruises: SelectNileCruises[];
   initialValues: SelectBookings;
   closeModal: () => void;
   setInitialValues: (value: SelectBookings | null) => void;
 }) {
+  const [name, setName] = useState("");
+  const [internalBookingId, setInternalBookingId] = useState("");
   const [tourOpen, setTourOpen] = useState(false);
   const [companyOpen, setCompanyOpen] = useState(false);
   const [hotelsOpen, setHotelsOpen] = useState(false);
-  const [countryOpen, setCountryOpen] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(false);
-  // const [cityOpen, setCityOpen] = useState(false);
-  // const [activityOpen, setActivityOpen] = useState(false);
-  const [touristsNames, setTouristsNames] = useState<string[]>(
-    (initialValues.tourists as string[]) ?? [],
-  );
-  const [name, setName] = useState("");
-  const [countryId, setCountryId] = useState("");
-  // const [cityId, setCityId] = useState("");
-  // const [citiesList, setCitiesList] = useState<SelectCountries[]>([]);
-  // const [activitiesList, setActivitiesList] = useState<SelectActivities[]>([]);
-  const [guidesList, setGuidesList] = useState<SelectGuides[]>([]);
-  // const [hotelsList, setHotelsList] = useState<SelectHotels[]>([]);
+  const [nileCruiseOpen, setNileCruiseOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [internalBookingId, setInternalBookingId] = useState("");
+  const [isEditItineraryModalOpen, setIsEditItineraryModalOpen] =
+    useState(false);
+  const [addItineraryModalOpen, setAddItineraryModalOpen] = useState(false);
+  const [touristsNames, setTouristsNames] = useState<string[]>(
+    initialValues.tourists ?? [],
+  );
+  const [tourCountries, setTourCountries] = useState<SelectCountries[]>([]);
+  const [tourCities, setTourCities] = useState<SelectCities[]>([]);
+  const [citiesHotels, setCitiesHotels] = useState<SelectHotels[]>([]);
+  const [itineraries, setItineraries] = useState<Itinerary[]>(
+    initialValues.itinerary ?? [],
+  );
+  const [itineraryInitialValues, setItineraryInitialValues] =
+    useState<Itinerary | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       hotels: (initialValues.hotels as string[]) ?? [],
-      // activities: (initialValues.activities as string[]) ?? [],
       pax: initialValues.pax ?? undefined,
       internalBookingId: initialValues.internalBookingId ?? undefined,
       arrivalDate: initialValues.arrivalDate ?? undefined,
@@ -216,11 +208,46 @@ export function From({
       tips: initialValues.tips ?? undefined,
       tour: initialValues.tour ?? undefined,
       visa: initialValues.visa ?? undefined,
-      country: initialValues.country ?? undefined,
-      // city: initialValues.city ?? undefined,
-      guide: initialValues.guide ?? undefined,
+      nileCruises: initialValues.nileCruises ?? undefined,
+      status: initialValues.status ?? undefined,
     },
   });
+
+  async function listCitiesHotels() {
+    try {
+      const hotels = await getCitiesHotels(tourCities.map(({ id }) => id));
+      setCitiesHotels(hotels);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function listTourCountries() {
+    if (!initialValues.tour) return;
+    try {
+      const tour = await getTourCities(initialValues.tour);
+      setTourCountries(tour[0].countries ?? []);
+      setTourCities(
+        tour[0].itinerary?.reduce<SelectCities[]>(
+          (acc, curr) => [...acc, ...curr.cities],
+          [],
+        ) ?? [],
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  useEffect(() => {
+    if (!tourCities.length) return;
+    listCitiesHotels();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourCities]);
+
+  useEffect(() => {
+    listTourCountries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -234,7 +261,6 @@ export function From({
         double: values.doubleRoom ?? 0,
         generalNote: values.generalNote ?? null,
         hotels: values.hotels,
-        // activities: values.activities,
         internalBookingId,
         internalFlights: values.internalFlights,
         internalFlightsNote: values.internalFlightsNote ?? null,
@@ -249,9 +275,10 @@ export function From({
         tourists: touristsNames,
         triple: values.tripleRoom ?? 0,
         visa: values.visa,
-        country: values.country,
-        // city: values.city,
-        guide: values.guide,
+        countries: tourCountries?.map(({ name }) => `${name}`),
+        status: values.status,
+        itinerary: itineraries,
+        nileCruises: values.nileCruises ?? null,
       });
     } catch (error) {
       console.error(error);
@@ -262,30 +289,6 @@ export function From({
       setInitialValues(null);
     }
   }
-
-  useEffect(() => {
-    const country = countries.find(
-      ({ name }) => name === initialValues.country,
-    );
-    if (country) setCountryId(country.id);
-  }, [countries, initialValues.country]);
-
-  // useEffect(() => {
-  //   const city = citiesList.find(({ name }) => name === initialValues.city);
-  //   if (city) setCityId(city.id);
-  // }, [citiesList, initialValues.city]);
-
-  useEffect(() => {
-    if (!countryId) return;
-    // listCountryCities({ countryId, setCitiesList });
-    listCountryGuides({ countryId, setGuidesList });
-  }, [countryId]);
-
-  // useEffect(() => {
-  //   if (!countryId || !cityId) return;
-  //   listCityHotels({ countryId, cityId, setHotelsList });
-  //   listCityActivities({ countryId, cityId, setActivitiesList });
-  // }, [countryId, cityId]);
 
   return (
     <Form {...form}>
@@ -322,7 +325,7 @@ export function From({
               />
               <Button
                 type="button"
-                variant={"secondary"}
+                variant="secondary"
                 disabled={
                   !name ||
                   !form.watch("pax") ||
@@ -378,6 +381,9 @@ export function From({
                 <FormControl>
                   <Input type="text" {...field} />
                 </FormControl>
+                <FormDescription className="flex gap-x-2">
+                  Generated when selecting a company
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -446,7 +452,6 @@ export function From({
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="tour"
@@ -459,7 +464,7 @@ export function From({
                       variant="outline"
                       role="combobox"
                       aria-expanded={tourOpen}
-                      className="w-full justify-between"
+                      className="w-full justify-between overflow-hidden"
                     >
                       {field.value ? field.value : "Select a tour"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -470,13 +475,27 @@ export function From({
                       <CommandInput placeholder="Search tour..." />
                       <CommandEmpty>No tour found.</CommandEmpty>
                       <CommandGroup>
-                        {tours.map(({ id, name }) => (
+                        {tours.map(({ id, name, countries, itinerary }) => (
                           <CommandItem
                             key={id}
                             value={name ?? ""}
                             onSelect={() => {
                               field.onChange(name === field.value ? "" : name);
                               setTourOpen(false);
+                              setTourCountries(
+                                name === field.value ? [] : countries ?? [],
+                              );
+                              setTourCities(
+                                name === field.value
+                                  ? []
+                                  : itinerary?.reduce<SelectCities[]>(
+                                      (acc, curr) => [...acc, ...curr.cities],
+                                      [],
+                                    ) ?? [],
+                              );
+                              setItineraries(
+                                name === field.value ? [] : itinerary ?? [],
+                              );
                             }}
                           >
                             <Check
@@ -495,165 +514,122 @@ export function From({
                   </PopoverContent>
                 </Popover>
                 <FormMessage />
+                <div>
+                  <ul className="flex flex-wrap gap-2 p-2 text-white">
+                    {tourCountries.map(({ name }, i) => (
+                      <li
+                        key={i}
+                        className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-1 text-sm font-medium"
+                      >
+                        {name}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="country"
-            render={({ field }) => (
-              <FormItem className="flex flex-col justify-start">
-                <FormLabel className="block">Country</FormLabel>
-                <Popover open={countryOpen} onOpenChange={setCountryOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={countryOpen}
-                      className="w-full justify-between"
-                    >
-                      {field.value ? field.value : "Select a country"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className=" p-0">
-                    <Command>
-                      <CommandInput placeholder="Search country..." />
-                      <CommandEmpty>No country found.</CommandEmpty>
-                      <CommandGroup>
-                        {countries.map(({ id, name }) => (
-                          <CommandItem
-                            key={id}
-                            value={name ?? ""}
-                            onSelect={() => {
-                              field.onChange(name === field.value ? "" : name);
-                              setCountryOpen(false);
-                              setCountryId(id);
-                              // setCityId("");
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                field.value === name
-                                  ? "opacity-100"
-                                  : "opacity-0",
-                              )}
-                            />
-                            {name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          {/* <FormField
-            control={form.control}
-            name="city"
-            render={({ field }) => (
-              <FormItem className="flex flex-col justify-start">
-                <FormLabel className="block">City</FormLabel>
-                <Popover open={cityOpen} onOpenChange={setCityOpen}>
-                  <PopoverTrigger asChild disabled={!citiesList.length}>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={cityOpen}
-                      className="w-full justify-between"
-                    >
-                      {field.value ? field.value : "Select a city"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className=" p-0">
-                    <Command>
-                      <CommandInput placeholder="Search city..." />
-                      <CommandEmpty>No city found.</CommandEmpty>
-                      <CommandGroup>
-                        {citiesList.map(({ id, name }) => (
-                          <CommandItem
-                            key={id}
-                            value={name ?? ""}
-                            onSelect={() => {
-                              field.onChange(name === field.value ? "" : name);
-                              setCityOpen(false);
-                              setCityId(id);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                field.value === name
-                                  ? "opacity-100"
-                                  : "opacity-0",
-                              )}
-                            />
-                            {name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          /> */}
-          <FormField
-            control={form.control}
-            name="guide"
-            render={({ field }) => (
-              <FormItem className="flex flex-col justify-start">
-                <FormLabel className="block">Guide</FormLabel>
-                <Popover open={guideOpen} onOpenChange={setGuideOpen}>
-                  <PopoverTrigger asChild disabled={!guidesList.length}>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={guideOpen}
-                      className="w-full justify-between"
-                    >
-                      {field.value ? field.value : "Select a guide"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className=" p-0">
-                    <Command>
-                      <CommandInput placeholder="Search guide..." />
-                      <CommandEmpty>No guide found.</CommandEmpty>
-                      <CommandGroup>
-                        {guidesList.map(({ id, name }) => (
-                          <CommandItem
-                            key={id}
-                            value={name ?? ""}
-                            onSelect={() => {
-                              field.onChange(name === field.value ? "" : name);
-                              setGuideOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                field.value === name
-                                  ? "opacity-100"
-                                  : "opacity-0",
-                              )}
-                            />
-                            {name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {!!itineraries.length && (
+            <div className="col-span-full space-y-2">
+              <div className="flex w-full justify-end">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setAddItineraryModalOpen(true)}
+                  className="flex h-8 gap-x-1"
+                >
+                  <Plus size={16} />
+                  Add itinerary
+                </Button>
+              </div>
+              <Reorder.Group
+                axis="x"
+                values={itineraries.map(({ id }) => id)}
+                onReorder={(newOrd) =>
+                  setItineraries((prev) =>
+                    (
+                      newOrd.map((id) => {
+                        const itinerary = prev.find((item) => item.id === id)!;
+                        return itinerary;
+                      }) as Itinerary[]
+                    ).map((itinerary, i) => ({
+                      ...itinerary,
+                      day: `Day ${i + 1}`,
+                    })),
+                  )
+                }
+                layoutScroll
+                className="flex w-full flex-nowrap overflow-x-auto border"
+              >
+                {itineraries.map(({ id, day, activities, cities }) => (
+                  <Reorder.Item
+                    key={id}
+                    value={id}
+                    className="flex max-w-min cursor-grab items-start justify-between border-l border-neutral-200 bg-white p-2 first:border-none"
+                  >
+                    <div className="flex flex-col gap-y-1">
+                      <span className="font-medium">{day}</span>
+                      <div className="flex items-start gap-x-2 text-sm">
+                        <span className="font-medium">Cities:</span>
+                        <ul className="flex flex-wrap gap-x-1 gap-y-1 text-white">
+                          {cities.map(({ id, name }) => (
+                            <li
+                              key={id}
+                              className="flex items-center gap-x-1 whitespace-nowrap rounded-full bg-neutral-900 px-2 py-0.5 text-sm font-medium"
+                            >
+                              {name}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="flex items-start gap-x-2 text-sm">
+                        <span className="font-medium">Activities:</span>
+                        <ul className="flex flex-wrap gap-x-1 gap-y-1 text-white">
+                          {activities.map(({ id, name }) => (
+                            <li
+                              key={id}
+                              className="flex items-center gap-x-1 whitespace-nowrap rounded-full bg-neutral-900 px-2 py-0.5 text-sm font-medium"
+                            >
+                              {name}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                    <div className="flex gap-x-2">
+                      <Edit
+                        size={18}
+                        className="cursor-pointer text-neutral-600"
+                        onClick={() => {
+                          setItineraryInitialValues({
+                            id,
+                            day,
+                            cities,
+                            activities,
+                          });
+                          setIsEditItineraryModalOpen(true);
+                        }}
+                      />
+                      <Trash
+                        size={18}
+                        className="cursor-pointer text-red-500"
+                        onClick={() => {
+                          setItineraries((prev) =>
+                            prev
+                              .filter((itinerary) => itinerary.day !== day)
+                              .map((itinerary, i) => ({
+                                ...itinerary,
+                                day: `Day ${i + 1}`,
+                              })),
+                          );
+                        }}
+                      />
+                    </div>
+                  </Reorder.Item>
+                ))}
+              </Reorder.Group>
+            </div>
+          )}
           <FormField
             control={form.control}
             name="hotels"
@@ -661,12 +637,12 @@ export function From({
               <FormItem className="flex flex-col justify-start">
                 <FormLabel className="block">Hotels</FormLabel>
                 <Popover open={hotelsOpen} onOpenChange={setHotelsOpen}>
-                  <PopoverTrigger asChild disabled={!hotels.length}>
+                  <PopoverTrigger asChild disabled={!citiesHotels.length}>
                     <Button
                       variant="outline"
                       role="combobox"
                       aria-expanded={hotelsOpen}
-                      className="w-full justify-between"
+                      className="w-full justify-between overflow-hidden"
                     >
                       {field.value.length
                         ? field.value.map((hotel) => capitalize(`${hotel}, `))
@@ -679,7 +655,7 @@ export function From({
                       <CommandInput placeholder="Search hotel..." />
                       <CommandEmpty>No hotel found.</CommandEmpty>
                       <CommandGroup>
-                        {hotels.map(({ id, name }) => (
+                        {citiesHotels.map(({ id, name }) => (
                           <CommandItem key={id}>
                             <FormField
                               control={form.control}
@@ -726,38 +702,36 @@ export function From({
               </FormItem>
             )}
           />
-          {/* <FormField
+          <FormField
             control={form.control}
-            name="activities"
+            name="nileCruises"
             render={({ field }) => (
               <FormItem className="flex flex-col justify-start">
-                <FormLabel className="block">Activities</FormLabel>
-                <Popover open={activityOpen} onOpenChange={setActivityOpen}>
-                  <PopoverTrigger asChild disabled={!hotelsList.length}>
+                <FormLabel className="block">Nile Cruises</FormLabel>
+                <Popover open={nileCruiseOpen} onOpenChange={setNileCruiseOpen}>
+                  <PopoverTrigger asChild disabled={!nileCruises.length}>
                     <Button
                       variant="outline"
                       role="combobox"
-                      aria-expanded={activityOpen}
-                      className="w-full justify-between"
+                      aria-expanded={nileCruiseOpen}
+                      className="w-full justify-between overflow-hidden"
                     >
-                      {field.value.length
-                        ? field.value.map((activity) =>
-                            capitalize(`${activity}, `),
-                          )
-                        : "Select activities"}
+                      {field.value?.length
+                        ? field.value?.map((hotel) => capitalize(`${hotel}, `))
+                        : "Select a nile cruises"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className=" p-0">
                     <Command>
-                      <CommandInput placeholder="Search activity..." />
-                      <CommandEmpty>No activity found.</CommandEmpty>
+                      <CommandInput placeholder="Search hotel..." />
+                      <CommandEmpty>No nile cruise found.</CommandEmpty>
                       <CommandGroup>
-                        {activitiesList.map(({ id, name }) => (
+                        {nileCruises.map(({ id, name }) => (
                           <CommandItem key={id}>
                             <FormField
                               control={form.control}
-                              name="activities"
+                              name="nileCruises"
                               render={({ field }) => {
                                 return (
                                   <FormItem
@@ -772,7 +746,7 @@ export function From({
                                         onCheckedChange={(checked) => {
                                           return checked
                                             ? field.onChange([
-                                                ...field.value,
+                                                ...(field.value ?? []),
                                                 name,
                                               ])
                                             : field.onChange(
@@ -799,7 +773,7 @@ export function From({
                 <FormMessage />
               </FormItem>
             )}
-          /> */}
+          />
           <FormField
             control={form.control}
             name="company"
@@ -812,7 +786,7 @@ export function From({
                       variant="outline"
                       role="combobox"
                       aria-expanded={companyOpen}
-                      className="w-full justify-between"
+                      className="w-full justify-between overflow-hidden"
                     >
                       {field.value ? field.value : "Select a company"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -952,10 +926,27 @@ export function From({
           />
           <FormField
             control={form.control}
-            name="departureDate"
+            name="tips"
             render={({ field }) => (
               <FormItem className="flex flex-col justify-start">
-                <FormLabel>Departure date</FormLabel>
+                <FormLabel>Tips</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="arrivalDate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col justify-start">
+                <FormLabel>Arrival date</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -989,10 +980,10 @@ export function From({
           />
           <FormField
             control={form.control}
-            name="arrivalDate"
+            name="departureDate"
             render={({ field }) => (
               <FormItem className="flex flex-col justify-start">
-                <FormLabel>Arrival date</FormLabel>
+                <FormLabel>Departure date</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -1060,18 +1051,18 @@ export function From({
           />
           <FormField
             control={form.control}
-            name="tips"
+            name="status"
             render={({ field }) => (
               <FormItem className="flex flex-col justify-start">
-                <FormLabel>Tips</FormLabel>
+                <div className="space-y-0.5">
+                  <FormLabel>Status</FormLabel>
+                </div>
                 <FormControl>
-                  <Input
-                    type="number"
-                    {...field}
-                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
                   />
                 </FormControl>
-                <FormMessage />
               </FormItem>
             )}
           />
@@ -1125,6 +1116,25 @@ export function From({
           </Button>
         </DialogFooter>
       </form>
+      {itineraryInitialValues && (
+        <EditItineraryModal
+          initialValues={itineraryInitialValues}
+          isOpen={isEditItineraryModalOpen}
+          selectedCountries={tourCountries}
+          setIsOpen={setIsEditItineraryModalOpen}
+          setInitialValues={setItineraryInitialValues}
+          setItineraries={setItineraries}
+        />
+      )}
+      {!!itineraries.length && (
+        <AddItineraryModal
+          day={`Day ${itineraries.length + 1}`}
+          isOpen={addItineraryModalOpen}
+          setIsOpen={setAddItineraryModalOpen}
+          selectedCountries={tourCountries}
+          setItineraries={setItineraries}
+        />
+      )}
     </Form>
   );
 }
