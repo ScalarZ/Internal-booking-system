@@ -160,7 +160,7 @@ export default function EditTourModal({
     return Object.values(inputs).every((input) => input.value);
   }
 
-  async function handleUpdateCountry(e: FormEvent) {
+  async function handle(e: FormEvent) {
     e.preventDefault();
     resetErrorMessage();
     if (!checkForErrorMessage()) {
@@ -496,7 +496,7 @@ export default function EditTourModal({
           <Button type="button" variant={"outline"}>
             Cancel
           </Button>
-          <Button className="flex gap-x-1" onClick={handleUpdateCountry}>
+          <Button className="flex gap-x-1" onClick={handle}>
             {isLoading && <Loader size={14} className="animate-spin" />}
             Update
           </Button>
