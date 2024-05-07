@@ -24,6 +24,7 @@ export default async function BookingPage() {
       queryKey: ["bookings"],
       queryFn: getBookings,
     });
+    console.log(await getBookings());
     const dehydratedState = dehydrate(queryClient);
     return (
       <HydrationBoundary state={dehydratedState}>

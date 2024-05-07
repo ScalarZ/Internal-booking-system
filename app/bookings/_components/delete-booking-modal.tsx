@@ -21,7 +21,7 @@ export default function DeleteBookingModal({
 }: {
   isOpen: boolean;
   setIsOpen: (value: boolean) => void;
-  bookingId: string;
+  bookingId: number;
   setInitialValues: (value: SelectBookings | null) => void;
 }) {
   const [isLoading, setIsLoading] = useState(false);

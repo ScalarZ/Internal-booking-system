@@ -1,15 +1,13 @@
 "use server";
 
 import { db } from "@/drizzle/db";
-import { SelectBookings, bookings } from "@/drizzle/schema";
-import { and, arrayContains, between, desc, eq, gte, lte } from "drizzle-orm";
+import { SelectBookings, SelectReservations, bookings } from "@/drizzle/schema";
+import { and, arrayContains, desc, eq, gte, like, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-
-const uuidV4Regex =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+import { addReservations } from "./reservation";
 
 export async function getBookings() {
-  return db.select().from(bookings).orderBy(desc(bookings.updatedAt));
+  return await db.query.bookings.findMany();
 }
 
 export async function filterBookings(filters: BookingFilters) {
@@ -17,15 +15,7 @@ export async function filterBookings(filters: BookingFilters) {
 
   const whereList: ReturnType<typeof eq>[] = [];
 
-  if (filters.id)
-    whereList.push(
-      eq(
-        bookings.id,
-        uuidV4Regex.test(filters.id)
-          ? filters.id
-          : "00000000-0000-4000-8000-000000000000",
-      ),
-    );
+  if (filters.id) whereList.push(like(bookings.id, `%${filters.id}%`));
 
   if (filters.country)
     whereList.push(arrayContains(bookings.countries, [filters.country]));
@@ -40,26 +30,30 @@ export async function filterBookings(filters: BookingFilters) {
 }
 
 export async function addBookings(
-  booking: Omit<
-    SelectBookings,
-    "id" | "createdAt" | "updatedAt" | "cities" | "activities" | "guide"
-  >,
+  booking: Omit<SelectBookings, "id" | "createdAt" | "updatedAt">,
+  reservations: Omit<
+    SelectReservations,
+    "id" | "createdAt" | "updatedAt" | "bookingId" | "finalPrice"
+  >[],
 ) {
-  await db.insert(bookings).values(booking);
+  const row = await db.insert(bookings).values(booking).returning();
+  await addReservations(
+    reservations.map((reservation) => ({
+      ...reservation,
+      bookingId: row[0].id,
+    })),
+  );
   revalidatePath("/bookings");
 }
 
 export async function updateBooking(
-  booking: Omit<
-    SelectBookings,
-    "createdAt" | "updatedAt" | "cities" | "activities" | "guide"
-  >,
+  booking: Omit<SelectBookings, "createdAt" | "updatedAt">,
 ) {
   await db.update(bookings).set(booking).where(eq(bookings.id, booking.id));
   revalidatePath("/bookings");
 }
 
-export async function deleteBooking(bookingId: string) {
+export async function deleteBooking(bookingId: number) {
   await db.delete(bookings).where(eq(bookings.id, bookingId));
   revalidatePath("/bookings");
 }

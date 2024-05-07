@@ -1,5 +1,5 @@
 type BookingFilters = {
-  id?: string;
+  id?: number;
   country?: string;
   dateRange?: {
     from?: Date;
@@ -34,4 +34,26 @@ type Itinerary = {
   day: string;
   cities: SelectCities[];
   activities: SelectActivities[];
+};
+
+type Reservation = {
+  start?: Date;
+  end?: Date;
+  city?: { id: string; name: string | null; countryId: string | null };
+  hotels: string[];
+  meal?: string;
+  price?: number;
+};
+
+type InternationalFlight = {
+  flightNumber?: number;
+  arrivalDate?: Date;
+  departureDate?: Date;
+  destinations?: string;
+};
+
+type DomesticFlight = InternationalFlight & {
+  id: string;
+  included: boolean;
+  note?: string;
 };

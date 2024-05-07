@@ -7,8 +7,8 @@ import {
   integer,
   boolean,
   timestamp,
+  serial,
 } from "drizzle-orm/pg-core";
-import { db } from "./db";
 
 export const hotels = pgTable("hotels", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -140,7 +140,7 @@ export const nileCruises = pgTable("nile_cruises", {
 });
 
 export const bookings = pgTable("bookings", {
-  id: uuid("id").defaultRandom().primaryKey(),
+  id: serial("id").primaryKey().unique(),
   status: boolean("status").default(true),
   pax: integer("pax"),
   tourists: jsonb("tourists").array().$type<string[]>(),
@@ -154,7 +154,6 @@ export const bookings = pgTable("bookings", {
     withTimezone: true,
   }).defaultNow(),
   hotels: jsonb("hotels").array().$type<string[]>(),
-  activities: jsonb("activities").array().$type<string[]>(),
   single: integer("single"),
   double: integer("double"),
   triple: integer("triple"),
@@ -163,17 +162,41 @@ export const bookings = pgTable("bookings", {
   internalFlightsNote: text("internal_flights_note"),
   visa: boolean("visa"),
   tips: integer("tips"),
+  tipsIncluded: boolean("tips_included").default(true),
   nationality: text("nationality"),
   language: text("language"),
   generalNote: text("general_note"),
   countries: jsonb("countries").array().$type<string[]>(),
-  cities: jsonb("cities").array().$type<string[]>(),
-  guide: text("guide"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   itinerary: jsonb("itinerary").array().$type<Itinerary[]>(),
-  nileCruises: jsonb("nile_cruises").array().$type<string[]>()
+  nileCruises: jsonb("nile_cruises").array().$type<string[]>(),
+  internationalFlights: jsonb(
+    "international_flights",
+  ).$type<InternationalFlight>(),
+  domesticFlights: jsonb("domestic_flights").array().$type<DomesticFlight[]>(),
 });
+
+export const reservations = pgTable("reservations", {
+  id: serial("id").primaryKey().unique(),
+  start: timestamp("start", { withTimezone: true }).defaultNow(),
+  end: timestamp("end", { withTimezone: true }).defaultNow(),
+  meal: text("meal"),
+  city: jsonb("city").$type<SelectCities>(),
+  targetPrice: integer("target_price"),
+  finalPrice: integer("final_price"),
+  currency: text("currency"),
+  bookingId: integer("booking_id").references(() => bookings.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const reservationsRelations = relations(reservations, ({ one }) => ({
+  booking: one(bookings, {
+    fields: [reservations.bookingId],
+    references: [bookings.id],
+  }),
+}));
 
 export type SelectCountries = typeof countries.$inferSelect;
 export type SelectCities = typeof cities.$inferSelect;
@@ -186,3 +209,4 @@ export type SelectRepresentatives = typeof representatives.$inferSelect;
 export type SelectBookings = typeof bookings.$inferSelect;
 export type SelectNationalities = typeof nationalities.$inferSelect;
 export type SelectNileCruises = typeof nileCruises.$inferSelect;
+export type SelectReservations = typeof reservations.$inferSelect;

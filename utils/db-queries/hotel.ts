@@ -44,16 +44,10 @@ export async function getCityHotels({
   countryId: string;
   cityId: string;
 }) {
-  try {
-    return {
-      data: await db
-        .select()
-        .from(hotels)
-        .where(and(eq(hotels.countryId, countryId), eq(hotels.cityId, cityId))),
-    };
-  } catch (error) {
-    return { error };
-  }
+  return await db
+    .select()
+    .from(hotels)
+    .where(and(eq(hotels.countryId, countryId), eq(hotels.cityId, cityId)));
 }
 
 export async function getCitiesHotels(citiesId: string[]) {

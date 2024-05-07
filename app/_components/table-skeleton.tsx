@@ -6,22 +6,22 @@ import { DataTable } from "../create/_components/data-table";
 
 const columns = [
   {
-    accessorKey: "none",
+    accessorKey: "id",
     header: () => <Skeleton className="h-4 w-44" />,
     cell: () => <Skeleton className="h-4 w-44" />,
   },
   {
-    accessorKey: "none",
+    accessorKey: "country",
     header: () => <Skeleton className="h-4 w-44" />,
     cell: () => <Skeleton className="h-4 w-44" />,
   },
   {
-    accessorKey: "none",
+    accessorKey: "city",
     header: () => <Skeleton className="h-4 w-44" />,
     cell: () => <Skeleton className="h-4 w-44" />,
   },
   {
-    accessorKey: "none",
+    accessorKey: "tour",
     header: () => <Skeleton className="h-4 w-44" />,
     cell: () => <Skeleton className="h-4 w-44" />,
   },
@@ -33,6 +33,9 @@ export default function TableSkeleton() {
       columns={columns}
       data={Array(10).map((_, i) => {
         id: i;
+        country: `Country ${i}`;
+        city: `City ${i}`;
+        tour: `Tour ${i}`;
       })}
     />
   );
