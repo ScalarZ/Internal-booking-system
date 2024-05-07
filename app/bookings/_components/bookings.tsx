@@ -3,14 +3,14 @@
 import { DataTable } from "@/app/create/_components/data-table";
 import {
   SelectBookings,
+  SelectBookingWithReservations,
   SelectCompanies,
   SelectCountries,
-  SelectHotels,
   SelectNationalities,
   SelectNileCruises,
   SelectTours,
 } from "@/drizzle/schema";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { columns } from "./columns";
 import EditBookingModal from "./edit-booking-modal";
 import FilterBookings from "./filter-bookings";
@@ -31,7 +31,7 @@ export default function Bookings({
   nationalities: SelectNationalities[];
   nileCruises: SelectNileCruises[];
 }) {
-  const [initialValues, setInitialValues] = useState<SelectBookings | null>(
+  const [initialValues, setInitialValues] = useState<SelectBookingWithReservations | null>(
     null,
   );
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -51,7 +51,7 @@ export default function Bookings({
           setIsDeleteModalOpen,
         })}
         data={data}
-        onRowClick={(row: SelectBookings) => {
+        onRowClick={(row: SelectBookingWithReservations) => {
           setInitialValues(row);
           setIsEditModalOpen(true);
           setIsDeleteModalOpen(false);

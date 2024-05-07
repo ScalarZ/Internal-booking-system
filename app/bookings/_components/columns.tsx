@@ -1,6 +1,6 @@
 "use client";
 
-import { SelectBookings } from "@/drizzle/schema";
+import { SelectBookings, SelectBookingWithReservations } from "@/drizzle/schema";
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { Check, Edit, Trash, X } from "lucide-react";
@@ -10,10 +10,10 @@ export function columns({
   setIsEditModalOpen,
   setIsDeleteModalOpen,
 }: {
-  setInitialValues: (initialValues: SelectBookings | null) => void;
+  setInitialValues: (initialValues: SelectBookingWithReservations | null) => void;
   setIsEditModalOpen: (value: boolean) => void;
   setIsDeleteModalOpen: (value: boolean) => void;
-}): ColumnDef<SelectBookings>[] {
+}): ColumnDef<SelectBookingWithReservations>[] {
   return [
     {
       accessorKey: "id",

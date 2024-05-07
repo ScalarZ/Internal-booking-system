@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { useState } from "react";
 import { Loader } from "lucide-react";
-import { SelectBookings } from "@/drizzle/schema";
+import { SelectBookingWithReservations } from "@/drizzle/schema";
 import { deleteBooking } from "@/utils/db-queries/booking";
 
 export default function DeleteBookingModal({
@@ -22,7 +22,7 @@ export default function DeleteBookingModal({
   isOpen: boolean;
   setIsOpen: (value: boolean) => void;
   bookingId: number;
-  setInitialValues: (value: SelectBookings | null) => void;
+  setInitialValues: (value: SelectBookingWithReservations | null) => void;
 }) {
   const [isLoading, setIsLoading] = useState(false);
 

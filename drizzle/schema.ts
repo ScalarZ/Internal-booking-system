@@ -191,6 +191,10 @@ export const reservations = pgTable("reservations", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
+export const bookingsRelations = relations(bookings, ({ many }) => ({
+  reservations: many(reservations),
+}));
+
 export const reservationsRelations = relations(reservations, ({ one }) => ({
   booking: one(bookings, {
     fields: [reservations.bookingId],
@@ -210,3 +214,6 @@ export type SelectBookings = typeof bookings.$inferSelect;
 export type SelectNationalities = typeof nationalities.$inferSelect;
 export type SelectNileCruises = typeof nileCruises.$inferSelect;
 export type SelectReservations = typeof reservations.$inferSelect;
+export type SelectBookingWithReservations = SelectBookings & {
+  reservations: SelectReservations[];
+};

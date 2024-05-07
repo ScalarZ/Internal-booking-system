@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { addReservations } from "./reservation";
 
 export async function getBookings() {
-  return await db.query.bookings.findMany();
+  return await db.query.bookings.findMany({ with: { reservations: true } });
 }
 
 export async function filterBookings(filters: BookingFilters) {

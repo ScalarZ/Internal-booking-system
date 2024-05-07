@@ -60,7 +60,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
-  SelectBookings,
+  SelectBookingWithReservations,
   SelectCities,
   SelectCompanies,
   SelectCountries,
@@ -101,9 +101,9 @@ export default function EditBookingModal({
   nileCruises: SelectNileCruises[];
   nationalities: SelectNationalities[];
   isOpen: boolean;
-  initialValues: SelectBookings;
+  initialValues: SelectBookingWithReservations;
   setIsOpen: (value: boolean) => void;
-  setInitialValues: (value: SelectBookings | null) => void;
+  setInitialValues: (value: SelectBookingWithReservations | null) => void;
 }) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -190,9 +190,9 @@ export function From({
   tours: SelectTours[];
   nationalities: SelectNationalities[];
   nileCruises: SelectNileCruises[];
-  initialValues: SelectBookings;
+  initialValues: SelectBookingWithReservations;
   closeModal: () => void;
-  setInitialValues: (value: SelectBookings | null) => void;
+  setInitialValues: (value: SelectBookingWithReservations | null) => void;
 }) {
   const [name, setName] = useState("");
   const [internalBookingId, setInternalBookingId] = useState("");
@@ -288,8 +288,9 @@ export function From({
     }, []);
   }, [itineraries, form.watch("arrivalDepartureDate.from")]);
 
-  const [reservationsList, setReservationsList] =
-    useState<Reservation[]>(reservations);
+  const [reservationsList, setReservationsList] = useState<Reservation[]>(
+    initialValues.reservations ?? [],
+  );
 
   useEffect(() => {
     setReservationsList(reservations);

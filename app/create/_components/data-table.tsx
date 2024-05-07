@@ -19,12 +19,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useState } from "react";
-import { SelectBookings } from "@/drizzle/schema";
+import { SelectBookingWithReservations } from "@/drizzle/schema";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  onRowClick?: (row: SelectBookings) => void;
+  onRowClick?: (row: SelectBookingWithReservations) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -72,7 +72,7 @@ export function DataTable<TData, TValue>({
               <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
-                onClick={() => onRowClick?.(row.original as SelectBookings)}
+                onClick={() => onRowClick?.(row.original as SelectBookingWithReservations)}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id} className="whitespace-nowrap">
