@@ -30,7 +30,7 @@ export default function FilterBookings({
   const [filters, setFilters] = useState<BookingFilters>({
     dateRange: undefined,
   });
-  const [id, setId] = useState<string | null>(null);
+  const [id, setId] = useState<number | null>(null);
 
   async function handleFilterBookings(filters?: BookingFilters) {
     try {
@@ -117,11 +117,13 @@ export default function FilterBookings({
           />
         </PopoverContent>
       </Popover>
-      
+
       <Input
         placeholder="Search by ID..."
         value={id ?? ""}
-        onChange={(e) => setId(e.target.value)}
+        onChange={(e) =>
+          setId(isNaN(e.target.valueAsNumber) ? e.target.valueAsNumber : 0)
+        }
       />
     </div>
   );

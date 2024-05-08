@@ -13,7 +13,7 @@ export async function listCityHotels({
   setHotelsList([]);
   try {
     const res = await getCityHotels({ countryId, cityId });
-    setHotelsList(res.data!);
+    setHotelsList(res);
   } catch (err) {
     console.error(err);
   }
