@@ -183,6 +183,7 @@ export const reservations = pgTable("reservations", {
   end: timestamp("end", { withTimezone: true }).defaultNow(),
   meal: text("meal"),
   city: jsonb("city").$type<SelectCities>(),
+  hotels: jsonb("hotels").array().$type<string[]>().default([]).notNull(),
   targetPrice: integer("target_price"),
   finalPrice: integer("final_price"),
   currency: text("currency"),

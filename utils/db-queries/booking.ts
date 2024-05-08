@@ -4,7 +4,7 @@ import { db } from "@/drizzle/db";
 import { SelectBookings, SelectReservations, bookings } from "@/drizzle/schema";
 import { and, arrayContains, desc, eq, gte, like, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { addReservations } from "./reservation";
+import { addReservations, deleteBookingReservations } from "./reservation";
 
 export async function getBookings() {
   return await db.query.bookings.findMany({ with: { reservations: true } });
@@ -48,8 +48,21 @@ export async function addBookings(
 
 export async function updateBooking(
   booking: Omit<SelectBookings, "createdAt" | "updatedAt">,
+  reservations: Omit<
+    SelectReservations,
+    "id" | "createdAt" | "updatedAt" | "bookingId"
+  >[],
 ) {
-  await db.update(bookings).set(booking).where(eq(bookings.id, booking.id));
+  const res = await Promise.all([
+    db.update(bookings).set(booking).where(eq(bookings.id, booking.id)),
+    deleteBookingReservations(booking.id),
+  ]);
+  await addReservations(
+    reservations.map((reservation) => ({
+      ...reservation,
+      bookingId: booking.id,
+    })),
+  );
   revalidatePath("/bookings");
 }
 

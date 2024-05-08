@@ -16,7 +16,6 @@ export async function addReservations(
   >[],
 ) {
   await db.insert(reservations).values(reservation).returning();
-  revalidatePath("/reservations");
 }
 
 export async function updateReservation(
@@ -31,5 +30,8 @@ export async function updateReservation(
 
 export async function deleteReservation(reservationId: number) {
   await db.delete(reservations).where(eq(reservations.id, reservationId));
-  revalidatePath("/reservations");
+}
+
+export async function deleteBookingReservations(bookingId: number) {
+  await db.delete(reservations).where(eq(reservations.bookingId, bookingId));
 }

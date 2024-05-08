@@ -1,16 +1,23 @@
 "use client";
 
-import { SelectBookings, SelectBookingWithReservations } from "@/drizzle/schema";
+import {
+  SelectBookings,
+  SelectBookingWithReservations,
+} from "@/drizzle/schema";
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { Check, Edit, Trash, X } from "lucide-react";
 
 export function columns({
+  isReservation,
   setInitialValues,
   setIsEditModalOpen,
   setIsDeleteModalOpen,
 }: {
-  setInitialValues: (initialValues: SelectBookingWithReservations | null) => void;
+  isReservation?: boolean;
+  setInitialValues: (
+    initialValues: SelectBookingWithReservations | null,
+  ) => void;
   setIsEditModalOpen: (value: boolean) => void;
   setIsDeleteModalOpen: (value: boolean) => void;
 }): ColumnDef<SelectBookingWithReservations>[] {
@@ -56,12 +63,18 @@ export function columns({
     {
       accessorKey: "arrivalDate",
       header: "Arrival date",
-      cell: ({ row }) => format(row.original.arrivalDate!, "dd/MM/yyyy"),
+      cell: ({ row }) =>
+        row.original.arrivalDate
+          ? format(row.original.arrivalDate, "dd/MM/yyyy")
+          : null,
     },
     {
       accessorKey: "departureDate",
       header: "Departure date",
-      cell: ({ row }) => format(row.original.departureDate!, "dd/MM/yyyy"),
+      cell: ({ row }) =>
+        row.original.departureDate
+          ? format(row.original.departureDate, "dd/MM/yyyy")
+          : null,
     },
     {
       accessorKey: "single",
@@ -193,23 +206,27 @@ export function columns({
       header: "Updated at",
       cell: ({ row }) => format(row.original.updatedAt!, "dd/MM/yyyy"),
     },
-
-    {
-      accessorKey: "action",
-      header: "Action",
-      cell: ({ row }) => {
-        return (
-          <Trash
-            size={20}
-            className="cursor-pointer text-red-500"
-            onClick={() => {
-              setInitialValues(row.original);
-              setIsDeleteModalOpen(true);
-              setIsEditModalOpen(false);
-            }}
-          />
-        );
-      },
-    },
+    !isReservation
+      ? {
+          accessorKey: "action",
+          header: "Action",
+          cell: ({ row }) => {
+            return (
+              <Trash
+                size={20}
+                className="cursor-pointer text-red-500"
+                onClick={() => {
+                  setInitialValues(row.original);
+                  setIsDeleteModalOpen(true);
+                  setIsEditModalOpen(false);
+                }}
+              />
+            );
+          },
+        }
+      : {
+          accessorKey: " ",
+          header: " ",
+        },
   ];
 }

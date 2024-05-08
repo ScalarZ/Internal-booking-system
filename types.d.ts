@@ -36,15 +36,6 @@ type Itinerary = {
   activities: SelectActivities[];
 };
 
-type Reservation = {
-  start?: Date;
-  end?: Date;
-  city?: { id: string; name: string | null; countryId: string | null };
-  hotels: string[];
-  meal?: string;
-  price?: number;
-};
-
 type InternationalFlight = {
   flightNumber?: number;
   arrivalDate?: Date;

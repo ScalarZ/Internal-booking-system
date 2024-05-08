@@ -51,7 +51,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { array, z } from "zod";
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
@@ -66,6 +66,7 @@ import {
   SelectHotels,
   SelectNationalities,
   SelectNileCruises,
+  SelectReservations,
   SelectTours,
 } from "@/drizzle/schema";
 import capitalize from "@/utils/capitalize";
@@ -83,6 +84,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { generateRandomId } from "@/utils/generate-random-id";
+
+type Reservation = Omit<
+  SelectReservations,
+  "id" | "createdAt" | "updatedAt" | "bookingId" | "finalPrice"
+>;
 
 export default function CreateBookingModal({
   nileCruises,
@@ -236,8 +242,9 @@ function From({
           end: addDays(startDate, 1),
           city: curr?.cities?.[curr?.cities?.length - 1],
           hotels: [],
-          meal: undefined,
-          price: undefined,
+          meal: null,
+          targetPrice: null,
+          currency: "USD",
         });
         tacker++;
       }
@@ -284,22 +291,25 @@ function From({
           status: values.status,
           itinerary: itineraries,
           nileCruises: values.nileCruises ?? null,
-          internationalFlights: JSON.stringify({
+          internationalFlights: {
             flightNumber: values.internationalFlights?.flightNumber,
             arrivalDate: values.internationalFlights?.arrivalDepartureDate.from,
             departureDate: values.internationalFlights?.arrivalDepartureDate.to,
             destinations: values.internationalFlights?.destinations,
-          }) as InternationalFlight,
+          },
           domesticFlights,
         },
-        reservationsList.map(({ start, end, meal, city, price }) => ({
-          start: start ?? null,
-          end: end ?? null,
-          meal: meal ?? null,
-          city: (JSON.stringify(city) as unknown as SelectCities) ?? null,
-          targetPrice: price ?? null,
-          currency: null,
-        })),
+        reservationsList.map(
+          ({ start, end, meal, city, targetPrice, hotels, currency }) => ({
+            start,
+            end,
+            meal,
+            city,
+            targetPrice,
+            currency,
+            hotels,
+          }),
+        ),
       );
     } catch (error) {
       console.error(error);
@@ -327,8 +337,8 @@ function From({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <section className="border-b border-gray-200 pb-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <section>
           <h2 className="pb-2 text-2xl font-semibold text-sky-900">Booking</h2>
           <div className="grid grid-cols-4 gap-x-8 gap-y-8">
             <FormField
@@ -718,7 +728,7 @@ function From({
             />
           </div>
         </section>
-        <section className="border-b border-gray-200 pb-4">
+        <section>
           <h2 className="pb-2 text-2xl font-semibold text-sky-900">Tours</h2>
           <div className="grid grid-cols-4 gap-y-2">
             <FormField
@@ -910,7 +920,7 @@ function From({
             )}
           </div>
         </section>
-        <section className="border-b border-gray-200 pb-4">
+        <section>
           <h2 className="pb-2 text-2xl font-semibold text-sky-900">Hotels</h2>
           <div className="grid grid-cols-4 gap-x-8 gap-y-8">
             <FormField
@@ -1129,7 +1139,7 @@ function From({
           </div>
         </section>
 
-        <section className="border-b border-gray-200 py-4">
+        <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-sky-900">Flights</h2>
           <h3 className="pb-2 text-xl font-semibold">International Flights</h3>
 
@@ -1211,7 +1221,6 @@ function From({
               )}
             />
           </div>
-
           <h3 className="pb-2 text-xl font-semibold">Domestic Flights</h3>
           <div className="flex flex-col gap-y-4">
             {domesticFlights.map(
@@ -1431,12 +1440,16 @@ function Reservations({
             <TableHead>City</TableHead>
             <TableHead>Hotel</TableHead>
             <TableHead>Meal</TableHead>
+            <TableHead>Currency</TableHead>
             <TableHead>Target Price</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {reservationsList.map(
-            ({ start, end, city, hotels, meal, price }, index) => (
+            (
+              { start, end, city, hotels, meal, targetPrice, currency },
+              index,
+            ) => (
               <TableRow
                 key={generateRandomId()}
                 onClick={() => {
@@ -1445,10 +1458,11 @@ function Reservations({
                       start,
                       end,
                       city,
-                      hotels: [...hotels],
+                      hotels: [...hotels!],
                       meal,
-                      price,
+                      targetPrice,
                       index,
+                      currency,
                     },
                   ]);
                   setIsOpen(true);
@@ -1463,7 +1477,8 @@ function Reservations({
                 <TableCell>{city?.name}</TableCell>
                 <TableCell>{hotels?.map((name) => `${name}, `)}</TableCell>
                 <TableCell>{meal}</TableCell>
-                <TableCell>{price}</TableCell>
+                <TableCell>{currency}</TableCell>
+                <TableCell>{targetPrice}</TableCell>
               </TableRow>
             ),
           )}
@@ -1544,6 +1559,7 @@ function EditReservationModal({
               <TableHead>End</TableHead>
               <TableHead>Hotel</TableHead>
               <TableHead>Meal</TableHead>
+              <TableHead>Currency</TableHead>
               <TableHead>Target Price</TableHead>
             </TableRow>
           </TableHeader>
@@ -1566,22 +1582,19 @@ function EditReservationModal({
             type="button"
             variant={"secondary"}
             onClick={() => {
-              setEditedReservation((prev) =>
-                prev
-                  ? [
-                      ...prev,
-                      {
-                        start: undefined,
-                        end: prev[prev.length - 1].end,
-                        hotels: [],
-                        meal: undefined,
-                        price: undefined,
-                        index: prev[prev.length - 1].index + 1,
-                        city: prev[0].city,
-                      },
-                    ]
-                  : [],
-              );
+              setEditedReservation((prev) => [
+                ...prev,
+                {
+                  start: null,
+                  end: prev[prev.length - 1].end,
+                  hotels: [],
+                  meal: null,
+                  targetPrice: null,
+                  index: prev[prev.length - 1].index + 1,
+                  city: prev[0].city,
+                  currency: "USD",
+                },
+              ]);
             }}
           >
             Add
@@ -1620,13 +1633,13 @@ function EditReservationModal({
 function ReservationTableRow({
   start,
   end,
-  hotels,
   meal,
-  price,
+  targetPrice,
   cityHotels,
   index,
   listLength,
   editedReservation,
+  currency,
   setEditedReservation,
 }: Reservation & {
   cityHotels: SelectCities[];
@@ -1641,7 +1654,7 @@ function ReservationTableRow({
 }) {
   const [hotelsOpen, setHotelsOpen] = useState(false);
   // const [selectedHotels, setSelectedHotels] = useState<string[]>(hotels ?? []);
-  const [endAt, setEndAt] = useState<Date | undefined>(end);
+  const [endAt, setEndAt] = useState<Date | null>(end);
   const { initStart, initEnd } = { initStart: start, initEnd: end };
   return (
     <TableRow>
@@ -1678,12 +1691,12 @@ function ReservationTableRow({
                   if (!initStart || !initEnd) return false;
                   return date < initStart || date >= initEnd;
                 }}
-                selected={endAt}
+                selected={endAt ?? undefined}
                 onSelect={(date) => {
-                  setEndAt(date);
+                  setEndAt(date ?? null);
                   setEditedReservation((prev) => {
-                    prev[index + 1].start = date;
-                    prev[index].end = date;
+                    prev[index + 1].start = date ?? null;
+                    prev[index].end = date ?? null;
                     return [...prev];
                   });
                 }}
@@ -1751,7 +1764,7 @@ function ReservationTableRow({
       <TableCell>
         <Input
           placeholder="Meal..."
-          defaultValue={meal}
+          defaultValue={meal ?? undefined}
           onBlur={(e) =>
             setEditedReservation((prev) => {
               prev[index].meal = e.target.value;
@@ -1761,13 +1774,35 @@ function ReservationTableRow({
         />
       </TableCell>
       <TableCell>
+        <Select
+          onValueChange={(value) =>
+            setEditedReservation(() => {
+              editedReservation[index].currency = value;
+              return [...editedReservation];
+            })
+          }
+          defaultValue={currency ?? "USD"}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select a currency" />
+          </SelectTrigger>
+          <SelectContent>
+            {["USD", "EUR", "EGP"].map((currency) => (
+              <SelectItem key={currency} value={currency}>
+                {currency}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </TableCell>
+      <TableCell>
         <Input
-          defaultValue={price}
+          defaultValue={targetPrice ?? undefined}
           placeholder="Price..."
           type="number"
           onBlur={(e) => {
             setEditedReservation(() => {
-              editedReservation[index].price = e.target.valueAsNumber;
+              editedReservation[index].targetPrice = e.target.valueAsNumber;
               return [...editedReservation];
             });
           }}

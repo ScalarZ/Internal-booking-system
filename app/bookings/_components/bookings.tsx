@@ -24,16 +24,17 @@ export default function Bookings({
   tours,
   nationalities,
   nileCruises,
+  isReservation,
 }: {
   countries: SelectCountries[];
   companies: SelectCompanies[];
   tours: SelectTours[];
   nationalities: SelectNationalities[];
   nileCruises: SelectNileCruises[];
+  isReservation?: boolean;
 }) {
-  const [initialValues, setInitialValues] = useState<SelectBookingWithReservations | null>(
-    null,
-  );
+  const [initialValues, setInitialValues] =
+    useState<SelectBookingWithReservations | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const { data, error } = useQuery({
@@ -49,6 +50,7 @@ export default function Bookings({
           setInitialValues,
           setIsEditModalOpen,
           setIsDeleteModalOpen,
+          isReservation
         })}
         data={data}
         onRowClick={(row: SelectBookingWithReservations) => {
@@ -56,6 +58,7 @@ export default function Bookings({
           setIsEditModalOpen(true);
           setIsDeleteModalOpen(false);
         }}
+        isReservation={isReservation}
       />
       {!!initialValues && (
         <EditBookingModal
@@ -67,6 +70,7 @@ export default function Bookings({
           setInitialValues={setInitialValues}
           isOpen={isEditModalOpen}
           setIsOpen={setIsEditModalOpen}
+          isReservation={isReservation}
         />
       )}
       {!!initialValues && (
