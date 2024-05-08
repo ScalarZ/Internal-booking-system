@@ -236,7 +236,6 @@ export function From({
       },
     ],
   );
-  console.log(initialValues.reservations);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -309,7 +308,7 @@ export function From({
   }, [initialValues.tour]);
 
   useEffect(() => {
-    if (!tourCities.length) return;
+    if (!tourCities?.length) return;
     listCitiesHotels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourCities]);
@@ -676,7 +675,7 @@ export function From({
                     onChange={(e) => setName(e.target.value)}
                     disabled={
                       !form.watch("pax") ||
-                      touristsNames.length >= form.watch("pax")
+                      touristsNames?.length >= form.watch("pax")
                     }
                   />
                   <Button
@@ -685,7 +684,7 @@ export function From({
                     disabled={
                       !name ||
                       !form.watch("pax") ||
-                      touristsNames.length >= form.watch("pax")
+                      touristsNames?.length >= form.watch("pax")
                     }
                     onClick={() => {
                       setTouristsNames((prev) => [...prev, name]);
@@ -698,9 +697,9 @@ export function From({
                   </Button>
                 </div>
                 <FormDescription className="flex gap-x-2">
-                  <p>This fields depends on the PAX number</p>
+                  <div>This fields depends on the PAX number</div>
                   <span>
-                    {touristsNames.length}/
+                    {touristsNames?.length}/
                     {!isNaN(form.watch("pax")) ? form.watch("pax") : 0}
                   </span>
                 </FormDescription>
@@ -887,7 +886,7 @@ export function From({
                   </FormItem>
                 )}
               />
-              {!!itineraries.length && !isReservation && (
+              {!!itineraries?.length && !isReservation && (
                 <div className="col-span-full space-y-2">
                   <div className="flex w-full justify-end">
                     <Button
@@ -1002,14 +1001,14 @@ export function From({
                   <FormItem className="flex flex-col justify-start">
                     <FormLabel className="block">Hotels</FormLabel>
                     <Popover open={hotelsOpen} onOpenChange={setHotelsOpen}>
-                      <PopoverTrigger asChild disabled={!citiesHotels.length}>
+                      <PopoverTrigger asChild disabled={!citiesHotels?.length}>
                         <Button
                           variant="outline"
                           role="combobox"
                           aria-expanded={hotelsOpen}
                           className="w-full justify-between overflow-hidden"
                         >
-                          {field.value.length
+                          {field.value?.length
                             ? field.value.map((hotel) =>
                                 capitalize(`${hotel}, `),
                               )
@@ -1079,7 +1078,7 @@ export function From({
                       open={nileCruiseOpen}
                       onOpenChange={setNileCruiseOpen}
                     >
-                      <PopoverTrigger asChild disabled={!nileCruises.length}>
+                      <PopoverTrigger asChild disabled={!nileCruises?.length}>
                         <Button
                           variant="outline"
                           role="combobox"
@@ -1418,7 +1417,7 @@ export function From({
                       size={18}
                       className="cursor-pointer self-center text-red-500"
                       onClick={() => {
-                        if (domesticFlights.length <= 1) return;
+                        if (domesticFlights?.length <= 1) return;
                         setDomesticFlights((prev) =>
                           prev.filter((flight) => flight.id !== id),
                         );
@@ -1452,7 +1451,7 @@ export function From({
           </section>
         </div>
 
-        {!!itineraries.length && !!form.watch("arrivalDepartureDate")?.from && (
+        {!!itineraries?.length && !!form.watch("arrivalDepartureDate")?.from && (
           <Reservations
             reservationsList={reservationsList}
             setReservationsList={setReservationsList}
@@ -1480,9 +1479,9 @@ export function From({
           setItineraries={setItineraries}
         />
       )}
-      {!!itineraries.length && (
+      {!!itineraries?.length && (
         <AddItineraryModal
-          day={`Day ${itineraries.length + 1}`}
+          day={`Day ${itineraries?.length + 1}`}
           isOpen={addItineraryModalOpen}
           setIsOpen={setAddItineraryModalOpen}
           selectedCountries={tourCountries}
@@ -1685,7 +1684,7 @@ function EditReservationModal({
                 key={generateRandomId()}
                 {...reservation}
                 index={i}
-                listLength={editedReservation.length}
+                listLength={editedReservation?.length}
                 cityHotels={cityHotels}
                 editedReservation={editedReservation}
                 setEditedReservation={setEditedReservation}
@@ -1702,14 +1701,14 @@ function EditReservationModal({
                 ...prev,
                 {
                   start: null,
-                  end: prev[prev.length - 1].end,
+                  end: prev[prev?.length - 1].end,
                   hotels: [],
                   meal: null,
                   targetPrice: null,
-                  index: prev[prev.length - 1].index + 1,
+                  index: prev[prev?.length - 1].index + 1,
                   city: prev[0].city,
                   currency: "USD",
-                  bookingId: prev[prev.length - 1].bookingId,
+                  bookingId: prev[prev?.length - 1].bookingId,
                   finalPrice: null,
                 },
               ]);
@@ -1825,14 +1824,14 @@ function ReservationTableRow({
       </TableCell>
       <TableCell>
         <Popover open={hotelsOpen} onOpenChange={setHotelsOpen}>
-          <PopoverTrigger asChild disabled={!cityHotels.length}>
+          <PopoverTrigger asChild disabled={!cityHotels?.length}>
             <Button
               variant="outline"
               role="combobox"
               aria-expanded={hotelsOpen}
               className="w-full justify-between overflow-hidden"
             >
-              {editedReservation[index].hotels.length
+              {editedReservation[index].hotels?.length
                 ? editedReservation[index].hotels.map((hotel) =>
                     capitalize(`${hotel}, `),
                   )
