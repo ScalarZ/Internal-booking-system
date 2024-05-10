@@ -179,7 +179,7 @@ function SelectCountry({
           <CommandInput placeholder="Search..." />
           <CommandEmpty>No framework found.</CommandEmpty>
           <CommandGroup className="max-h-[240px] overflow-y-auto">
-            {countriesList.map(({ id, name }) => (
+            {countriesList?.map(({ id, name }) => (
               <CommandItem
                 key={id}
                 value={name!}

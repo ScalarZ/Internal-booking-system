@@ -299,7 +299,7 @@ function From({
           },
           domesticFlights,
         },
-        reservationsList.map(
+        reservationsList?.map(
           ({ start, end, meal, city, targetPrice, hotels, currency }) => ({
             start,
             end,
@@ -322,7 +322,7 @@ function From({
 
   async function listCitiesHotels() {
     try {
-      const hotels = await getCitiesHotels(tourCities.map(({ id }) => id));
+      const hotels = await getCitiesHotels(tourCities?.map(({ id }) => id));
       setCitiesHotels(hotels);
     } catch (error) {
       console.error(error);
@@ -381,7 +381,7 @@ function From({
                         <CommandInput placeholder="Search company..." />
                         <CommandEmpty>No company found.</CommandEmpty>
                         <CommandGroup>
-                          {companies.map(({ id, name, companyId }) => (
+                          {companies?.map(({ id, name, companyId }) => (
                             <CommandItem
                               key={id}
                               value={name ?? ""}
@@ -469,7 +469,7 @@ function From({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {["USD", "EUR", "EGP"].map((currency) => (
+                      {["USD", "EUR", "EGP"]?.map((currency) => (
                         <SelectItem key={currency} value={currency}>
                           {currency}
                         </SelectItem>
@@ -496,7 +496,7 @@ function From({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {nationalities.map(({ name, id }) => (
+                      {nationalities?.map(({ name, id }) => (
                         <SelectItem key={id} value={name ?? ""}>
                           {name}
                         </SelectItem>
@@ -529,7 +529,7 @@ function From({
                         "English",
                         "French",
                         "Italian",
-                      ].map((language) => (
+                      ]?.map((language) => (
                         <SelectItem key={language} value={language}>
                           {language}
                         </SelectItem>
@@ -641,7 +641,7 @@ function From({
               </FormDescription>
               <div>
                 <ul className="flex flex-wrap gap-2 p-2 text-white">
-                  {touristsNames.map((name, i) => (
+                  {touristsNames?.map((name, i) => (
                     <li
                       key={i}
                       className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-1 text-sm font-medium"
@@ -755,7 +755,7 @@ function From({
                           <CommandInput placeholder="Search tour..." />
                           <CommandEmpty>No tour found.</CommandEmpty>
                           <CommandGroup>
-                            {tours.map(({ id, name, countries, itinerary }) => (
+                            {tours?.map(({ id, name, countries, itinerary }) => (
                               <CommandItem
                                 key={id}
                                 value={name ?? ""}
@@ -802,7 +802,7 @@ function From({
                   </div>
                   <div>
                     <ul className="flex flex-wrap gap-2 p-2 text-white">
-                      {tourCountries.map(({ name }, i) => (
+                      {tourCountries?.map(({ name }, i) => (
                         <li
                           key={i}
                           className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-1 text-sm font-medium"
@@ -830,17 +830,17 @@ function From({
                 </div>
                 <Reorder.Group
                   axis="x"
-                  values={itineraries.map(({ id }) => id)}
+                  values={itineraries?.map(({ id }) => id)}
                   onReorder={(newOrd) =>
                     setItineraries((prev) =>
                       (
-                        newOrd.map((id) => {
+                        newOrd?.map((id) => {
                           const itinerary = prev.find(
                             (item) => item.id === id,
                           )!;
                           return itinerary;
                         }) as Itinerary[]
-                      ).map((itinerary, i) => ({
+                      )?.map((itinerary, i) => ({
                         ...itinerary,
                         day: `Day ${i + 1}`,
                       })),
@@ -849,7 +849,7 @@ function From({
                   layoutScroll
                   className="flex w-full flex-nowrap overflow-x-auto border"
                 >
-                  {itineraries.map(({ id, day, activities, cities }) => (
+                  {itineraries?.map(({ id, day, activities, cities }) => (
                     <Reorder.Item
                       key={id}
                       value={id}
@@ -860,7 +860,7 @@ function From({
                         <div className="flex items-start gap-x-2 text-sm">
                           <span className="font-medium">Cities:</span>
                           <ul className="flex flex-wrap gap-x-1 gap-y-1 text-white">
-                            {cities.map(({ id, name }) => (
+                            {cities?.map(({ id, name }) => (
                               <li
                                 key={id}
                                 className="flex items-center gap-x-1 whitespace-nowrap rounded-full bg-neutral-900 px-2 py-0.5 text-sm font-medium"
@@ -873,7 +873,7 @@ function From({
                         <div className="flex items-start gap-x-2 text-sm">
                           <span className="font-medium">Activities:</span>
                           <ul className="flex flex-wrap gap-x-1 gap-y-1 text-white">
-                            {activities.map(({ id, name }) => (
+                            {activities?.map(({ id, name }) => (
                               <li
                                 key={id}
                                 className="flex items-center gap-x-1 whitespace-nowrap rounded-full bg-neutral-900 px-2 py-0.5 text-sm font-medium"
@@ -905,7 +905,7 @@ function From({
                             setItineraries((prev) =>
                               prev
                                 .filter((itinerary) => itinerary.day !== day)
-                                .map((itinerary, i) => ({
+                                ?.map((itinerary, i) => ({
                                   ...itinerary,
                                   day: `Day ${i + 1}`,
                                 })),
@@ -938,7 +938,7 @@ function From({
                         className="w-full justify-between overflow-hidden"
                       >
                         {field.value.length
-                          ? field.value.map((hotel) => capitalize(`${hotel}, `))
+                          ? field.value?.map((hotel) => capitalize(`${hotel}, `))
                           : "Select hotels"}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
@@ -948,7 +948,7 @@ function From({
                         <CommandInput placeholder="Search hotel..." />
                         <CommandEmpty>No hotel found.</CommandEmpty>
                         <CommandGroup>
-                          {citiesHotels.map(({ id, name }) => (
+                          {citiesHotels?.map(({ id, name }) => (
                             <CommandItem key={id}>
                               <FormField
                                 control={form.control}
@@ -1025,7 +1025,7 @@ function From({
                         <CommandInput placeholder="Search hotel..." />
                         <CommandEmpty>No nile cruise found.</CommandEmpty>
                         <CommandGroup>
-                          {nileCruises.map(({ id, name }) => (
+                          {nileCruises?.map(({ id, name }) => (
                             <CommandItem key={id}>
                               <FormField
                                 control={form.control}
@@ -1223,7 +1223,7 @@ function From({
           </div>
           <h3 className="pb-2 text-xl font-semibold">Domestic Flights</h3>
           <div className="flex flex-col gap-y-4">
-            {domesticFlights.map(
+            {domesticFlights?.map(
               (
                 {
                   id,
@@ -1445,7 +1445,7 @@ function Reservations({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {reservationsList.map(
+          {reservationsList?.map(
             (
               { start, end, city, hotels, meal, targetPrice, currency },
               index,
@@ -1564,7 +1564,7 @@ function EditReservationModal({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {editedReservation.map((reservation, i) => (
+            {editedReservation?.map((reservation, i) => (
               <ReservationTableRow
                 key={generateRandomId()}
                 {...reservation}
@@ -1715,7 +1715,7 @@ function ReservationTableRow({
               className="w-full justify-between overflow-hidden"
             >
               {editedReservation[index].hotels.length
-                ? editedReservation[index].hotels.map((hotel) =>
+                ? editedReservation[index].hotels?.map((hotel) =>
                     capitalize(`${hotel}, `),
                   )
                 : "Select a hotel"}
@@ -1727,7 +1727,7 @@ function ReservationTableRow({
               <CommandInput placeholder="Search hotel..." />
               <CommandEmpty>No hotels found.</CommandEmpty>
               <CommandGroup>
-                {cityHotels.map(({ id, name }) => (
+                {cityHotels?.map(({ id, name }) => (
                   <CommandItem key={id} className="flex items-center gap-x-2">
                     <Checkbox
                       checked={editedReservation[index].hotels.includes(
@@ -1787,7 +1787,7 @@ function ReservationTableRow({
             <SelectValue placeholder="Select a currency" />
           </SelectTrigger>
           <SelectContent>
-            {["USD", "EUR", "EGP"].map((currency) => (
+            {["USD", "EUR", "EGP"]?.map((currency) => (
               <SelectItem key={currency} value={currency}>
                 {currency}
               </SelectItem>

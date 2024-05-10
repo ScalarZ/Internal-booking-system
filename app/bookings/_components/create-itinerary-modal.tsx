@@ -123,7 +123,7 @@ export default function AddItineraryModal({
         .select("id, name, countryId:country_id")
         .in(
           "country_id",
-          selectedCountries.map(({ id }) => id),
+          selectedCountries?.map(({ id }) => id),
         );
 
       if (error) throw error;
@@ -143,7 +143,7 @@ export default function AddItineraryModal({
         .select("id, name, countryId:country_id, cityId:city_id")
         .in(
           "city_id",
-          selectedCities.map(({ id }) => id),
+          selectedCities?.map(({ id }) => id),
         );
 
       if (error) throw error;
@@ -195,7 +195,7 @@ export default function AddItineraryModal({
             <p className="p-2 text-sm text-red-500">{errorMessage.cityError}</p>
           )}
           <ul className="flex flex-wrap gap-2 p-2 text-white">
-            {selectedCities.map(({ id, name }) => (
+            {selectedCities?.map(({ id, name }) => (
               <li
                 key={id}
                 className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-1 text-sm font-medium"
@@ -231,7 +231,7 @@ export default function AddItineraryModal({
             </p>
           )}
           <ul className="flex flex-wrap gap-2 p-2 text-white">
-            {selectedActivities.map(({ id, name }) => (
+            {selectedActivities?.map(({ id, name }) => (
               <li
                 key={id}
                 className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-1 text-sm font-medium"
@@ -294,7 +294,7 @@ function Select<T extends SelectCountries | SelectCities | SelectActivities>({
           <CommandInput placeholder="Search..." />
           <CommandEmpty>No framework found.</CommandEmpty>
           <CommandGroup className="max-h-[240px] overflow-y-auto">
-            {list.map((item) => (
+            {list?.map((item) => (
               <CommandItem
                 key={item.id}
                 value={item.name!}

@@ -38,7 +38,7 @@ export async function addBookings(
 ) {
   const row = await db.insert(bookings).values(booking).returning();
   await addReservations(
-    reservations.map((reservation) => ({
+    reservations?.map((reservation) => ({
       ...reservation,
       bookingId: row[0].id,
     })),
@@ -58,7 +58,7 @@ export async function updateBooking(
     deleteBookingReservations(booking.id),
   ]);
   await addReservations(
-    reservations.map((reservation) => ({
+    reservations?.map((reservation) => ({
       ...reservation,
       bookingId: booking.id,
     })),

@@ -31,7 +31,7 @@ export default function TableSkeleton() {
   return (
     <DataTable
       columns={columns}
-      data={Array(10).map((_, i) => {
+      data={Array(10)?.map((_, i) => {
         id: i;
         country: `Country ${i}`;
         city: `City ${i}`;

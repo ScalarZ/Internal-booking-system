@@ -81,7 +81,7 @@ export default function EditItineraryModal({
 
   function editItinerary() {
     setItineraries((prev) =>
-      prev.map((itinerary) => {
+      prev?.map((itinerary) => {
         if (itinerary.day === initialValues?.day) {
           itinerary.cities = selectedCities;
           itinerary.activities = selectedActivities;
@@ -101,7 +101,7 @@ export default function EditItineraryModal({
         .select("id, name, countryId:country_id")
         .in(
           "country_id",
-          selectedCountries.map(({ id }) => id),
+          selectedCountries?.map(({ id }) => id),
         );
 
       if (error) throw error;
@@ -121,7 +121,7 @@ export default function EditItineraryModal({
         .select("id, name, countryId:country_id, cityId:city_id")
         .in(
           "city_id",
-          selectedCities.map(({ id }) => id),
+          selectedCities?.map(({ id }) => id),
         );
 
       if (error) throw error;
@@ -170,7 +170,7 @@ export default function EditItineraryModal({
             type="city"
           />
           <ul className="flex gap-2 p-2 text-white flex-wrap">
-            {selectedCities.map(({ id, name }) => (
+            {selectedCities?.map(({ id, name }) => (
               <li
                 key={id}
                 className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-1 text-sm font-medium"
@@ -204,7 +204,7 @@ export default function EditItineraryModal({
             type="activity"
           />
           <ul className="flex gap-2 p-2 text-white flex-wrap">
-            {selectedActivities.map(({ id, name }) => (
+            {selectedActivities?.map(({ id, name }) => (
               <li
                 key={id}
                 className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-1 text-sm font-medium"
@@ -267,7 +267,7 @@ function Select<T extends SelectCountries | SelectCities | SelectActivities>({
           <CommandInput placeholder="Search..." />
           <CommandEmpty>No framework found.</CommandEmpty>
           <CommandGroup className="max-h-[240px] overflow-y-auto">
-            {list.map((item) => (
+            {list?.map((item) => (
               <CommandItem
                 key={item.id}
                 value={item.name!}

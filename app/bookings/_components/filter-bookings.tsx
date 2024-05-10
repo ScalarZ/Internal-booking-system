@@ -65,7 +65,7 @@ export default function FilterBookings({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={"select-country"}>Select a country</SelectItem>
-          {countries.map(({ id, name }) => (
+          {countries?.map(({ id, name }) => (
             <SelectItem key={id} value={name ?? ""}>
               {name}
             </SelectItem>

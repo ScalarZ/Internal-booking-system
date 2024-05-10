@@ -21,7 +21,7 @@ export default function Tabs() {
   const pathname = usePathname();
   return (
     <ul className="absolute top-4 flex min-w-max rounded border border-neutral-200 p-1">
-      {list.map(({ name, link }) => (
+      {list?.map(({ name, link }) => (
         <Link key={name} href={link}>
           <li
             className={cn("w-36 cursor-pointer rounded px-2 py-1 text-center", {

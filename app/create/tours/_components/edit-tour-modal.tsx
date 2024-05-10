@@ -207,7 +207,7 @@ export default function EditTourModal({
         .select("id, name, countryId:country_id")
         .in(
           "country_id",
-          selectedCountries.map(({ id }) => id),
+          selectedCountries?.map(({ id }) => id),
         );
 
       if (error) throw error;
@@ -227,7 +227,7 @@ export default function EditTourModal({
         .select("id, name, countryId:country_id, cityId:city_id")
         .in(
           "city_id",
-          selectedCities.map(({ id }) => id),
+          selectedCities?.map(({ id }) => id),
         );
 
       if (error) throw error;
@@ -294,7 +294,7 @@ export default function EditTourModal({
             </p>
           )}
           <ul className="flex gap-x-2 p-2 text-white">
-            {selectedCountries.map(({ id, name }) => (
+            {selectedCountries?.map(({ id, name }) => (
               <li
                 key={id}
                 className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-1 text-sm font-medium"
@@ -335,7 +335,7 @@ export default function EditTourModal({
             </p>
           )}
           <ul className="flex gap-x-2 p-2 text-white">
-            {selectedCities.map(({ id, name }) => (
+            {selectedCities?.map(({ id, name }) => (
               <li
                 key={id}
                 className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-1 text-sm font-medium"
@@ -372,7 +372,7 @@ export default function EditTourModal({
               </p>
             )}
           <ul className="flex gap-x-2 p-2 text-white">
-            {selectedActivities.map(({ id, name }) => (
+            {selectedActivities?.map(({ id, name }) => (
               <li
                 key={id}
                 className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-1 text-sm font-medium"
@@ -398,15 +398,15 @@ export default function EditTourModal({
         </Button>
         <div className="max-h-[340px] overflow-y-auto">
           <Reorder.Group
-            values={itineraries.map(({ id }) => id)}
+            values={itineraries?.map(({ id }) => id)}
             onReorder={(newOrd) =>
               setItineraries((prev) =>
                 (
-                  newOrd.map((id) => {
+                  newOrd?.map((id) => {
                     const itinerary = prev.find((item) => item.id === id)!;
                     return itinerary;
                   }) as Itinerary[]
-                ).map((itinerary, i) => ({
+                )?.map((itinerary, i) => ({
                   ...itinerary,
                   day: `Day ${i + 1}`,
                 })),
@@ -414,7 +414,7 @@ export default function EditTourModal({
             }
             layoutScroll
           >
-            {itineraries.map(({ id, day, activities, cities }) => (
+            {itineraries?.map(({ id, day, activities, cities }) => (
               <Reorder.Item
                 key={id}
                 value={id}
@@ -425,7 +425,7 @@ export default function EditTourModal({
                   <div className="flex items-center gap-x-2 text-sm">
                     <span className="font-medium">Cities:</span>
                     <ul className="flex gap-x-1 text-white">
-                      {cities.map(({ id, name }) => (
+                      {cities?.map(({ id, name }) => (
                         <li
                           key={id}
                           className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-0.5 text-sm font-medium"
@@ -438,7 +438,7 @@ export default function EditTourModal({
                   <div className="flex items-center gap-x-2 text-sm">
                     <span className="font-medium">Activities:</span>
                     <ul className="flex gap-x-1 text-white">
-                      {activities.map(({ id, name }) => (
+                      {activities?.map(({ id, name }) => (
                         <li
                           key={id}
                           className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-0.5 text-sm font-medium"
@@ -470,7 +470,7 @@ export default function EditTourModal({
                       setItineraries((prev) =>
                         prev
                           .filter((itinerary) => itinerary.day !== day)
-                          .map((itinerary, i) => ({
+                          ?.map((itinerary, i) => ({
                             ...itinerary,
                             day: `Day ${i + 1}`,
                           })),
@@ -535,7 +535,7 @@ function Select<T extends SelectCountries | SelectCities | SelectActivities>({
           <CommandInput placeholder="Search..." />
           <CommandEmpty>No framework found.</CommandEmpty>
           <CommandGroup className="max-h-[240px] overflow-y-auto">
-            {list.map((item) => (
+            {list?.map((item) => (
               <CommandItem
                 key={item.id}
                 value={item.name!}

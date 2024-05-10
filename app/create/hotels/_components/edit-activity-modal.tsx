@@ -241,7 +241,7 @@ function Select({
           <CommandInput placeholder="Search..." />
           <CommandEmpty>No framework found.</CommandEmpty>
           <CommandGroup className="max-h-[240px] overflow-y-auto">
-            {list.map(({ id, name }) => (
+            {list?.map(({ id, name }) => (
               <CommandItem
                 key={id}
                 value={name!}
