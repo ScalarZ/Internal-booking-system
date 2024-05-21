@@ -205,7 +205,7 @@ export function From({
   setInitialValues: (value: SelectBookingWithReservations | null) => void;
 }) {
   const [name, setName] = useState("");
-  const [internalBookingId, setInternalBookingId] = useState("");
+  const [internalBookingId, setInternalBookingId] = useState(initialValues.internalBookingId);
   const [tourOpen, setTourOpen] = useState(false);
   const [companyOpen, setCompanyOpen] = useState(false);
   const [hotelsOpen, setHotelsOpen] = useState(false);
@@ -1507,6 +1507,7 @@ export function From({
                 reservationsList={reservationsList}
                 setReservationsList={setReservationsList}
                 tourCountries={tourCountries}
+                isReservation={isReservation}
               />
             )}
         </section>
