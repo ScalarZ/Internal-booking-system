@@ -51,11 +51,11 @@ import {
   XCircle,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { array, z } from "zod";
+import { z } from "zod";
 import { cn } from "@/lib/utils";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
-import { addDays, differenceInDays, format } from "date-fns";
+import { addDays, format } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -73,17 +73,12 @@ import capitalize from "@/utils/capitalize";
 import { addBookings } from "@/utils/db-queries/booking";
 import { Reorder } from "framer-motion";
 import EditItineraryModal from "@/app/create/tours/_components/edit-itinerary-modal";
-import { getCitiesHotels, getCityHotels } from "@/utils/db-queries/hotel";
+import { getCitiesHotels } from "@/utils/db-queries/hotel";
 import AddItineraryModal from "./create-itinerary-modal";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
 import { generateRandomId } from "@/utils/generate-random-id";
+import Reservations from "./reservations";
+import { DialogDescription } from "@radix-ui/react-dialog";
 
 type Reservation = Omit<
   SelectReservations,
@@ -225,12 +220,14 @@ function From({
       status: true,
     },
   });
+  const [isAlterModalOpen, setIsAlertModalOpen] = useState(false);
+  const [reservationsList, setReservationsList] = useState<Reservation[]>([]);
 
-  const reservations = useMemo(() => {
+  function generateReservations() {
     let tacker = -1;
     let startDate = form.watch("arrivalDepartureDate.from")!;
-    if (!startDate) return [];
-    return itineraries.reduce<Reservation[]>((acc, curr) => {
+    if (!startDate || !itineraries.length) return;
+    const reservations = itineraries.reduce<Reservation[]>((acc, curr) => {
       if (
         acc[tacker]?.city?.name ===
         curr?.cities?.[curr?.cities?.length - 1].name
@@ -251,14 +248,8 @@ function From({
       startDate = addDays(startDate, 1);
       return [...acc];
     }, []);
-  }, [itineraries, form.watch("arrivalDepartureDate.from")]);
-
-  const [reservationsList, setReservationsList] =
-    useState<Reservation[]>(reservations);
-
-  useEffect(() => {
     setReservationsList(reservations);
-  }, [reservations]);
+  }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -328,12 +319,6 @@ function From({
       console.error(error);
     }
   }
-
-  useEffect(() => {
-    if (!tourCities.length) return;
-    listCitiesHotels();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tourCities]);
 
   return (
     <Form {...form}>
@@ -755,45 +740,53 @@ function From({
                           <CommandInput placeholder="Search tour..." />
                           <CommandEmpty>No tour found.</CommandEmpty>
                           <CommandGroup>
-                            {tours?.map(({ id, name, countries, itinerary }) => (
-                              <CommandItem
-                                key={id}
-                                value={name ?? ""}
-                                onSelect={() => {
-                                  field.onChange(
-                                    name === field.value ? "" : name,
-                                  );
-                                  setTourOpen(false);
-                                  setTourCountries(
-                                    name === field.value ? [] : countries ?? [],
-                                  );
-                                  setTourCities(
-                                    name === field.value
-                                      ? []
-                                      : itinerary?.reduce<SelectCities[]>(
-                                          (acc, curr) => [
-                                            ...acc,
-                                            ...curr.cities,
-                                          ],
-                                          [],
-                                        ) ?? [],
-                                  );
-                                  setItineraries(
-                                    name === field.value ? [] : itinerary ?? [],
-                                  );
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    field.value === name
-                                      ? "opacity-100"
-                                      : "opacity-0",
-                                  )}
-                                />
-                                {name}
-                              </CommandItem>
-                            ))}
+                            {tours?.map(
+                              ({ id, name, countries, itinerary }) => (
+                                <CommandItem
+                                  key={id}
+                                  value={name ?? ""}
+                                  onSelect={async () => {
+                                    field.onChange(
+                                      name === field.value ? "" : name,
+                                    );
+                                    setTourOpen(false);
+                                    setTourCountries(
+                                      name === field.value
+                                        ? []
+                                        : countries ?? [],
+                                    );
+                                    setTourCities(
+                                      name === field.value
+                                        ? []
+                                        : itinerary?.reduce<SelectCities[]>(
+                                            (acc, curr) => [
+                                              ...acc,
+                                              ...curr.cities,
+                                            ],
+                                            [],
+                                          ) ?? [],
+                                    );
+                                    setItineraries(
+                                      name === field.value
+                                        ? []
+                                        : itinerary ?? [],
+                                    );
+                                    if (name !== field.value)
+                                      await listCitiesHotels();
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      field.value === name
+                                        ? "opacity-100"
+                                        : "opacity-0",
+                                    )}
+                                  />
+                                  {name}
+                                </CommandItem>
+                              ),
+                            )}
                           </CommandGroup>
                         </Command>
                       </PopoverContent>
@@ -938,7 +931,9 @@ function From({
                         className="w-full justify-between overflow-hidden"
                       >
                         {field.value.length
-                          ? field.value?.map((hotel) => capitalize(`${hotel}, `))
+                          ? field.value?.map((hotel) =>
+                              capitalize(`${hotel}, `),
+                            )
                           : "Select hotels"}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
@@ -1375,12 +1370,33 @@ function From({
           </div>
         </section>
 
-        {!!itineraries.length && !!form.watch("arrivalDepartureDate")?.from && (
-          <Reservations
-            reservationsList={reservationsList}
-            setReservationsList={setReservationsList}
-          />
-        )}
+        <section>
+          <div className="flex justify-between">
+            <h2 className="text-2xl font-semibold text-sky-900">Flights</h2>
+            <Button
+              variant="secondary"
+              disabled={
+                !itineraries.length || !form.watch("arrivalDepartureDate.from")
+              }
+              onClick={
+                !reservationsList.length
+                  ? generateReservations
+                  : () => setIsAlertModalOpen(true)
+              }
+              type="button"
+            >
+              Generate reservations
+            </Button>
+          </div>
+          {!!reservationsList.length &&
+            !!form.watch("arrivalDepartureDate")?.from && (
+              <Reservations
+                reservationsList={reservationsList}
+                setReservationsList={setReservationsList}
+                tourCountries={tourCountries}
+              />
+            )}
+        </section>
 
         <DialogFooter className="pt-4">
           <Button type="button" variant={"outline"}>
@@ -1411,403 +1427,60 @@ function From({
           setItineraries={setItineraries}
         />
       )}
+      {isAlterModalOpen && (
+        <AlterModal
+          isOpen={isAlterModalOpen}
+          setIsOpen={setIsAlertModalOpen}
+          generateReservations={generateReservations}
+        />
+      )}
     </Form>
   );
 }
 
-function Reservations({
-  reservationsList,
-  setReservationsList,
-}: {
-  reservationsList: Reservation[];
-  setReservationsList: (
-    cb: (reservationsList: Reservation[]) => Reservation[],
-  ) => void;
-}) {
-  const [editedReservation, setEditedReservation] = useState<
-    (Reservation & { index: number })[]
-  >([]);
-
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <>
-      <Table className="mt-8 rounded border">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Start</TableHead>
-            <TableHead>End</TableHead>
-            <TableHead>City</TableHead>
-            <TableHead>Hotel</TableHead>
-            <TableHead>Meal</TableHead>
-            <TableHead>Currency</TableHead>
-            <TableHead>Target Price</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {reservationsList?.map(
-            (
-              { start, end, city, hotels, meal, targetPrice, currency },
-              index,
-            ) => (
-              <TableRow
-                key={generateRandomId()}
-                onClick={() => {
-                  setEditedReservation([
-                    {
-                      start,
-                      end,
-                      city,
-                      hotels: [...hotels!],
-                      meal,
-                      targetPrice,
-                      index,
-                      currency,
-                    },
-                  ]);
-                  setIsOpen(true);
-                }}
-              >
-                <TableCell>
-                  {!start ? "Start Date" : format(start, "dd/MM/yyy")}
-                </TableCell>
-                <TableCell>
-                  {!end ? "End Date" : format(end, "dd/MM/yyy")}
-                </TableCell>
-                <TableCell>{city?.name}</TableCell>
-                <TableCell>{hotels?.map((name) => `${name}, `)}</TableCell>
-                <TableCell>{meal}</TableCell>
-                <TableCell>{currency}</TableCell>
-                <TableCell>{targetPrice}</TableCell>
-              </TableRow>
-            ),
-          )}
-        </TableBody>
-      </Table>
-
-      {!!editedReservation?.length && (
-        <EditReservationModal
-          isOpen={isOpen}
-          setIsOpen={setIsOpen}
-          editedReservation={editedReservation}
-          setEditedReservation={setEditedReservation}
-          setReservationsList={setReservationsList}
-        />
-      )}
-    </>
-  );
-}
-
-function EditReservationModal({
+function AlterModal({
   isOpen,
   setIsOpen,
-  editedReservation,
-  setEditedReservation,
-  setReservationsList,
+  generateReservations,
 }: {
   isOpen: boolean;
   setIsOpen: (value: boolean) => void;
-  editedReservation: (Reservation & { index: number })[];
-  setEditedReservation: (
-    cb: (
-      reservations: (Reservation & { index: number })[],
-    ) => (Reservation & { index: number })[],
-  ) => void;
-  setReservationsList: (
-    cb: (reservations: Reservation[]) => Reservation[],
-  ) => void;
+  generateReservations: () => void;
 }) {
-  const [cityHotels, setCityHotels] = useState<SelectHotels[]>([]);
-  const listCityHotels = useCallback(async () => {
-    try {
-      const hotels = await getCityHotels({
-        countryId: editedReservation[0].city?.countryId!,
-        cityId: editedReservation[0].city?.id!,
-      });
-      setCityHotels(hotels);
-    } catch (error) {
-      console.error(error);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    listCityHotels();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(value) => {
-        setIsOpen(value);
-        if (!value) {
-          setCityHotels([]);
-          setEditedReservation(() => []);
-        }
-      }}
-    >
-      <DialogContent className="max-h-screen min-w-[1280px] gap-y-2 overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent className="max-h-screen gap-y-2 overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            Edit {editedReservation[0].city?.name} Reservation
-          </DialogTitle>
+          <DialogTitle>Generate Reservations</DialogTitle>
         </DialogHeader>
-        <Table className="mt-4 rounded border">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Start</TableHead>
-              <TableHead>End</TableHead>
-              <TableHead>Hotel</TableHead>
-              <TableHead>Meal</TableHead>
-              <TableHead>Currency</TableHead>
-              <TableHead>Target Price</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {editedReservation?.map((reservation, i) => (
-              <ReservationTableRow
-                key={generateRandomId()}
-                {...reservation}
-                index={i}
-                listLength={editedReservation.length}
-                cityHotels={cityHotels}
-                editedReservation={editedReservation}
-                setEditedReservation={setEditedReservation}
-              />
-            ))}
-          </TableBody>
-        </Table>
+        <DialogDescription>
+          <p className="text-gray-500">
+            This will regenerate the reservations table and all the adjustments
+            you have made will be removed
+          </p>
+        </DialogDescription>
         <DialogFooter className="flex w-full justify-between pt-4">
           <Button
             type="button"
-            variant={"secondary"}
-            onClick={() => {
-              setEditedReservation((prev) => [
-                ...prev,
-                {
-                  start: null,
-                  end: prev[prev.length - 1].end,
-                  hotels: [],
-                  meal: null,
-                  targetPrice: null,
-                  index: prev[prev.length - 1].index + 1,
-                  city: prev[0].city,
-                  currency: "USD",
-                },
-              ]);
+            variant={"destructive"}
+            onClick={()=>{
+              generateReservations()
+              setIsOpen(false);
             }}
           >
-            Add
+            Generate
           </Button>
           <div className="flex gap-x-2">
-            <Button type="button" variant={"outline"}>
-              Cancel
-            </Button>
             <Button
-              className="flex gap-x-1"
-              onClick={() => {
-                setReservationsList((prev) => {
-                  const firstPart = prev.slice(0, editedReservation[0].index);
-                  const lastPart = prev.slice(editedReservation[0].index + 1);
-                  const newList = [
-                    ...firstPart,
-                    ...editedReservation,
-                    ...lastPart,
-                  ];
-                  return newList;
-                });
-                setCityHotels([]);
-                setEditedReservation(() => []);
-                setIsOpen(false);
-              }}
+              type="button"
+              variant={"outline"}
+              onClick={() => setIsOpen(false)}
             >
-              Update
+              Cancel
             </Button>
           </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function ReservationTableRow({
-  start,
-  end,
-  meal,
-  targetPrice,
-  cityHotels,
-  index,
-  listLength,
-  editedReservation,
-  currency,
-  setEditedReservation,
-}: Reservation & {
-  cityHotels: SelectCities[];
-  index: number;
-  listLength: number;
-  editedReservation: (Reservation & { index: number })[];
-  setEditedReservation: (
-    cb: (
-      reservations: (Reservation & { index: number })[],
-    ) => (Reservation & { index: number })[],
-  ) => void;
-}) {
-  const [hotelsOpen, setHotelsOpen] = useState(false);
-  // const [selectedHotels, setSelectedHotels] = useState<string[]>(hotels ?? []);
-  const [endAt, setEndAt] = useState<Date | null>(end);
-  const { initStart, initEnd } = { initStart: start, initEnd: end };
-  return (
-    <TableRow>
-      <TableCell>
-        {start ? format(start, "dd/MM/yyyy") : "Previous end date ↗"}
-      </TableCell>
-      <TableCell>
-        {index === listLength - 1 ? (
-          end ? (
-            format(end, "dd/MM/yyyy")
-          ) : (
-            "End date"
-          )
-        ) : (
-          <Popover>
-            <PopoverTrigger asChild>
-              <FormControl>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-[240px] pl-3 text-left font-normal",
-                    !endAt && "text-muted-foreground",
-                  )}
-                >
-                  {endAt ? format(endAt, "PPP") : <span>Pick a date</span>}
-                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                </Button>
-              </FormControl>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                disabled={(date) => {
-                  if (!initStart || !initEnd) return false;
-                  return date < initStart || date >= initEnd;
-                }}
-                selected={endAt ?? undefined}
-                onSelect={(date) => {
-                  setEndAt(date ?? null);
-                  setEditedReservation((prev) => {
-                    prev[index + 1].start = date ?? null;
-                    prev[index].end = date ?? null;
-                    return [...prev];
-                  });
-                }}
-              />
-            </PopoverContent>
-          </Popover>
-        )}
-      </TableCell>
-      <TableCell>
-        <Popover open={hotelsOpen} onOpenChange={setHotelsOpen}>
-          <PopoverTrigger asChild disabled={!cityHotels.length}>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={hotelsOpen}
-              className="w-full justify-between overflow-hidden"
-            >
-              {editedReservation[index].hotels.length
-                ? editedReservation[index].hotels?.map((hotel) =>
-                    capitalize(`${hotel}, `),
-                  )
-                : "Select a hotel"}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className=" p-0">
-            <Command>
-              <CommandInput placeholder="Search hotel..." />
-              <CommandEmpty>No hotels found.</CommandEmpty>
-              <CommandGroup>
-                {cityHotels?.map(({ id, name }) => (
-                  <CommandItem key={id} className="flex items-center gap-x-2">
-                    <Checkbox
-                      checked={editedReservation[index].hotels.includes(
-                        name ?? "",
-                      )}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setEditedReservation(() => {
-                            if (
-                              !editedReservation[index].hotels.includes(name!)
-                            )
-                              editedReservation[index].hotels.push(name!);
-                            return [...editedReservation];
-                          });
-                        } else {
-                          setEditedReservation(() => {
-                            editedReservation[index].hotels = editedReservation[
-                              index
-                            ].hotels.filter((hotel) => hotel !== name);
-                            return [...editedReservation];
-                          });
-                        }
-                        setHotelsOpen(false);
-                      }}
-                    />
-                    {name}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </Command>
-          </PopoverContent>
-        </Popover>
-      </TableCell>
-      <TableCell>
-        <Input
-          placeholder="Meal..."
-          defaultValue={meal ?? undefined}
-          onBlur={(e) =>
-            setEditedReservation((prev) => {
-              prev[index].meal = e.target.value;
-              return [...prev];
-            })
-          }
-        />
-      </TableCell>
-      <TableCell>
-        <Select
-          onValueChange={(value) =>
-            setEditedReservation(() => {
-              editedReservation[index].currency = value;
-              return [...editedReservation];
-            })
-          }
-          defaultValue={currency ?? "USD"}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select a currency" />
-          </SelectTrigger>
-          <SelectContent>
-            {["USD", "EUR", "EGP"]?.map((currency) => (
-              <SelectItem key={currency} value={currency}>
-                {currency}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </TableCell>
-      <TableCell>
-        <Input
-          defaultValue={targetPrice ?? undefined}
-          placeholder="Price..."
-          type="number"
-          onBlur={(e) => {
-            setEditedReservation(() => {
-              editedReservation[index].targetPrice = e.target.valueAsNumber;
-              return [...editedReservation];
-            });
-          }}
-        />
-      </TableCell>
-    </TableRow>
   );
 }

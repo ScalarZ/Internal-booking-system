@@ -28,11 +28,5 @@ export async function deleteCity(city: { id: string }) {
 }
 
 export async function getCountryCities(cityId: string) {
-  try {
-    return {
-      data: await db.select().from(cities).where(eq(cities.countryId, cityId)),
-    };
-  } catch (error) {
-    return { error };
-  }
+  return await db.select().from(cities).where(eq(cities.countryId, cityId));
 }

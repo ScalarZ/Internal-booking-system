@@ -215,7 +215,8 @@ export function columns({
               <Trash
                 size={20}
                 className="cursor-pointer text-red-500"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setInitialValues(row.original);
                   setIsDeleteModalOpen(true);
                   setIsEditModalOpen(false);

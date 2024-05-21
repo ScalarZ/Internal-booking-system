@@ -120,7 +120,7 @@ export default function FilterBookings({
 
       <Input
         placeholder="Search by ID..."
-        value={id ?? ""}
+        type="number"
         onChange={(e) =>
           setId(isNaN(e.target.valueAsNumber) ? e.target.valueAsNumber : 0)
         }
