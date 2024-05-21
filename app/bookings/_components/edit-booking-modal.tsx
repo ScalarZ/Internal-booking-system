@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -55,7 +56,7 @@ import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import { addDays, format } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -86,6 +87,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { generateRandomId } from "@/utils/generate-random-id";
+import { getCountryCities } from "@/utils/db-queries/city";
 
 type Reservation = Omit<SelectReservations, "id" | "createdAt" | "updatedAt">;
 
@@ -281,6 +283,7 @@ export function From({
       city: typeof city === "string" ? JSON.parse(city) : city,
     })),
   );
+  const [isAlterModalOpen, setIsAlertModalOpen] = useState(false);
 
   const listCitiesHotels = useCallback(async () => {
     try {
@@ -317,6 +320,36 @@ export function From({
     listTourCountries();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function generateReservations() {
+    let tacker = -1;
+    let startDate = form.watch("arrivalDepartureDate.from")!;
+    if (!startDate || !itineraries.length) return;
+    const reservations = itineraries.reduce<Reservation[]>((acc, curr) => {
+      if (
+        acc[tacker]?.city?.name ===
+        curr?.cities?.[curr?.cities?.length - 1].name
+      ) {
+        acc[tacker].end = addDays(startDate, 1);
+      } else {
+        acc.push({
+          start: startDate,
+          end: addDays(startDate, 1),
+          city: curr?.cities?.[curr?.cities?.length - 1],
+          hotels: [],
+          meal: null,
+          targetPrice: null,
+          currency: "USD",
+          bookingId: initialValues.id,
+          finalPrice: null,
+        });
+        tacker++;
+      }
+      startDate = addDays(startDate, 1);
+      return [...acc];
+    }, []);
+    setReservationsList(reservations);
+  }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -394,7 +427,7 @@ export function From({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div
           className={cn("space-y-8", {
             "pointer-events-none opacity-70": isReservation,
@@ -1450,14 +1483,33 @@ export function From({
             </div>
           </section>
         </div>
-
-        {!!itineraries?.length && !!form.watch("arrivalDepartureDate")?.from && (
-          <Reservations
-            reservationsList={reservationsList}
-            setReservationsList={setReservationsList}
-            isReservation={isReservation}
-          />
-        )}
+        <section>
+          <div className="flex justify-between">
+            <h2 className="text-2xl font-semibold text-sky-900">Flights</h2>
+            <Button
+              variant="secondary"
+              disabled={
+                !itineraries.length || !form.watch("arrivalDepartureDate.from")
+              }
+              onClick={
+                !reservationsList.length
+                  ? generateReservations
+                  : () => setIsAlertModalOpen(true)
+              }
+              type="button"
+            >
+              Generate reservations
+            </Button>
+          </div>
+          {!!reservationsList.length &&
+            !!form.watch("arrivalDepartureDate")?.from && (
+              <Reservations
+                reservationsList={reservationsList}
+                setReservationsList={setReservationsList}
+                tourCountries={tourCountries}
+              />
+            )}
+        </section>
 
         <DialogFooter className="pt-4">
           <Button type="button" variant={"outline"}>
@@ -1488,6 +1540,13 @@ export function From({
           setItineraries={setItineraries}
         />
       )}
+      {isAlterModalOpen && (
+        <AlterModal
+          isOpen={isAlterModalOpen}
+          setIsOpen={setIsAlertModalOpen}
+          generateReservations={generateReservations}
+        />
+      )}
     </Form>
   );
 }
@@ -1495,10 +1554,12 @@ export function From({
 function Reservations({
   reservationsList,
   isReservation,
+  tourCountries,
   setReservationsList,
 }: {
   reservationsList: Reservation[];
   isReservation?: boolean;
+  tourCountries: SelectCountries[];
   setReservationsList: (
     cb: (reservationsList: Reservation[]) => Reservation[],
   ) => void;
@@ -1506,8 +1567,8 @@ function Reservations({
   const [editedReservation, setEditedReservation] = useState<
     (Reservation & { index: number })[]
   >([]);
-
-  const [isOpen, setIsOpen] = useState(false);
+  const [isEditReservationOpen, setIsEditReservationOpen] = useState(false);
+  const [isAddReservationOpen, setIsAddReservationOpen] = useState(false);
 
   return (
     <>
@@ -1559,7 +1620,7 @@ function Reservations({
                             finalPrice,
                           },
                         ]);
-                        setIsOpen(true);
+                        setIsEditReservationOpen(true);
                       }
                     : undefined
                 }
@@ -1599,14 +1660,29 @@ function Reservations({
           )}
         </TableBody>
       </Table>
-
+      <Button
+        type="button"
+        variant="secondary"
+        className="mt-4"
+        onClick={() => setIsAddReservationOpen(true)}
+      >
+        Add reservation
+      </Button>
       {!!editedReservation?.length && (
         <EditReservationModal
-          isOpen={isOpen}
-          setIsOpen={setIsOpen}
+          isOpen={isEditReservationOpen}
+          setIsOpen={setIsEditReservationOpen}
           editedReservation={editedReservation}
           setEditedReservation={setEditedReservation}
           setReservationsList={setReservationsList}
+        />
+      )}
+      {isAddReservationOpen && (
+        <AddReservationModal
+          isOpen={isAddReservationOpen}
+          setIsOpen={setIsAddReservationOpen}
+          setReservationsList={setReservationsList}
+          selectedCountry={tourCountries[0]}
         />
       )}
     </>
@@ -1929,3 +2005,339 @@ function ReservationTableRow({
   );
 }
 
+function AddReservationModal({
+  isOpen,
+  selectedCountry,
+  setIsOpen,
+  setReservationsList,
+}: {
+  isOpen: boolean;
+  selectedCountry: SelectCountries;
+  setIsOpen: (value: boolean) => void;
+  setReservationsList: (
+    cb: (reservations: Reservation[]) => Reservation[],
+  ) => void;
+}) {
+  const [hotelsOpen, setHotelsOpen] = useState(false);
+  const [selectedHotels, setSelectedHotels] = useState<string[]>([]);
+  const [citiesOpen, setCitiesOpen] = useState(false);
+  const [cities, setCities] = useState<SelectCities[]>([]);
+  const [selectedCity, setSelectedCity] = useState<SelectCities | null>(null);
+  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({
+    from: undefined,
+    to: undefined,
+  });
+  const [cityHotels, setCityHotels] = useState<SelectHotels[]>([]);
+  const [meal, setMeal] = useState("");
+  const [targetPrice, setTargetPrice] = useState<number | null>(null);
+  const [finalPrice, setFinalPrice] = useState<number | null>(null);
+  const [currency, setCurrency] = useState("USD");
+
+  const listCityHotels = useCallback(async (city: SelectCities) => {
+    try {
+      const hotels = await getCityHotels({
+        countryId: selectedCountry.id,
+        cityId: city.id,
+      });
+      setCityHotels(hotels);
+    } catch (error) {
+      console.error(error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const listCities = useCallback(async () => {
+    try {
+      const cities = await getCountryCities(selectedCountry.id);
+      setCities(cities);
+    } catch (error) {
+      console.error(error);
+    }
+  }, [selectedCountry]);
+
+  useEffect(() => {
+    listCities();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <Dialog
+      open={isOpen}
+      onOpenChange={(value) => {
+        setIsOpen(value);
+        if (!value) {
+          setCityHotels([]);
+        }
+      }}
+    >
+      <DialogContent className="max-h-screen min-w-[1280px] gap-y-2 overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Add Reservation</DialogTitle>
+        </DialogHeader>
+        <Table className="mt-4 rounded border">
+          <TableHeader>
+            <TableRow>
+              <TableHead>City</TableHead>
+              <TableHead>Start ⟹ End</TableHead>
+              <TableHead>Hotel</TableHead>
+              <TableHead>Meal</TableHead>
+              <TableHead>Currency</TableHead>
+              <TableHead>Target Price</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell>
+                <Popover open={citiesOpen} onOpenChange={setCitiesOpen}>
+                  <PopoverTrigger asChild disabled={!cities.length}>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={citiesOpen}
+                      className="w-full justify-between overflow-hidden"
+                    >
+                      {selectedCity ? selectedCity.name : "Select a city"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className=" p-0">
+                    <Command>
+                      <CommandInput placeholder="Search city..." />
+                      <CommandEmpty>No cities found.</CommandEmpty>
+                      <CommandGroup>
+                        {cities?.map((city) => (
+                          <CommandItem
+                            key={city.id}
+                            className="flex items-center gap-x-2"
+                          >
+                            <Checkbox
+                              checked={city.name === selectedCity?.name}
+                              onCheckedChange={async (checked) => {
+                                if (checked) {
+                                  setSelectedCity(city);
+                                  setCityHotels([]);
+                                  await listCityHotels(city);
+                                } else {
+                                  setSelectedCity(null);
+                                  setCityHotels([]);
+                                }
+                                setCitiesOpen(false);
+                              }}
+                            />
+                            {city.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </TableCell>
+              <TableCell>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-[240px] pl-3 text-left font-normal",
+                        !dateRange.from &&
+                          !dateRange.to &&
+                          "text-muted-foreground",
+                      )}
+                    >
+                      {dateRange.from && dateRange.to ? (
+                        `${format(dateRange.from, "PPP")} ⟹ ${format(dateRange.to, "PPP")}`
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="range"
+                      selected={{
+                        from: dateRange.from,
+                        to: dateRange.to,
+                      }}
+                      onSelect={(value) => {
+                        setDateRange({ from: value?.from, to: value?.to });
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </TableCell>
+              <TableCell>
+                <Popover open={hotelsOpen} onOpenChange={setHotelsOpen}>
+                  <PopoverTrigger asChild disabled={!cityHotels.length}>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={hotelsOpen}
+                      className="w-full justify-between overflow-hidden"
+                    >
+                      {selectedHotels.length
+                        ? selectedHotels.map((name) => capitalize(`${name} ,`))
+                        : "Select a hotel"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className=" p-0">
+                    <Command>
+                      <CommandInput placeholder="Search hotel..." />
+                      <CommandEmpty>No hotels found.</CommandEmpty>
+                      <CommandGroup>
+                        {cityHotels?.map(({ id, name }) => (
+                          <CommandItem
+                            key={id}
+                            className="flex items-center gap-x-2"
+                          >
+                            <Checkbox
+                              checked={selectedHotels.includes(name ?? "")}
+                              onCheckedChange={async (checked) => {
+                                if (checked) {
+                                  setSelectedHotels((prev) => [
+                                    ...prev,
+                                    name ?? "",
+                                  ]);
+                                } else {
+                                  setSelectedHotels((prev) =>
+                                    prev.filter((hotel) => hotel !== name),
+                                  );
+                                  setCityHotels([]);
+                                }
+                                setHotelsOpen(false);
+                              }}
+                            />
+                            {name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </TableCell>
+              <TableCell>
+                <Input
+                  placeholder="Meal..."
+                  value={meal}
+                  onChange={(e) => setMeal(e.target.value)}
+                />
+              </TableCell>
+              <TableCell>
+                <Select
+                  onValueChange={(value) => setCurrency(value)}
+                  defaultValue={"USD"}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["USD", "EUR", "EGP"]?.map((currency) => (
+                      <SelectItem key={currency} value={currency}>
+                        {currency}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </TableCell>
+              <TableCell>
+                <Input
+                  defaultValue={targetPrice ?? undefined}
+                  placeholder="Target price..."
+                  type="number"
+                  onChange={(e) =>
+                    setTargetPrice(Math.max(0, e.target.valueAsNumber))
+                  }
+                />
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+        <DialogFooter className="flex w-full justify-between pt-4">
+          <div className="flex gap-x-2">
+            <Button type="button" variant={"outline"}>
+              Cancel
+            </Button>
+            <Button
+              className="flex gap-x-1"
+              onClick={() => {
+                setReservationsList((prev) => {
+                  const reservation: Reservation = {
+                    city: selectedCity,
+                    currency,
+                    targetPrice,
+                    meal,
+                    hotels: selectedHotels,
+                    start: dateRange.from ?? null,
+                    end: dateRange.to ?? null,
+                    bookingId: prev[prev?.length - 1].bookingId,
+                    finalPrice,
+                  };
+                  return [...prev, reservation].sort((a, b) => {
+                    if (!a.start || !b.start) return -1;
+                    if (a.start === b.start) {
+                      if (!a.end || !b.end) return -1;
+                      return a.end?.getTime() - b.end?.getTime();
+                    }
+                    return a.start?.getTime() - b.start?.getTime();
+                  });
+                });
+                setCityHotels([]);
+                setCities([]);
+                setIsOpen(false);
+              }}
+            >
+              Create
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+function AlterModal({
+  isOpen,
+  setIsOpen,
+  generateReservations,
+}: {
+  isOpen: boolean;
+  setIsOpen: (value: boolean) => void;
+  generateReservations: () => void;
+}) {
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent className="max-h-screen gap-y-2 overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Generate Reservations</DialogTitle>
+        </DialogHeader>
+        <DialogDescription>
+          <p className="text-gray-500">
+            This will regenerate the reservations table and all the adjustments
+            you have made will be removed
+          </p>
+        </DialogDescription>
+        <DialogFooter className="flex w-full justify-between pt-4">
+          <Button
+            type="button"
+            variant={"destructive"}
+            onClick={() => {
+              generateReservations();
+              setIsOpen(false);
+            }}
+          >
+            Generate
+          </Button>
+          <div className="flex gap-x-2">
+            <Button
+              type="button"
+              variant={"outline"}
+              onClick={() => setIsOpen(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

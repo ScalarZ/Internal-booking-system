@@ -96,7 +96,6 @@ export default function AddReservationModal({
   }, []);
 
   const listCities = useCallback(async () => {
-    console.log(selectedCountry);
     try {
       const cities = await getCountryCities(selectedCountry.id);
       setCities(cities);
