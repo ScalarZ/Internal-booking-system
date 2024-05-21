@@ -11,7 +11,7 @@ export async function listCountryCities({
   setCitiesList([]);
   try {
     const res = await getCountryCities(countryId);
-    setCitiesList(res.data!);
+    setCitiesList(res);
   } catch (err) {
     console.error(err);
   }
