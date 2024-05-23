@@ -254,7 +254,7 @@ function From({
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      addBookings(
+      await addBookings(
         {
           arrivalDate: values.arrivalDepartureDate.from ?? null,
           company: values.company,
@@ -311,7 +311,7 @@ function From({
     }
   }
 
-  async function listCitiesHotels() {
+  async function listCitiesHotels(tourCities: SelectCities[]) {
     try {
       const hotels = await getCitiesHotels(tourCities?.map(({ id }) => id));
       setCitiesHotels(hotels);
@@ -772,7 +772,15 @@ function From({
                                         : itinerary ?? [],
                                     );
                                     if (name !== field.value)
-                                      await listCitiesHotels();
+                                      await listCitiesHotels(
+                                        itinerary?.reduce<SelectCities[]>(
+                                          (acc, curr) => [
+                                            ...acc,
+                                            ...curr.cities,
+                                          ],
+                                          [],
+                                        ) ?? [],
+                                      );
                                   }}
                                 >
                                   <Check
@@ -1372,7 +1380,7 @@ function From({
 
         <section>
           <div className="flex justify-between">
-            <h2 className="text-2xl font-semibold text-sky-900">Flights</h2>
+            <h2 className="text-2xl font-semibold text-sky-900">Reservations</h2>
             <Button
               variant="secondary"
               disabled={
@@ -1463,8 +1471,8 @@ function AlterModal({
           <Button
             type="button"
             variant={"destructive"}
-            onClick={()=>{
-              generateReservations()
+            onClick={() => {
+              generateReservations();
               setIsOpen(false);
             }}
           >

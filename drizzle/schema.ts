@@ -192,6 +192,13 @@ export const reservations = pgTable("reservations", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey().unique(),
+  type: text("type"),
+  message: text("message"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
 export const bookingsRelations = relations(bookings, ({ many }) => ({
   reservations: many(reservations),
 }));
@@ -218,3 +225,4 @@ export type SelectReservations = typeof reservations.$inferSelect;
 export type SelectBookingWithReservations = SelectBookings & {
   reservations: SelectReservations[];
 };
+export type SelectNotifications = typeof notifications.$inferSelect;

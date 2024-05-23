@@ -1,7 +1,12 @@
 "use server";
 
 import { db } from "@/drizzle/db";
-import { SelectBookings, SelectReservations, bookings } from "@/drizzle/schema";
+import {
+  SelectBookings,
+  SelectReservations,
+  bookings,
+  notifications,
+} from "@/drizzle/schema";
 import { and, arrayContains, desc, eq, gte, like, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { addReservations, deleteBookingReservations } from "./reservation";
@@ -43,6 +48,10 @@ export async function addBookings(
       bookingId: row[0].id,
     })),
   );
+  await db.insert(notifications).values({
+    type: "booking",
+    message: "new booking has been added with id " + row[0].id,
+  });
   revalidatePath("/bookings");
 }
 
@@ -63,6 +72,11 @@ export async function updateBooking(
       bookingId: booking.id,
     })),
   );
+  if (reservations.every(({ finalPrice }) => finalPrice))
+    await db.insert(notifications).values({
+      type: "reservation",
+      message: "Booking with id " + booking.id + " has received a final price",
+    });
   revalidatePath("/bookings");
 }
 

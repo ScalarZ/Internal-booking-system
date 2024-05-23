@@ -205,7 +205,9 @@ export function From({
   setInitialValues: (value: SelectBookingWithReservations | null) => void;
 }) {
   const [name, setName] = useState("");
-  const [internalBookingId, setInternalBookingId] = useState(initialValues.internalBookingId);
+  const [internalBookingId, setInternalBookingId] = useState(
+    initialValues.internalBookingId,
+  );
   const [tourOpen, setTourOpen] = useState(false);
   const [companyOpen, setCompanyOpen] = useState(false);
   const [hotelsOpen, setHotelsOpen] = useState(false);
@@ -269,8 +271,12 @@ export function From({
       internationalFlights: {
         flightNumber: initialValues.internationalFlights?.flightNumber,
         arrivalDepartureDate: {
-          from: new Date(initialValues.internationalFlights?.arrivalDate ?? ""),
-          to: new Date(initialValues.internationalFlights?.departureDate ?? ""),
+          from: initialValues.internationalFlights?.arrivalDate
+            ? new Date(initialValues.internationalFlights?.arrivalDate)
+            : undefined,
+          to: initialValues.internationalFlights?.departureDate
+            ? new Date(initialValues.internationalFlights?.departureDate)
+            : undefined,
         },
         destinations: initialValues.internationalFlights?.destinations,
       },
@@ -1485,7 +1491,9 @@ export function From({
         </div>
         <section>
           <div className="flex justify-between">
-            <h2 className="text-2xl font-semibold text-sky-900">Flights</h2>
+            <h2 className="text-2xl font-semibold text-sky-900">
+              Reservations
+            </h2>
             <Button
               variant="secondary"
               disabled={

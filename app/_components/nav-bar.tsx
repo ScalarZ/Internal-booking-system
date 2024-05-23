@@ -7,12 +7,27 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import Notifications from "./notifications";
+import { db } from "@/drizzle/db";
+import { notifications, SelectNotifications } from "@/drizzle/schema";
+import { headers } from "next/headers";
+import { eq } from "drizzle-orm";
 
-export default function Navbar({ session }: { session: Session | null }) {
+export default async function Navbar({ session }: { session: Session | null }) {
+  const headersList = headers();
+  const referer = headersList.get("referer");
+  const type =
+    referer?.split("/").at(-1) === "bookings" ? "reservation" : "booking";
+  let notificationsList: SelectNotifications[] = [];
+  if (session)
+    notificationsList = await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.type, type));
+
   return (
     <nav
       className={cn("flex items-center justify-between bg-sky-900 p-4", {
@@ -20,9 +35,10 @@ export default function Navbar({ session }: { session: Session | null }) {
       })}
     >
       <Image src={Logo} alt="promotravel-logo" width={124} loading="eager" />
-      <div>
+      <div className="flex items-center gap-x-4">
         {session ? (
           <div className="flex justify-center gap-x-4">
+            <Notifications notifications={notificationsList} />
             <DropdownMenu>
               <DropdownMenuTrigger>
                 {session.user?.image ? (
