@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import SideBar from "./_components/side-bar";
 import "./globals.css";
 import Navbar from "./_components/nav-bar";
+import { createClient } from "@/utils/supabase/server";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,17 +19,18 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
   return (
     <html lang="en">
       <body className={`min-h-screen ${inter.className}`}>
-        {/* {<Navbar user={user} />}
-        {user && <SideBar />} */}
+        {<Navbar user={user} />}
+        {user && <SideBar />}
         <Providers>
-          <div
-          // className={user ? "ml-56" : "pl-0"}
-          >
-            {children}
-          </div>
+          <div className={user ? "ml-56" : "pl-0"}>{children}</div>
         </Providers>
       </body>
     </html>
