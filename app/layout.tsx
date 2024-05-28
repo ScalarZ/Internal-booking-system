@@ -18,14 +18,17 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await auth();
   return (
     <html lang="en">
       <body className={`min-h-screen ${inter.className}`}>
-        {<Navbar session={session} />}
-        {session && <SideBar />}
+        {/* {<Navbar user={user} />}
+        {user && <SideBar />} */}
         <Providers>
-          <div className={session ? "pl-52" : "pl-0"}>{children}</div>
+          <div
+          // className={user ? "ml-56" : "pl-0"}
+          >
+            {children}
+          </div>
         </Providers>
       </body>
     </html>

@@ -140,7 +140,7 @@ export const nileCruises = pgTable("nile_cruises", {
 });
 
 export const bookings = pgTable("bookings", {
-  id: serial("id").primaryKey().unique(),
+  id: serial("id").primaryKey(),
   status: boolean("status").default(true),
   pax: integer("pax"),
   tourists: jsonb("tourists").array().$type<string[]>(),
@@ -174,11 +174,16 @@ export const bookings = pgTable("bookings", {
   internationalFlights: jsonb(
     "international_flights",
   ).$type<InternationalFlight>(),
-  domesticFlights: jsonb("domestic_flights").array().$type<DomesticFlight[]>(),
+  domesticFlights: jsonb("domestic_flights")
+    .array()
+    .$type<Omit<DomesticFlight, "file">[]>(),
+  passports: jsonb("passports")
+    .array()
+    .$type<{ image: string; touristName: string }[]>(),
 });
 
 export const reservations = pgTable("reservations", {
-  id: serial("id").primaryKey().unique(),
+  id: serial("id").primaryKey(),
   start: timestamp("start", { withTimezone: true }).defaultNow(),
   end: timestamp("end", { withTimezone: true }).defaultNow(),
   meal: text("meal"),
@@ -193,7 +198,7 @@ export const reservations = pgTable("reservations", {
 });
 
 export const notifications = pgTable("notifications", {
-  id: serial("id").primaryKey().unique(),
+  id: serial("id").primaryKey(),
   type: text("type"),
   message: text("message"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),

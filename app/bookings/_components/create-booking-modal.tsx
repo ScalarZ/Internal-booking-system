@@ -47,6 +47,7 @@ import {
   Loader,
   Plus,
   Trash,
+  Upload,
   X,
   XCircle,
 } from "lucide-react";
@@ -79,6 +80,9 @@ import AddItineraryModal from "./create-itinerary-modal";
 import { generateRandomId } from "@/utils/generate-random-id";
 import Reservations from "./reservations";
 import { DialogDescription } from "@radix-ui/react-dialog";
+import UploadPassport from "./upload-passport";
+import { ImageType } from "react-images-uploading";
+import { createClient } from "@/utils/supabase/client";
 
 type Reservation = Omit<
   SelectReservations,
@@ -156,16 +160,19 @@ const formSchema = z.object({
   status: z.boolean().default(true),
   internationalFlights: z
     .object({
-      flightNumber: z.number(),
-      arrivalDepartureDate: z.object({
-        from: z
-          .date({ required_error: "Please select an arrival date" })
-          .optional(),
-        to: z
-          .date({ required_error: "Please select an departure date" })
-          .optional(),
-      }),
-      destinations: z.string(),
+      flightNumber: z.number().optional(),
+      arrivalDepartureDate: z
+        .object({
+          from: z
+            .date({ required_error: "Please select an arrival date" })
+            .optional(),
+          to: z
+            .date({ required_error: "Please select an departure date" })
+            .optional(),
+        })
+        .optional(),
+      destinations: z.string().optional(),
+      file: z.string().optional(),
     })
     .optional(),
 });
@@ -196,6 +203,9 @@ function From({
   const [touristsNames, setTouristsNames] = useState<string[]>([]);
   const [tourCountries, setTourCountries] = useState<SelectCountries[]>([]);
   const [tourCities, setTourCities] = useState<SelectCities[]>([]);
+  const [passports, setPassports] = useState<
+    { image: ImageType; touristName: string }[]
+  >([]);
   const [citiesHotels, setCitiesHotels] = useState<SelectHotels[]>([]);
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);
   const [itineraryInitialValues, setItineraryInitialValues] =
@@ -254,6 +264,41 @@ function From({
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
+      const supabase = createClient();
+
+      const res1 = await Promise.all(
+        passports.map(({ image }) =>
+          image.file
+            ? supabase.storage
+                .from("tourists passport")
+                .upload(`${internalBookingId}/${image.file?.name}`, image.file)
+            : undefined,
+        ),
+      );
+      const res2 = await Promise.all(
+        domesticFlights!.map(({ file }) =>
+          file
+            ? supabase.storage
+                .from("flight tickets")
+                .upload(`${internalBookingId}/${file.name}`, file)
+            : undefined,
+        ),
+      );
+      const paths = res1
+        .map((res) => res?.data?.path)
+        .filter((path) => path !== undefined)
+        .map((path, i) => ({
+          image: `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/tourists%20passport/${path}`,
+          touristName: passports[i].touristName,
+        }));
+
+      const domesticFlightsTickets = res2
+        .map((res) => res?.data?.path)
+        .filter((path) => path !== undefined)
+        .map(
+          (path) =>
+            `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/flight%20tickets/${path}`,
+        );
       await addBookings(
         {
           arrivalDate: values.arrivalDepartureDate.from ?? null,
@@ -284,11 +329,14 @@ function From({
           nileCruises: values.nileCruises ?? null,
           internationalFlights: {
             flightNumber: values.internationalFlights?.flightNumber,
-            arrivalDate: values.internationalFlights?.arrivalDepartureDate.from,
-            departureDate: values.internationalFlights?.arrivalDepartureDate.to,
+            arrivalDate:
+              values.internationalFlights?.arrivalDepartureDate?.from,
+            departureDate:
+              values.internationalFlights?.arrivalDepartureDate?.to,
             destinations: values.internationalFlights?.destinations,
           },
-          domesticFlights,
+          domesticFlights: domesticFlights.map(({ file, ...props }) => props),
+          passports: [],
         },
         reservationsList?.map(
           ({ start, end, meal, city, targetPrice, hotels, currency }) => ({
@@ -301,9 +349,11 @@ function From({
             hotels,
           }),
         ),
+        paths,
+        domesticFlightsTickets,
       );
     } catch (error) {
-      console.error(error);
+      console.log(error);
     } finally {
       setIsLoading(false);
       form.reset();
@@ -356,6 +406,7 @@ function From({
                         role="combobox"
                         aria-expanded={companyOpen}
                         className="w-full justify-between overflow-hidden"
+                        type="button"
                       >
                         {field.value ? field.value : "Select a company"}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -540,6 +591,7 @@ function From({
                             "w-[240px] pl-3 text-left font-normal",
                             !field.value && "text-muted-foreground",
                           )}
+                          type="button"
                         >
                           {field.value?.from && field.value?.to ? (
                             `${format(field.value.from, "PPP")} ⟹ ${format(field.value.to, "PPP")}`
@@ -570,6 +622,7 @@ function From({
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="pax"
@@ -618,7 +671,7 @@ function From({
                 </Button>
               </div>
               <FormDescription className="flex gap-x-2">
-                <p>This fields depends on the PAX number</p>
+                This fields depends on the PAX number
                 <span>
                   {touristsNames.length}/
                   {!isNaN(form.watch("pax")) ? form.watch("pax") : 0}
@@ -647,6 +700,12 @@ function From({
               </div>
               <FormMessage />
             </FormItem>
+            <UploadPassport
+              passports={passports}
+              setPassports={setPassports}
+              pax={form.watch("pax") ?? 0}
+              touristNames={touristsNames}
+            />
             <FormField
               control={form.control}
               name="visa"
@@ -726,6 +785,7 @@ function From({
                     <Popover open={tourOpen} onOpenChange={setTourOpen}>
                       <PopoverTrigger asChild>
                         <Button
+                          type="button"
                           variant="outline"
                           role="combobox"
                           aria-expanded={tourOpen}
@@ -933,6 +993,7 @@ function From({
                   <Popover open={hotelsOpen} onOpenChange={setHotelsOpen}>
                     <PopoverTrigger asChild disabled={!citiesHotels.length}>
                       <Button
+                        type="button"
                         variant="outline"
                         role="combobox"
                         aria-expanded={hotelsOpen}
@@ -1010,6 +1071,7 @@ function From({
                   >
                     <PopoverTrigger asChild disabled={!nileCruises.length}>
                       <Button
+                        type="button"
                         variant="outline"
                         role="combobox"
                         aria-expanded={nileCruiseOpen}
@@ -1158,7 +1220,7 @@ function From({
                       type="number"
                       {...field}
                       onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                      value={Math.max(field.value, 0)}
+                      value={Math.max(field.value ?? 0, 0)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -1175,6 +1237,7 @@ function From({
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
+                          type="button"
                           variant={"outline"}
                           className={cn(
                             "w-[240px] pl-3 text-left font-normal",
@@ -1236,12 +1299,14 @@ function From({
                   flightNumber,
                   destinations,
                   note,
+                  file,
+                  url,
                 },
                 i,
               ) => (
                 <div key={id} className="flex gap-x-4">
                   <FormItem className="flex flex-col justify-start">
-                    <FormLabel>Internal flights included?</FormLabel>
+                    <FormLabel>I.Fs</FormLabel>
                     <FormControl>
                       <Switch
                         checked={included}
@@ -1276,6 +1341,7 @@ function From({
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
+                            type="button"
                             variant={"outline"}
                             className={cn(
                               "w-[240px] pl-3 text-left font-normal",
@@ -1339,11 +1405,46 @@ function From({
                         }}
                       />
                     </FormControl>
-                    <FormMessage />
+                  </FormItem>
+
+                  <FormItem className="group relative flex flex-col justify-start">
+                    <FormLabel htmlFor={id} className="flex flex-col gap-y-2">
+                      Ticket
+                      <div
+                        className={cn(
+                          "flex h-10 cursor-pointer items-center justify-center rounded border hover:bg-sky-100",
+                          {
+                            "bg-sky-100": file,
+                          },
+                        )}
+                      >
+                        <Upload strokeWidth={2} size={18} />
+                      </div>
+                    </FormLabel>
+                    <input
+                      type="file"
+                      hidden
+                      id={id}
+                      onChange={(e) => {
+                        const files = e.target.files;
+                        if (files) {
+                          setDomesticFlights((prev) => {
+                            prev[i].file = files[0];
+                            prev[i].url = URL.createObjectURL(files[0]);
+                            return [...prev];
+                          });
+                        }
+                      }}
+                    />
+                    <div className="absolute bottom-full right-0 hidden w-52 p-2 group-hover:block">
+                      <img src={url} className="w-full" />
+                    </div>
                   </FormItem>
                   <X
                     size={18}
-                    className="cursor-pointer self-center text-red-500"
+                    className={cn("cursor-pointer self-center text-red-500", {
+                      hidden: domesticFlights.length < 2,
+                    })}
                     onClick={() => {
                       if (domesticFlights.length <= 1) return;
                       setDomesticFlights((prev) =>
@@ -1380,7 +1481,7 @@ function From({
 
         <section>
           <div className="flex justify-between">
-            <h2 className="text-2xl font-semibold text-sky-900">Reservations</h2>
+            <h2 className="text-2xl font-semibold text-sky-900">Hotels</h2>
             <Button
               variant="secondary"
               disabled={
@@ -1487,6 +1588,63 @@ function AlterModal({
               Cancel
             </Button>
           </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function UploadedPassport({ passports }: { passports: string[] }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={() => setIsOpen(true)}
+        className="mb-8 self-center"
+        disabled={!passports.length}
+      >
+        Uploaded passports
+      </Button>
+      <DialogContent className="max-h-screen min-w-[1360px] gap-y-2">
+        <DialogHeader>
+          <DialogTitle className="mb-2">
+            Uploaded Tourists Passports
+          </DialogTitle>
+          <div className="grid max-h-[76vh] grid-cols-4 gap-4 overflow-y-auto p-2">
+            {passports.map((url, index) => (
+              <div
+                key={index}
+                className="image-item relative flex flex-col gap-y-2"
+              >
+                <div className="flex-grow">
+                  <img src={url} alt="#" />
+                </div>
+                <p></p>
+              </div>
+            ))}
+          </div>
+        </DialogHeader>
+        <DialogFooter className="flex w-full justify-between pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setIsOpen(false);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              setIsOpen(false);
+            }}
+          >
+            Save
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

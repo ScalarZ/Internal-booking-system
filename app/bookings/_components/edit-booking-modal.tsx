@@ -45,6 +45,7 @@ import {
   Check,
   ChevronsUpDown,
   Edit,
+  Image,
   Loader,
   Plus,
   Trash,
@@ -765,6 +766,7 @@ export function From({
                 </div>
                 <FormMessage />
               </FormItem>
+              <UploadPassport passports={initialValues.passports ?? []} />
               <FormField
                 control={form.control}
                 name="visa"
@@ -1347,6 +1349,7 @@ export function From({
                     flightNumber,
                     destinations,
                     note,
+                    url,
                   },
                   i,
                 ) => (
@@ -1452,9 +1455,27 @@ export function From({
                       </FormControl>
                       <FormMessage />
                     </FormItem>
+                    <FormItem className="group relative flex flex-col justify-start">
+                      <FormLabel className="flex flex-col gap-y-2">
+                        Ticket
+                        <div
+                          className={cn(
+                            "flex h-10 cursor-pointer items-center justify-center rounded border hover:bg-sky-100",
+                          )}
+                        >
+                          <Image strokeWidth={2} size={18} />
+                        </div>
+                      </FormLabel>
+
+                      <div className="absolute bottom-full right-0 hidden w-52 p-2 group-hover:block">
+                        <img src={url} className="w-full" />
+                      </div>
+                    </FormItem>
                     <X
                       size={18}
-                      className="cursor-pointer self-center text-red-500"
+                      className={cn("cursor-pointer self-center text-red-500", {
+                        hidden: domesticFlights.length < 2,
+                      })}
                       onClick={() => {
                         if (domesticFlights?.length <= 1) return;
                         setDomesticFlights((prev) =>
@@ -2345,6 +2366,58 @@ function AlterModal({
               Cancel
             </Button>
           </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function UploadPassport({
+  passports,
+}: {
+  passports: { image: string; touristName: string }[];
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={() => setIsOpen(true)}
+        className="mb-8 self-center"
+        disabled={!passports.length}
+      >
+        Passports
+      </Button>
+      <DialogContent className="max-h-screen min-w-[1360px] gap-y-2">
+        <DialogHeader>
+          <DialogTitle className="mb-2">Tourists Passports</DialogTitle>
+          <div className="grid max-h-[76vh] grid-cols-4 gap-4 overflow-y-auto p-2">
+            {passports.map(({ image, touristName }, index) => (
+              <div
+                key={index}
+                className="image-item relative flex flex-col gap-y-2"
+              >
+                <div className="flex-grow">
+                  <img src={image} alt="#" />
+                </div>
+                <p>{touristName}</p>
+              </div>
+            ))}
+          </div>
+        </DialogHeader>
+        <DialogFooter className="flex w-full justify-between pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button type="button" onClick={() => setIsOpen(false)}>
+            Save
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

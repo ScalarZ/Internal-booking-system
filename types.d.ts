@@ -41,6 +41,8 @@ type InternationalFlight = {
   arrivalDate?: Date;
   departureDate?: Date;
   destinations?: string;
+  file?: File;
+  url?: string;
 };
 
 type DomesticFlight = InternationalFlight & {

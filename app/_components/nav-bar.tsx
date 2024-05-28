@@ -1,8 +1,6 @@
 import Logo from "@/public/promotravel-logo.png";
 import Image from "next/image";
 import { LogOut, UserCircle2 } from "lucide-react";
-import { signOut } from "@/auth";
-import { Session } from "next-auth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,39 +9,28 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import Notifications from "./notifications";
-import { db } from "@/drizzle/db";
-import { notifications, SelectNotifications } from "@/drizzle/schema";
-import { headers } from "next/headers";
-import { eq } from "drizzle-orm";
+import { User } from "@supabase/supabase-js";
 
-export default async function Navbar({ session }: { session: Session | null }) {
-  const headersList = headers();
-  const referer = headersList.get("referer");
-  const type =
-    referer?.split("/").at(-1) === "bookings" ? "reservation" : "booking";
-  let notificationsList: SelectNotifications[] = [];
-  if (session)
-    notificationsList = await db
-      .select()
-      .from(notifications)
-      .where(eq(notifications.type, type));
-
+export default async function Navbar({ user }: { user: User | null }) {
   return (
     <nav
-      className={cn("flex items-center justify-between bg-sky-900 p-4", {
-        "justify-center": !session,
-      })}
+      className={cn(
+        "sticky top-0 z-50 flex items-center justify-between bg-sky-900 p-4",
+        {
+          "justify-center": !user,
+        },
+      )}
     >
       <Image src={Logo} alt="promotravel-logo" width={124} loading="eager" />
       <div className="flex items-center gap-x-4">
-        {session ? (
+        {user ? (
           <div className="flex justify-center gap-x-4">
-            <Notifications notifications={notificationsList} />
+            <Notifications />
             <DropdownMenu>
               <DropdownMenuTrigger>
-                {session.user?.image ? (
+                {user.user_metadata?.picture ? (
                   <Image
-                    src={session.user?.image}
+                    src={user.user_metadata?.picture}
                     alt="promotravel-logo"
                     width={32}
                     height={32}
@@ -55,16 +42,11 @@ export default async function Navbar({ session }: { session: Session | null }) {
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem className="text-neutral-500">
-                  {session.user?.email}
+                  {user.email}
                 </DropdownMenuItem>
 
                 <DropdownMenuItem>
-                  <form
-                    action={async () => {
-                      "use server";
-                      await signOut();
-                    }}
-                  >
+                  <form action="/api/auth/signout" method="post">
                     <button
                       type="submit"
                       className="flex items-center gap-x-1 font-medium text-red-500"

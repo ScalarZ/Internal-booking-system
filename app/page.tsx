@@ -1,5 +1,7 @@
-import { signIn } from "@/auth";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/utils/supabase/server";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 export default function Home() {
   return (
@@ -10,7 +12,20 @@ export default function Home() {
       <form
         action={async () => {
           "use server";
-          await signIn("google", { redirectTo: "/bookings" });
+          const supabase = createClient();
+
+          const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: "google",
+            options: {
+              redirectTo: "http://localhost:3000/api/auth/callback",
+              queryParams: {
+                next: "bookings",
+              },
+            },
+          });
+          if (error) throw error;
+          revalidatePath("/");
+          if (data) redirect(data.url);
         }}
       >
         <Button

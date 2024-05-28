@@ -40,14 +40,30 @@ export async function addBookings(
     SelectReservations,
     "id" | "createdAt" | "updatedAt" | "bookingId" | "finalPrice"
   >[],
+  passports: { image: string; touristName: string }[],
+  domesticFlightsTickets: string[],
 ) {
-  const row = await db.insert(bookings).values(booking).returning();
-  await addReservations(
-    reservations?.map((reservation) => ({
-      ...reservation,
-      bookingId: row[0].id,
-    })),
-  );
+  console.log(passports, domesticFlightsTickets);
+
+  const row = await db
+    .insert(bookings)
+    .values({
+      ...booking,
+      passports,
+      domesticFlights: booking.domesticFlights?.map((props, i) => ({
+        ...props,
+        url: domesticFlightsTickets[i],
+      })),
+    })
+    .returning();
+
+  if (reservations.length)
+    await addReservations(
+      reservations?.map((reservation) => ({
+        ...reservation,
+        bookingId: row[0].id,
+      })),
+    );
   await db.insert(notifications).values({
     type: "booking",
     message: "new booking has been added with id " + row[0].id,
@@ -56,7 +72,7 @@ export async function addBookings(
 }
 
 export async function updateBooking(
-  booking: Omit<SelectBookings, "createdAt" | "updatedAt">,
+  booking: Omit<SelectBookings, "createdAt" | "updatedAt" | "passports">,
   reservations: Omit<
     SelectReservations,
     "id" | "createdAt" | "updatedAt" | "bookingId"

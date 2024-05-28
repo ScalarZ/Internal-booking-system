@@ -2,14 +2,13 @@
 import { cn } from "@/lib/utils";
 import { BookPlusIcon, Hotel, Plus } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 export default function SideBar() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   return (
-    <ul className="fixed flex h-full flex-col gap-y-4 bg-sky-900 p-4 z-50">
+    <ul className="fixed z-50 flex h-full flex-col gap-y-4 bg-sky-900 p-4">
       <li>
         <Link
           href="/create"
