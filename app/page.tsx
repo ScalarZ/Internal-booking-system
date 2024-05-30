@@ -1,9 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) redirect("/bookings");
   return (
     <main className="min-h-screen space-y-8 bg-sky-900 p-24 text-center">
       <h1 className="bg-gradient-to-r from-white to-white bg-clip-text text-8xl font-black text-transparent">
@@ -17,7 +24,7 @@ export default function Home() {
           const { data, error } = await supabase.auth.signInWithOAuth({
             provider: "google",
             options: {
-              redirectTo: "http://localhost:3000/api/auth/callback",
+              redirectTo: `${process.env.NODE_ENV === "development" ? "http://localhost:3000" : "https://internal-booking-system.vercel.app"}/api/auth/callback`,
               queryParams: {
                 next: "bookings",
               },
