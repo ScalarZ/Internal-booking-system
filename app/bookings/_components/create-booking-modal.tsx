@@ -1508,7 +1508,7 @@ function From({
         </section>
 
         <DialogFooter className="pt-4">
-          <Button type="button" variant={"outline"}>
+          <Button type="button" variant={"outline"} onClick={closeModal}>
             Cancel
           </Button>
           <Button type="submit" className="flex gap-x-1">

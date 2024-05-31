@@ -45,7 +45,7 @@ import {
   Check,
   ChevronsUpDown,
   Edit,
-  Image,
+  ImageIcon,
   Loader,
   Plus,
   Trash,
@@ -55,7 +55,14 @@ import {
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { addDays, format } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -89,6 +96,10 @@ import {
 } from "@/components/ui/table";
 import { generateRandomId } from "@/utils/generate-random-id";
 import { getCountryCities } from "@/utils/db-queries/city";
+import Image from "next/image";
+import { boolean } from "drizzle-orm/mysql-core";
+import { Label } from "@/components/ui/label";
+import { createClient } from "@/utils/supabase/client";
 
 type Reservation = Omit<SelectReservations, "id" | "createdAt" | "updatedAt">;
 
@@ -216,6 +227,15 @@ export function From({
   const [isLoading, setIsLoading] = useState(false);
   const [isEditItineraryModalOpen, setIsEditItineraryModalOpen] =
     useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState<{
+    index: number;
+    state: boolean;
+    url: string | undefined;
+  }>({
+    index: -1,
+    state: false,
+    url: undefined,
+  });
   const [addItineraryModalOpen, setAddItineraryModalOpen] = useState(false);
   const [touristsNames, setTouristsNames] = useState<string[]>(
     initialValues.tourists ?? [],
@@ -228,7 +248,9 @@ export function From({
   );
   const [itineraryInitialValues, setItineraryInitialValues] =
     useState<Itinerary | null>(null);
-  const [domesticFlights, setDomesticFlights] = useState<DomesticFlight[]>(
+  const [domesticFlights, setDomesticFlights] = useState<
+    (DomesticFlight & { src?: string })[]
+  >(
     initialValues.domesticFlights ?? [
       {
         id: "v1rlr7m0fb",
@@ -361,6 +383,26 @@ export function From({
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
+      const supabase = createClient();
+      const updatedTickets = domesticFlights.map(({ file }) => file);
+
+      const res = await Promise.all(
+        updatedTickets.map((file) =>
+          file
+            ? supabase.storage
+                .from("flight tickets")
+                .upload(`${internalBookingId}/${file.name}-${Date.now()}`, file)
+            : undefined,
+        ),
+      );
+      const domesticFlightTickets = res
+        .map((res) => res?.data?.path)
+        .map((path) =>
+          path
+            ? `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/flight%20tickets/${path}`
+            : undefined,
+        );
+
       await updateBooking(
         {
           id: initialValues.id,
@@ -396,7 +438,11 @@ export function From({
             departureDate: values.internationalFlights?.arrivalDepartureDate.to,
             destinations: values.internationalFlights?.destinations,
           },
-          domesticFlights,
+          domesticFlights: domesticFlights.map(({ file, src, ...props }, i) => {
+            return domesticFlightTickets[i] !== undefined
+              ? { ...props, url: domesticFlightTickets[i] }
+              : props;
+          }),
         },
         reservationsList?.map(
           ({
@@ -1350,6 +1396,7 @@ export function From({
                     destinations,
                     note,
                     url,
+                    src,
                   },
                   i,
                 ) => (
@@ -1462,14 +1509,29 @@ export function From({
                           className={cn(
                             "flex h-10 cursor-pointer items-center justify-center rounded border hover:bg-sky-100",
                           )}
+                          onClick={() =>
+                            setIsImageModalOpen({
+                              index: i,
+                              state: true,
+                              url: src ?? url,
+                            })
+                          }
                         >
-                          <Image strokeWidth={2} size={18} />
+                          <ImageIcon strokeWidth={2} size={18} />
                         </div>
                       </FormLabel>
 
-                      <div className="absolute bottom-full right-0 hidden w-52 p-2 group-hover:block">
-                        <img src={url} className="w-full" />
-                      </div>
+                      {(!!url || !!src) && (
+                        <div className="absolute bottom-full right-0 hidden w-52 p-2 group-hover:block">
+                          <Image
+                            src={src ?? url ?? ""}
+                            className="w-full"
+                            width={208}
+                            height={104}
+                            alt="#"
+                          />
+                        </div>
+                      )}
                     </FormItem>
                     <X
                       size={18}
@@ -1542,7 +1604,7 @@ export function From({
         </section>
 
         <DialogFooter className="pt-4">
-          <Button type="button" variant={"outline"}>
+          <Button type="button" variant={"outline"} onClick={closeModal}>
             Cancel
           </Button>
           <Button type="submit" className="flex gap-x-1">
@@ -1575,6 +1637,17 @@ export function From({
           isOpen={isAlterModalOpen}
           setIsOpen={setIsAlertModalOpen}
           generateReservations={generateReservations}
+        />
+      )}
+      {isImageModalOpen.state && (
+        <ImageModal
+          index={isImageModalOpen.index}
+          src={isImageModalOpen.url}
+          isOpen={isImageModalOpen.state}
+          closeModal={() =>
+            setIsImageModalOpen({ state: false, url: undefined, index: -1 })
+          }
+          setDomesticFlights={setDomesticFlights}
         />
       )}
     </Form>
@@ -2400,7 +2473,7 @@ function UploadPassport({
                 className="image-item relative flex flex-col gap-y-2"
               >
                 <div className="flex-grow">
-                  <img src={image} alt="#" />
+                  <Image src={image} alt="#" width={500} height={500} />
                 </div>
                 <p>{touristName}</p>
               </div>
@@ -2419,6 +2492,90 @@ function UploadPassport({
             Save
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ImageModal({
+  index,
+  src,
+  isOpen,
+  closeModal,
+  setDomesticFlights,
+}: {
+  index: number;
+  src?: string;
+  isOpen: boolean;
+  closeModal: () => void;
+  setDomesticFlights: Dispatch<
+    SetStateAction<(DomesticFlight & { src?: string })[]>
+  >;
+}) {
+  const [ticket, setTicket] = useState<{ file: File; src: string } | null>(
+    null,
+  );
+  return (
+    <Dialog
+      open={isOpen}
+      onOpenChange={(value) => (!value ? closeModal() : undefined)}
+    >
+      <DialogContent className="max-h-screen min-w-[1360px] gap-y-2 overflow-auto">
+        <DialogHeader>
+          <DialogTitle className="mb-2">Ticket</DialogTitle>
+        </DialogHeader>
+        {src || ticket ? (
+          <Image
+            src={ticket?.src ?? src ?? ""}
+            width={1400}
+            height={500}
+            alt="#"
+          />
+        ) : (
+          <p className="text-center text-gray-500">No ticket uploaded</p>
+        )}
+        <div className="flex w-full items-center justify-between pt-4">
+          <Label
+            htmlFor="ticket"
+            className="cursor-pointer rounded border px-8 py-3"
+          >
+            Upload ticket
+          </Label>
+          <input
+            id="ticket"
+            name="ticket"
+            type="file"
+            hidden
+            onChange={(e) => {
+              const files = e.target.files;
+              if (files) {
+                setTicket({
+                  file: files[0],
+                  src: URL.createObjectURL(files[0]),
+                });
+              }
+            }}
+          />
+          <div className="flex gap-x-2">
+            <Button type="button" variant="outline" onClick={closeModal}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={!ticket}
+              onClick={() => {
+                setDomesticFlights((prev) => {
+                  prev[index].file = ticket?.file;
+                  prev[index].src = ticket?.src;
+                  return [...prev];
+                });
+                closeModal();
+              }}
+            >
+              Save
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

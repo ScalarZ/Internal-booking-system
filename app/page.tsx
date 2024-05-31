@@ -24,7 +24,7 @@ export default async function Home() {
           const { data, error } = await supabase.auth.signInWithOAuth({
             provider: "google",
             options: {
-              redirectTo: `https://internal-booking-system.vercel.app/api/auth/callback`,
+              redirectTo: `${process.env.NODE_ENV === "development" ? "http://localhost:3000" : "https://internal-booking-system.vercel.app"}/api/auth/callback`,
               queryParams: {
                 next: "bookings",
               },
