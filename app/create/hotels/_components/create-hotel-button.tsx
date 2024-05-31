@@ -199,14 +199,14 @@ function Select({
   }, [countryId, type]);
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild disabled={!list.length}>
+      <PopoverTrigger asChild disabled={!list?.length}>
         <Button
           variant="outline"
           role="combobox"
           aria-expanded={open}
           className="w-[200px] justify-between"
         >
-          {value && list.length
+          {value && list?.length
             ? list.find(({ name }) => name?.toLocaleLowerCase() === value)?.name
             : "Select a " + type}
 

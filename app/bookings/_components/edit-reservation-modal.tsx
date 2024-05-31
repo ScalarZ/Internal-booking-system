@@ -126,7 +126,7 @@ export default function EditReservationModal({
                 key={generateRandomId()}
                 {...reservation}
                 index={i}
-                listLength={editedReservation.length}
+                listLength={editedReservation?.length}
                 cityHotels={cityHotels}
                 editedReservation={editedReservation}
                 setEditedReservation={setEditedReservation}
@@ -143,11 +143,11 @@ export default function EditReservationModal({
                 ...prev,
                 {
                   start: null,
-                  end: prev[prev.length - 1].end,
+                  end: prev[prev?.length - 1].end,
                   hotels: [],
                   meal: null,
                   targetPrice: null,
-                  index: prev[prev.length - 1].index + 1,
+                  index: prev[prev?.length - 1].index + 1,
                   city: prev[0].city,
                   currency: "USD",
                 },
@@ -259,14 +259,14 @@ function ReservationTableRow({
       </TableCell>
       <TableCell>
         <Popover open={hotelsOpen} onOpenChange={setHotelsOpen}>
-          <PopoverTrigger asChild disabled={!cityHotels.length}>
+          <PopoverTrigger asChild disabled={!cityHotels?.length}>
             <Button
               variant="outline"
               role="combobox"
               aria-expanded={hotelsOpen}
               className="w-full justify-between overflow-hidden"
             >
-              {editedReservation[index].hotels.length
+              {editedReservation[index].hotels?.length
                 ? editedReservation[index].hotels?.map((hotel) =>
                     capitalize(`${hotel}, `),
                   )

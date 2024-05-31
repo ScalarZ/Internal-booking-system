@@ -82,7 +82,7 @@ export default function AddItineraryModal({
       ...prev,
       {
         id: generateRandomId(),
-        day: `Day ${prev.length + 1}`,
+        day: `Day ${prev?.length + 1}`,
         cities: selectedCities,
         activities: selectedActivities,
       },
@@ -94,11 +94,11 @@ export default function AddItineraryModal({
   function checkForItineraryErrorMessage() {
     const inputs = {
       cityError: {
-        value: selectedCities.length,
+        value: selectedCities?.length,
         message: "Please select a city",
       },
       activityError: {
-        value: selectedActivities.length,
+        value: selectedActivities?.length,
         message: "Please select an activity",
       },
     };
@@ -156,13 +156,13 @@ export default function AddItineraryModal({
   }, [selectedCities]);
 
   useEffect(() => {
-    if (!selectedCountries.length) return;
+    if (!selectedCountries?.length) return;
     getCities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCountries]);
 
   useEffect(() => {
-    if (!selectedCities.length) return;
+    if (!selectedCities?.length) return;
     getActivities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCities]);
@@ -191,7 +191,7 @@ export default function AddItineraryModal({
             }
             type="city"
           />
-          {!selectedCities.length && errorMessage.cityError && (
+          {!selectedCities?.length && errorMessage.cityError && (
             <p className="p-2 text-sm text-red-500">{errorMessage.cityError}</p>
           )}
           <ul className="flex flex-wrap gap-2 p-2 text-white">
@@ -225,7 +225,7 @@ export default function AddItineraryModal({
             }
             type="activity"
           />
-          {!selectedActivities.length && errorMessage.activityError && (
+          {!selectedActivities?.length && errorMessage.activityError && (
             <p className="p-2 text-sm text-red-500">
               {errorMessage.activityError}
             </p>
@@ -278,7 +278,7 @@ function Select<T extends SelectCountries | SelectCities | SelectActivities>({
   const [value, setValue] = useState("");
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild disabled={!list.length}>
+      <PopoverTrigger asChild disabled={!list?.length}>
         <Button
           variant="outline"
           role="combobox"

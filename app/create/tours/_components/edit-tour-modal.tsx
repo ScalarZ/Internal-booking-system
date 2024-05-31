@@ -122,7 +122,7 @@ export default function EditTourModal({
     const inputs = {
       nameError: { value: name, message: "Please fill up this field" },
       countryError: {
-        value: selectedCountries.length,
+        value: selectedCountries?.length,
         message: "Please add a country",
       },
     };
@@ -139,11 +139,11 @@ export default function EditTourModal({
   function checkForItineraryErrorMessage() {
     const inputs = {
       cityError: {
-        value: selectedCities.length,
+        value: selectedCities?.length,
         message: "Please select a city",
       },
       activityError: {
-        value: selectedActivities.length,
+        value: selectedActivities?.length,
         message: "Please select an activity",
       },
     };
@@ -191,7 +191,7 @@ export default function EditTourModal({
       ...prev,
       {
         id: generateRandomId(),
-        day: `Day ${itineraries.length + 1}`,
+        day: `Day ${itineraries?.length + 1}`,
         cities: selectedCities,
         activities: selectedActivities,
       },
@@ -240,13 +240,13 @@ export default function EditTourModal({
   }, [selectedCities]);
 
   useEffect(() => {
-    if (!selectedCountries.length) return;
+    if (!selectedCountries?.length) return;
     getCities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCountries]);
 
   useEffect(() => {
-    if (!selectedCities.length) return;
+    if (!selectedCities?.length) return;
     getActivities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCities]);
@@ -288,7 +288,7 @@ export default function EditTourModal({
             }
             type="country"
           />
-          {!selectedCountries.length && errorMessage.countryError && (
+          {!selectedCountries?.length && errorMessage.countryError && (
             <p className="p-2 text-sm text-red-500">
               {errorMessage.countryError}
             </p>
@@ -317,7 +317,7 @@ export default function EditTourModal({
           </ul>
         </div>
         <p className="font-bold">Itinerary</p>
-        <span className="font-medium">Day {itineraries.length + 1}</span>
+        <span className="font-medium">Day {itineraries?.length + 1}</span>
         {/* Cities */}
         <div>
           <Select<SelectCities>
@@ -329,7 +329,7 @@ export default function EditTourModal({
             }
             type="city"
           />
-          {!selectedCities.length && itineraryErrorMessage.cityError && (
+          {!selectedCities?.length && itineraryErrorMessage.cityError && (
             <p className="p-2 text-sm text-red-500">
               {itineraryErrorMessage.cityError}
             </p>
@@ -365,7 +365,7 @@ export default function EditTourModal({
             }
             type="activity"
           />
-          {!selectedActivities.length &&
+          {!selectedActivities?.length &&
             itineraryErrorMessage.activityError && (
               <p className="p-2 text-sm text-red-500">
                 {itineraryErrorMessage.activityError}
@@ -519,7 +519,7 @@ function Select<T extends SelectCountries | SelectCities | SelectActivities>({
   const [value, setValue] = useState("");
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild disabled={!list.length}>
+      <PopoverTrigger asChild disabled={!list?.length}>
         <Button
           variant="outline"
           role="combobox"

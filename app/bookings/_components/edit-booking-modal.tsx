@@ -353,7 +353,7 @@ export function From({
   function generateReservations() {
     let tacker = -1;
     let startDate = form.watch("arrivalDepartureDate.from")!;
-    if (!startDate || !itineraries.length) return;
+    if (!startDate || !itineraries?.length) return;
     const reservations = itineraries.reduce<Reservation[]>((acc, curr) => {
       if (
         acc[tacker]?.city?.name ===
@@ -1536,7 +1536,7 @@ export function From({
                     <X
                       size={18}
                       className={cn("cursor-pointer self-center text-red-500", {
-                        hidden: domesticFlights.length < 2,
+                        hidden: domesticFlights?.length < 2,
                       })}
                       onClick={() => {
                         if (domesticFlights?.length <= 1) return;
@@ -1580,10 +1580,10 @@ export function From({
             <Button
               variant="secondary"
               disabled={
-                !itineraries.length || !form.watch("arrivalDepartureDate.from")
+                !itineraries?.length || !form.watch("arrivalDepartureDate.from")
               }
               onClick={
-                !reservationsList.length
+                !reservationsList?.length
                   ? generateReservations
                   : () => setIsAlertModalOpen(true)
               }
@@ -1592,7 +1592,7 @@ export function From({
               Generate reservations
             </Button>
           </div>
-          {!!reservationsList.length &&
+          {!!reservationsList?.length &&
             !!form.watch("arrivalDepartureDate")?.from && (
               <Reservations
                 reservationsList={reservationsList}
@@ -2192,7 +2192,7 @@ function AddReservationModal({
             <TableRow>
               <TableCell>
                 <Popover open={citiesOpen} onOpenChange={setCitiesOpen}>
-                  <PopoverTrigger asChild disabled={!cities.length}>
+                  <PopoverTrigger asChild disabled={!cities?.length}>
                     <Button
                       variant="outline"
                       role="combobox"
@@ -2271,14 +2271,14 @@ function AddReservationModal({
               </TableCell>
               <TableCell>
                 <Popover open={hotelsOpen} onOpenChange={setHotelsOpen}>
-                  <PopoverTrigger asChild disabled={!cityHotels.length}>
+                  <PopoverTrigger asChild disabled={!cityHotels?.length}>
                     <Button
                       variant="outline"
                       role="combobox"
                       aria-expanded={hotelsOpen}
                       className="w-full justify-between overflow-hidden"
                     >
-                      {selectedHotels.length
+                      {selectedHotels?.length
                         ? selectedHotels.map((name) => capitalize(`${name} ,`))
                         : "Select a hotel"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -2459,7 +2459,7 @@ function UploadPassport({
         variant="secondary"
         onClick={() => setIsOpen(true)}
         className="mb-8 self-center"
-        disabled={!passports.length}
+        disabled={!passports?.length}
       >
         Passports
       </Button>

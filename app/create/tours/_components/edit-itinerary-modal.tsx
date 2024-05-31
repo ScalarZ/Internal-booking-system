@@ -134,13 +134,13 @@ export default function EditItineraryModal({
   }, [selectedCities]);
 
   useEffect(() => {
-    if (!selectedCountries.length) return;
+    if (!selectedCountries?.length) return;
     getCities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCountries]);
 
   useEffect(() => {
-    if (!selectedCities.length) return;
+    if (!selectedCities?.length) return;
     getActivities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCities]);
@@ -188,7 +188,7 @@ export default function EditItineraryModal({
               </li>
             ))}
           </ul>
-          {!selectedCities.length && errorMessage.cityError && (
+          {!selectedCities?.length && errorMessage.cityError && (
             <p className="p-2 text-sm text-red-500">{errorMessage.cityError}</p>
           )}
         </div>
@@ -251,7 +251,7 @@ function Select<T extends SelectCountries | SelectCities | SelectActivities>({
   const [value, setValue] = useState("");
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild disabled={!list.length}>
+      <PopoverTrigger asChild disabled={!list?.length}>
         <Button
           variant="outline"
           role="combobox"

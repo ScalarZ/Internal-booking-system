@@ -57,7 +57,7 @@ export async function addBookings(
     })
     .returning();
 
-  if (reservations.length)
+  if (reservations?.length)
     await addReservations(
       reservations?.map((reservation) => ({
         ...reservation,

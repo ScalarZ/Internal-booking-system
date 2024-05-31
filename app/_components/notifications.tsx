@@ -69,7 +69,7 @@ export default function Notifications() {
           <Bell className="text-white" />
         </DropdownMenuTrigger>
         <DropdownMenuContent className="-translate-x-8 p-2">
-          {notificationsList.length
+          {notificationsList?.length
             ? notificationsList.map(({ id, message }) => (
                 <DropdownMenuItem key={id} className="text-neutral-500">
                   {message}

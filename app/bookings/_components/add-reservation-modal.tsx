@@ -138,7 +138,7 @@ export default function AddReservationModal({
             <TableRow>
               <TableCell>
                 <Popover open={citiesOpen} onOpenChange={setCitiesOpen}>
-                  <PopoverTrigger asChild disabled={!cities.length}>
+                  <PopoverTrigger asChild disabled={!cities?.length}>
                     <Button
                       variant="outline"
                       role="combobox"
@@ -217,14 +217,14 @@ export default function AddReservationModal({
               </TableCell>
               <TableCell>
                 <Popover open={hotelsOpen} onOpenChange={setHotelsOpen}>
-                  <PopoverTrigger asChild disabled={!cityHotels.length}>
+                  <PopoverTrigger asChild disabled={!cityHotels?.length}>
                     <Button
                       variant="outline"
                       role="combobox"
                       aria-expanded={hotelsOpen}
                       className="w-full justify-between overflow-hidden"
                     >
-                      {selectedHotels.length
+                      {selectedHotels?.length
                         ? selectedHotels.map((name) => capitalize(`${name} ,`))
                         : "Select a hotel"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
