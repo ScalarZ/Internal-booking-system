@@ -204,7 +204,7 @@ function From({
   const [tourCountries, setTourCountries] = useState<SelectCountries[]>([]);
   const [tourCities, setTourCities] = useState<SelectCities[]>([]);
   const [passports, setPassports] = useState<
-    { image: ImageType; touristName: string }[]
+    { image: ImageType; name: string }[]
   >([]);
   const [citiesHotels, setCitiesHotels] = useState<SelectHotels[]>([]);
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);
@@ -288,8 +288,8 @@ function From({
         .map((res) => res?.data?.path)
         .filter((path) => path !== undefined)
         .map((path, i) => ({
-          image: `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/tourists%20passport/${path}`,
-          touristName: passports[i].touristName,
+          url: `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/tourists%20passport/${path}`,
+          name: `${passports[i].image.file?.name}-${Date.now()}`,
         }));
 
       const domesticFlightsTickets = res2
@@ -353,7 +353,7 @@ function From({
         domesticFlightsTickets,
       );
     } catch (error) {
-      console.log(error);
+      console.error(error);
     } finally {
       setIsLoading(false);
       form.reset();
@@ -704,7 +704,6 @@ function From({
               passports={passports}
               setPassports={setPassports}
               pax={form.watch("pax") ?? 0}
-              touristNames={touristsNames}
             />
             <FormField
               control={form.control}
@@ -1588,63 +1587,6 @@ function AlterModal({
               Cancel
             </Button>
           </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-export function UploadedPassport({ passports }: { passports: string[] }) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <Button
-        type="button"
-        variant="secondary"
-        onClick={() => setIsOpen(true)}
-        className="mb-8 self-center"
-        disabled={!passports?.length}
-      >
-        Uploaded passports
-      </Button>
-      <DialogContent className="max-h-screen min-w-[1360px] gap-y-2">
-        <DialogHeader>
-          <DialogTitle className="mb-2">
-            Uploaded Tourists Passports
-          </DialogTitle>
-          <div className="grid max-h-[76vh] grid-cols-4 gap-4 overflow-y-auto p-2">
-            {passports.map((url, index) => (
-              <div
-                key={index}
-                className="image-item relative flex flex-col gap-y-2"
-              >
-                <div className="flex-grow">
-                  <img src={url} alt="#" />
-                </div>
-                <p></p>
-              </div>
-            ))}
-          </div>
-        </DialogHeader>
-        <DialogFooter className="flex w-full justify-between pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setIsOpen(false);
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            onClick={() => {
-              setIsOpen(false);
-            }}
-          >
-            Save
-          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

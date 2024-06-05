@@ -45,6 +45,7 @@ import {
   Check,
   ChevronsUpDown,
   Edit,
+  File,
   ImageIcon,
   Loader,
   Plus,
@@ -60,7 +61,6 @@ import {
   SetStateAction,
   useCallback,
   useEffect,
-  useMemo,
   useState,
 } from "react";
 import { Calendar } from "@/components/ui/calendar";
@@ -97,11 +97,19 @@ import {
 import { generateRandomId } from "@/utils/generate-random-id";
 import { getCountryCities } from "@/utils/db-queries/city";
 import Image from "next/image";
-import { boolean } from "drizzle-orm/mysql-core";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/utils/supabase/client";
+import ImageUploading, {
+  ImageListType,
+  ImageType,
+} from "react-images-uploading";
 
 type Reservation = Omit<SelectReservations, "id" | "createdAt" | "updatedAt">;
+type Passport = {
+  url: string;
+  name: string;
+  image?: ImageType;
+};
 
 export default function EditBookingModal({
   companies,
@@ -236,6 +244,9 @@ export function From({
     state: false,
     url: undefined,
   });
+  const [passports, setPassports] = useState<Passport[]>(
+    initialValues.passports ?? [],
+  );
   const [addItineraryModalOpen, setAddItineraryModalOpen] = useState(false);
   const [touristsNames, setTouristsNames] = useState<string[]>(
     initialValues.tourists ?? [],
@@ -403,6 +414,31 @@ export function From({
             : undefined,
         );
 
+      const res2 = await Promise.all(
+        passports.map(({ image }) =>
+          image?.file
+            ? supabase.storage
+                .from("tourists passport")
+                .upload(
+                  `${internalBookingId}/${image?.file?.name}-${Date.now()}`,
+                  image.file,
+                )
+            : undefined,
+        ),
+      );
+
+      const paths = res2.map((res, i) =>
+        res
+          ? {
+              url: `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/tourists%20passport/${res.data?.path}`,
+              name: `${passports[i]?.image?.file?.name}-${Date.now()}`,
+            }
+          : {
+              url: passports[i]?.url,
+              name: passports[i]?.name,
+            },
+      );
+      console.log(paths);
       await updateBooking(
         {
           id: initialValues.id,
@@ -467,6 +503,7 @@ export function From({
             finalPrice,
           }),
         ),
+        paths,
       );
     } catch (error) {
       console.error(error);
@@ -812,7 +849,11 @@ export function From({
                 </div>
                 <FormMessage />
               </FormItem>
-              <UploadPassport passports={initialValues.passports ?? []} />
+              <UploadPassport
+                passports={passports}
+                setPassports={setPassports}
+                pax={form.watch("pax")}
+              />
               <FormField
                 control={form.control}
                 name="visa"
@@ -2447,11 +2488,31 @@ function AlterModal({
 
 function UploadPassport({
   passports,
+  setPassports,
+  pax,
 }: {
-  passports: { image: string; touristName: string }[];
+  passports: Passport[];
+  setPassports: (passports: Passport[]) => void;
+  pax: number;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-
+  const onChange = (
+    imageList: ImageListType,
+    addUpdateIndex?: Array<number>,
+  ) => {
+    // // data for submit
+    setPassports(
+      imageList.map((image) =>
+        image.name !== undefined
+          ? (image as Passport)
+          : {
+              image,
+              name: image.file?.name ?? "",
+              url: image.file ? URL.createObjectURL(image.file) : "",
+            },
+      ),
+    );
+  };
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <Button
@@ -2459,36 +2520,84 @@ function UploadPassport({
         variant="secondary"
         onClick={() => setIsOpen(true)}
         className="mb-8 self-center"
-        disabled={!passports?.length}
+        disabled={!pax}
       >
-        Passports
+        Upload passport
       </Button>
       <DialogContent className="max-h-screen min-w-[1360px] gap-y-2">
         <DialogHeader>
-          <DialogTitle className="mb-2">Tourists Passports</DialogTitle>
-          <div className="grid max-h-[76vh] grid-cols-4 gap-4 overflow-y-auto p-2">
-            {passports.map(({ image, touristName }, index) => (
-              <div
-                key={index}
-                className="image-item relative flex flex-col gap-y-2"
-              >
-                <div className="flex-grow">
-                  <Image src={image} alt="#" width={500} height={500} />
+          <DialogTitle className="mb-2">Upload Tourists Passports</DialogTitle>
+          <ImageUploading
+            multiple
+            value={passports}
+            onChange={onChange}
+            maxNumber={pax}
+            dataURLKey="data_url"
+          >
+            {({
+              imageList,
+              onImageUpload,
+              onImageRemove,
+              isDragging,
+              dragProps,
+            }) => (
+              // write your building UI
+              <div className="upload__image-wrapper">
+                <div
+                  style={isDragging ? { color: "red" } : undefined}
+                  onClick={onImageUpload}
+                  {...dragProps}
+                  className="mb-4 flex h-24 w-full items-center justify-center gap-x-2 rounded border-2 border-dashed border-sky-900 border-opacity-30"
+                >
+                  <File />
+                  <p className="font-medium">Click or Drop here</p>
                 </div>
-                <p>{touristName}</p>
+
+                <div className="grid max-h-[76vh] grid-cols-4 gap-4 overflow-y-auto p-2">
+                  {imageList.map(({ image, name, url }, index) => (
+                    <div
+                      key={index}
+                      className="image-item relative flex flex-col items-center justify-center gap-y-2"
+                    >
+                      <a
+                        href={url}
+                        target="_blank"
+                        className="flex flex-grow flex-col items-center"
+                      >
+                        <File size={128} strokeWidth={1} />
+                        <p className="text-center">{name}</p>
+                      </a>
+
+                      <XCircle
+                        size={28}
+                        className="absolute -right-2 -top-2 cursor-pointer text-white"
+                        onClick={() => onImageRemove(index)}
+                        fill="red"
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
+            )}
+          </ImageUploading>
         </DialogHeader>
         <DialogFooter className="flex w-full justify-between pt-4">
           <Button
             type="button"
             variant="outline"
-            onClick={() => setIsOpen(false)}
+            onClick={() => {
+              setIsOpen(false);
+              setPassports([]);
+            }}
           >
             Cancel
           </Button>
-          <Button type="button" onClick={() => setIsOpen(false)}>
+          <Button
+            type="button"
+            onClick={() => {
+              setIsOpen(false);
+            }}
+          >
             Save
           </Button>
         </DialogFooter>

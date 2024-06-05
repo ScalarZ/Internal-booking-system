@@ -40,10 +40,9 @@ export async function addBookings(
     SelectReservations,
     "id" | "createdAt" | "updatedAt" | "bookingId" | "finalPrice"
   >[],
-  passports: { image: string; touristName: string }[],
+  passports: { url: string; name: string }[],
   domesticFlightsTickets: string[],
 ) {
-  console.log(passports, domesticFlightsTickets);
 
   const row = await db
     .insert(bookings)
@@ -77,9 +76,13 @@ export async function updateBooking(
     SelectReservations,
     "id" | "createdAt" | "updatedAt" | "bookingId"
   >[],
+  passports: { url: string; name: string }[],
 ) {
   const res = await Promise.all([
-    db.update(bookings).set(booking).where(eq(bookings.id, booking.id)),
+    db
+      .update(bookings)
+      .set({ ...booking, passports })
+      .where(eq(bookings.id, booking.id)),
     deleteBookingReservations(booking.id),
   ]);
   await addReservations(

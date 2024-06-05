@@ -179,7 +179,7 @@ export const bookings = pgTable("bookings", {
     .$type<Omit<DomesticFlight, "file">[]>(),
   passports: jsonb("passports")
     .array()
-    .$type<{ image: string; touristName: string }[]>(),
+    .$type<{ url: string; name: string }[]>(),
 });
 
 export const reservations = pgTable("reservations", {

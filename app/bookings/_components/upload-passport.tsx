@@ -11,27 +11,16 @@ import ImageUploading, {
   ImageListType,
   ImageType,
 } from "react-images-uploading";
-import { File, X, XCircle } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { File, XCircle } from "lucide-react";
 
 export default function UploadPassport({
   passports,
   setPassports,
   pax,
-  touristNames,
 }: {
-  passports: { image: ImageType; touristName: string }[];
-  setPassports: (
-    passports: { image: ImageType; touristName: string }[],
-  ) => void;
+  passports: { image: ImageType; name: string }[];
+  setPassports: (passports: { image: ImageType; name: string }[]) => void;
   pax: number;
-  touristNames: string[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const onChange = (
@@ -41,9 +30,9 @@ export default function UploadPassport({
     // data for submit
     setPassports(
       imageList.map((image) =>
-        image.touristName !== undefined
-          ? (image as { image: ImageType; touristName: string })
-          : { image, touristName: "" },
+        image.name !== undefined
+          ? (image as { image: ImageType; name: string })
+          : { image, name: image.file?.name ?? "" },
       ),
     );
   };
@@ -89,7 +78,7 @@ export default function UploadPassport({
                 </div>
 
                 <div className="grid max-h-[76vh] grid-cols-4 gap-4 overflow-y-auto p-2">
-                  {imageList.map(({ image, touristName }, index) => (
+                  {imageList.map(({ image, name }, index) => (
                     <div
                       key={index}
                       className="image-item relative flex flex-col gap-y-2"
@@ -97,31 +86,13 @@ export default function UploadPassport({
                       <div className="flex-grow">
                         <img src={image["data_url"]} alt="" />
                       </div>
-
+                      <p className="text-center">{name}</p>
                       <XCircle
                         size={28}
                         className="absolute -right-2 -top-2 cursor-pointer text-white"
                         onClick={() => onImageRemove(index)}
                         fill="red"
                       />
-                      <Select
-                        onValueChange={(value) => {
-                          passports[index].touristName = value;
-                          setPassports([...passports]);
-                        }}
-                        defaultValue={touristName}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a currency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {touristNames.map((name) => (
-                            <SelectItem key={name} value={name}>
-                              {name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
                     </div>
                   ))}
                 </div>
