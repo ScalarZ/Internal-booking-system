@@ -438,7 +438,6 @@ export function From({
               name: passports[i]?.name,
             },
       );
-      console.log(paths);
       await updateBooking(
         {
           id: initialValues.id,
@@ -1014,7 +1013,7 @@ export function From({
                   </FormItem>
                 )}
               />
-              {!!itineraries?.length && !isReservation && (
+              {!!itineraries?.length && (
                 <div className="col-span-full space-y-2">
                   <div className="flex w-full justify-end">
                     <Button
@@ -2496,11 +2495,7 @@ function UploadPassport({
   pax: number;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const onChange = (
-    imageList: ImageListType,
-    addUpdateIndex?: Array<number>,
-  ) => {
-    // // data for submit
+  const onChange = (imageList: ImageListType) => {
     setPassports(
       imageList.map((image) =>
         image.name !== undefined
@@ -2533,6 +2528,7 @@ function UploadPassport({
             onChange={onChange}
             maxNumber={pax}
             dataURLKey="data_url"
+            allowNonImageType
           >
             {({
               imageList,
@@ -2540,8 +2536,8 @@ function UploadPassport({
               onImageRemove,
               isDragging,
               dragProps,
+              errors,
             }) => (
-              // write your building UI
               <div className="upload__image-wrapper">
                 <div
                   style={isDragging ? { color: "red" } : undefined}
@@ -2552,7 +2548,6 @@ function UploadPassport({
                   <File />
                   <p className="font-medium">Click or Drop here</p>
                 </div>
-
                 <div className="grid max-h-[76vh] grid-cols-4 gap-4 overflow-y-auto p-2">
                   {imageList.map(({ image, name, url }, index) => (
                     <div

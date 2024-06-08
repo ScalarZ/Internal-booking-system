@@ -30,8 +30,7 @@ export default function FilterBookings({
   const [filters, setFilters] = useState<BookingFilters>({
     dateRange: undefined,
   });
-  const [id, setId] = useState<number | null>(null);
-
+  const [id, setId] = useState<string | undefined>(undefined);
   async function handleFilterBookings(filters?: BookingFilters) {
     try {
       const filteredBookings = await filterBookings({ ...filters });
@@ -44,9 +43,8 @@ export default function FilterBookings({
   const debouncedValue = useDebounce(id, 500);
 
   useEffect(() => {
-    if (debouncedValue !== null) {
-      handleFilterBookings({ ...filters, id: debouncedValue });
-    }
+    if (debouncedValue === undefined) return;
+    handleFilterBookings({ ...filters, id: debouncedValue });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedValue]);
 
@@ -98,14 +96,7 @@ export default function FilterBookings({
               from: filters.dateRange?.from,
               to: filters.dateRange?.to,
             }}
-            onSelect={(value) => {
-              handleFilterBookings({
-                ...filters,
-                dateRange: {
-                  from: value?.from,
-                  to: value?.to,
-                },
-              });
+            onSelect={async (value) => {
               setFilters((prev) => ({
                 ...prev,
                 dateRange: {
@@ -113,17 +104,22 @@ export default function FilterBookings({
                   to: value?.to,
                 },
               }));
+              await handleFilterBookings({
+                ...filters,
+                dateRange: {
+                  from: value?.from,
+                  to: value?.to,
+                },
+              });
             }}
           />
         </PopoverContent>
       </Popover>
 
       <Input
-        placeholder="Search by ID..."
-        type="number"
-        onChange={(e) =>
-          setId(isNaN(e.target.valueAsNumber) ? e.target.valueAsNumber : 0)
-        }
+        value={id}
+        placeholder="Search by Internal booking ID..."
+        onChange={(e) => setId(e.target.value)}
       />
     </div>
   );

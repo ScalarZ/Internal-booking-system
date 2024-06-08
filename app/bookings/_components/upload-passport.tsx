@@ -18,21 +18,23 @@ export default function UploadPassport({
   setPassports,
   pax,
 }: {
-  passports: { image: ImageType; name: string }[];
-  setPassports: (passports: { image: ImageType; name: string }[]) => void;
+  passports: { image: ImageType; name: string; url: string }[];
+  setPassports: (
+    passports: { image: ImageType; name: string; url: string }[],
+  ) => void;
   pax: number;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const onChange = (
-    imageList: ImageListType,
-    addUpdateIndex?: Array<number>,
-  ) => {
-    // data for submit
+  const onChange = (imageList: ImageListType) => {
     setPassports(
       imageList.map((image) =>
         image.name !== undefined
-          ? (image as { image: ImageType; name: string })
-          : { image, name: image.file?.name ?? "" },
+          ? (image as { image: ImageType; name: string; url: string })
+          : {
+              image,
+              name: image.file?.name ?? "",
+              url: image.file ? URL.createObjectURL(image.file) : "",
+            },
       ),
     );
   };
@@ -57,6 +59,7 @@ export default function UploadPassport({
             onChange={onChange}
             maxNumber={pax}
             dataURLKey="data_url"
+            allowNonImageType
           >
             {({
               imageList,
@@ -65,7 +68,6 @@ export default function UploadPassport({
               isDragging,
               dragProps,
             }) => (
-              // write your building UI
               <div className="upload__image-wrapper">
                 <div
                   style={isDragging ? { color: "red" } : undefined}
@@ -76,17 +78,21 @@ export default function UploadPassport({
                   <File />
                   <p className="font-medium">Click or Drop here</p>
                 </div>
-
                 <div className="grid max-h-[76vh] grid-cols-4 gap-4 overflow-y-auto p-2">
-                  {imageList.map(({ image, name }, index) => (
+                  {imageList.map(({ image, name, url }, index) => (
                     <div
                       key={index}
-                      className="image-item relative flex flex-col gap-y-2"
+                      className="image-item relative flex flex-col items-center justify-center gap-y-2"
                     >
-                      <div className="flex-grow">
-                        <img src={image["data_url"]} alt="" />
-                      </div>
-                      <p className="text-center">{name}</p>
+                      <a
+                        href={url}
+                        target="_blank"
+                        className="flex flex-grow flex-col items-center"
+                      >
+                        <File size={128} strokeWidth={1} />
+                        <p className="text-center">{name}</p>
+                      </a>
+
                       <XCircle
                         size={28}
                         className="absolute -right-2 -top-2 cursor-pointer text-white"

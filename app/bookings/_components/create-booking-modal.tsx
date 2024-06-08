@@ -204,7 +204,7 @@ function From({
   const [tourCountries, setTourCountries] = useState<SelectCountries[]>([]);
   const [tourCities, setTourCities] = useState<SelectCities[]>([]);
   const [passports, setPassports] = useState<
-    { image: ImageType; name: string }[]
+    { image: ImageType; name: string; url: string }[]
   >([]);
   const [citiesHotels, setCitiesHotels] = useState<SelectHotels[]>([]);
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);

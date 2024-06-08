@@ -7,7 +7,7 @@ import {
   bookings,
   notifications,
 } from "@/drizzle/schema";
-import { and, arrayContains, desc, eq, gte, like, lte } from "drizzle-orm";
+import { and, arrayContains, desc, eq, gte, ilike, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { addReservations, deleteBookingReservations } from "./reservation";
 
@@ -16,22 +16,42 @@ export async function getBookings() {
 }
 
 export async function filterBookings(filters: BookingFilters) {
-  const query = db.select().from(bookings);
-
   const whereList: ReturnType<typeof eq>[] = [];
-
-  if (filters.id) whereList.push(like(bookings.id, `%${filters.id}%`));
-
+  if (filters.id)
+    whereList.push(ilike(bookings.internalBookingId, `%${filters.id}%`));
+ 
   if (filters.country)
     whereList.push(arrayContains(bookings.countries, [filters.country]));
 
   if (filters.dateRange?.from && filters.dateRange?.to)
     whereList.push(
-      gte(bookings.arrivalDate, filters.dateRange?.from),
-      lte(bookings.departureDate, filters.dateRange?.to),
+      gte(
+        bookings.arrivalDate,
+        new Date(
+          filters.dateRange?.from.toLocaleString(undefined, {
+            timeZone: "Europe/Paris",
+          }),
+        ),
+      ),
+      lte(
+        bookings.departureDate,
+        new Date(
+          filters.dateRange?.to.toLocaleString(undefined, {
+            timeZone: "Europe/Paris",
+          }),
+        ),
+      ),
     );
 
-  return query.where(and(...whereList)).orderBy(desc(bookings.updatedAt));
+  return db.query.bookings.findMany({
+    with: { reservations: true },
+    where() {
+      return and(...whereList);
+    },
+    orderBy({ updatedAt }) {
+      return desc(updatedAt);
+    },
+  });
 }
 
 export async function addBookings(
@@ -43,7 +63,6 @@ export async function addBookings(
   passports: { url: string; name: string }[],
   domesticFlightsTickets: string[],
 ) {
-
   const row = await db
     .insert(bookings)
     .values({

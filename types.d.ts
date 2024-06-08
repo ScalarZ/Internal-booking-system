@@ -1,5 +1,5 @@
 type BookingFilters = {
-  id?: number;
+  id?: string;
   country?: string;
   dateRange?: {
     from?: Date;
