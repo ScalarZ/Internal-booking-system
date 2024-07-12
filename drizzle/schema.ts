@@ -171,12 +171,12 @@ export const bookings = pgTable("bookings", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   itinerary: jsonb("itinerary").array().$type<Itinerary[]>(),
   nileCruises: jsonb("nile_cruises").array().$type<string[]>(),
-  internationalFlights: jsonb(
-    "international_flights",
-  ).$type<InternationalFlight>(),
+  internationalFlights: jsonb("international_flights")
+    .array()
+    .$type<Omit<ArrivalDeparturePair<InternationalFlight>, "file">[]>(),
   domesticFlights: jsonb("domestic_flights")
     .array()
-    .$type<Omit<DomesticFlight, "file">[]>(),
+    .$type<Omit<ArrivalDeparturePair<DomesticFlight>, "file">[]>(),
   passports: jsonb("passports")
     .array()
     .$type<{ url: string; name: string }[]>(),

@@ -10,13 +10,15 @@ import {
   SelectNileCruises,
   SelectTours,
 } from "@/drizzle/schema";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { columns } from "./columns";
 import EditBookingModal from "./edit-booking-modal";
 import FilterBookings from "./filter-bookings";
 import DeleteBookingModal from "./delete-booking-modal";
 import { useQuery } from "@tanstack/react-query";
-import { getBookings } from "@/utils/db-queries/booking";
+import { getBooking, getBookings } from "@/utils/db-queries/booking";
+import { createClient } from "@/utils/supabase/client";
+import { queryClient } from "@/utils/provider";
 
 export default function Bookings({
   companies,
@@ -24,14 +26,14 @@ export default function Bookings({
   tours,
   nationalities,
   nileCruises,
-  isReservation,
+  type,
 }: {
   countries: SelectCountries[];
   companies: SelectCompanies[];
   tours: SelectTours[];
   nationalities: SelectNationalities[];
   nileCruises: SelectNileCruises[];
-  isReservation?: boolean;
+  type?: "booking" | "reservation" | "aviation";
 }) {
   const [initialValues, setInitialValues] =
     useState<SelectBookingWithReservations | null>(null);
@@ -41,7 +43,74 @@ export default function Bookings({
     queryKey: ["bookings"],
     queryFn: getBookings,
   });
+
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel("realtime bookings")
+      .on(
+        //@ts-ignore
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "bookings",
+        },
+        async (payload: {
+          eventType: "INSERT" | "UPDATE" | "DELETE";
+          new: { id: number };
+          old: { id: number };
+        }) => {
+          console.log(payload);
+          try {
+            if (payload.eventType === "DELETE") {
+              queryClient.setQueryData(
+                ["bookings"],
+                (data: SelectBookingWithReservations[]) => {
+                  const index = data.findIndex((b) => b.id === payload.old.id);
+                  if (index > -1) {
+                    return [...data.slice(0, index), ...data.slice(index + 1)];
+                  } else {
+                    return data;
+                  }
+                },
+              );
+              return;
+            }
+            const booking = await getBooking(payload.new.id);
+            queryClient.setQueryData(
+              ["bookings"],
+              (data: SelectBookingWithReservations[]) => {
+                if (payload.eventType === "INSERT") return [...data, booking];
+                if (payload.eventType === "UPDATE") {
+                  const index = data.findIndex((b) => b.id === booking?.id);
+                  if (index > -1) {
+                    return [
+                      ...data.slice(0, index),
+                      booking,
+                      ...data.slice(index + 1),
+                    ];
+                  } else {
+                    return data;
+                  }
+                }
+                return data;
+              },
+            );
+          } catch (err) {
+            console.error(err);
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   if (error || !data) return <p>Error fetching bookings</p>;
+
   return (
     <div>
       <FilterBookings countries={countries} />
@@ -50,7 +119,7 @@ export default function Bookings({
           setInitialValues,
           setIsEditModalOpen,
           setIsDeleteModalOpen,
-          isReservation
+          type:"reservation",
         })}
         data={data}
         onRowClick={(row: SelectBookingWithReservations) => {
@@ -58,7 +127,7 @@ export default function Bookings({
           setIsEditModalOpen(true);
           setIsDeleteModalOpen(false);
         }}
-        isReservation={isReservation}
+        type={type}
       />
       {!!initialValues && (
         <EditBookingModal
@@ -70,7 +139,7 @@ export default function Bookings({
           setInitialValues={setInitialValues}
           isOpen={isEditModalOpen}
           setIsOpen={setIsEditModalOpen}
-          isReservation={isReservation}
+          type={type}
         />
       )}
       {!!initialValues && (

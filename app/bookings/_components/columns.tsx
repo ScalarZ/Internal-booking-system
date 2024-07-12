@@ -9,12 +9,12 @@ import { format } from "date-fns";
 import { Check, Edit, Trash, X } from "lucide-react";
 
 export function columns({
-  isReservation,
   setInitialValues,
   setIsEditModalOpen,
   setIsDeleteModalOpen,
+  type,
 }: {
-  isReservation?: boolean;
+  type?: "booking" | "reservation" | "aviation";
   setInitialValues: (
     initialValues: SelectBookingWithReservations | null,
   ) => void;
@@ -206,7 +206,7 @@ export function columns({
       header: "Updated at",
       cell: ({ row }) => format(row.original.updatedAt!, "dd/MM/yyyy"),
     },
-    !isReservation
+    type !== "reservation"
       ? {
           accessorKey: "action",
           header: "Action",

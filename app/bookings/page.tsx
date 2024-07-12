@@ -39,6 +39,7 @@ export default async function BookingPage() {
           companies={companies}
           tours={tours}
           nationalities={nationalities}
+          type="booking"
         />
       </div>
     </HydrationBoundary>

@@ -25,7 +25,7 @@ import {
 } from "@/drizzle/schema";
 import { cn } from "@/lib/utils";
 
-function getRowStatus(reservations?: SelectReservations[]) {
+function getReservationRowStatus(reservations?: SelectReservations[]) {
   if (reservations?.every((reservation) => reservation.finalPrice))
     return "success";
   if (reservations?.some((reservation) => reservation.finalPrice))
@@ -33,17 +33,45 @@ function getRowStatus(reservations?: SelectReservations[]) {
   return "danger";
 }
 
+function getAviationRowStatus(
+  domesticFlights?: Omit<ArrivalDeparturePair<DomesticFlight>[], "file"> | null,
+) {
+  if (
+    domesticFlights?.every(
+      ({ arrival, departure }) =>
+        Object.values(arrival).every((value) => !!value) &&
+        Object.values(departure).every((value) => !!value),
+    )
+  )
+    return "success";
+  if (
+    domesticFlights?.every(
+      ({
+        arrival: { issued: arrivalIssued, ...arrivalProps },
+        departure: { issued: departureIssued, ...departureProps },
+      }) =>
+        Object.values(arrivalProps).some(
+          (value) => !!value && !arrivalIssued,
+        ) ||
+        (Object.values(departureProps).some((value) => !!value) &&
+          !!departureIssued),
+    )
+  )
+    return "warning";
+  return "danger";
+}
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  isReservation?: boolean;
+  type?: "booking" | "reservation" | "aviation";
   onRowClick?: (row: SelectBookingWithReservations) => void;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
-  isReservation,
+  type,
   onRowClick,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -91,26 +119,50 @@ export function DataTable<TData, TValue>({
                 }
                 className={cn("bg-white", {
                   "bg-green-100":
-                    isReservation &&
-                    !!row.original &&
-                    getRowStatus(
-                      (row.original as unknown as SelectBookingWithReservations)
-                        .reservations,
-                    ) === "success",
+                    (type === "reservation" &&
+                      !!row.original &&
+                      getReservationRowStatus(
+                        (
+                          row.original as unknown as SelectBookingWithReservations
+                        ).reservations,
+                      ) === "success") ||
+                    (type === "aviation" &&
+                      !!row.original &&
+                      getAviationRowStatus(
+                        (
+                          row.original as unknown as SelectBookingWithReservations
+                        ).domesticFlights,
+                      ) === "success"),
                   "bg-yellow-100":
-                    isReservation &&
-                    !!row.original &&
-                    getRowStatus(
-                      (row.original as unknown as SelectBookingWithReservations)
-                        .reservations,
-                    ) === "warning",
+                    (type === "reservation" &&
+                      !!row.original &&
+                      getReservationRowStatus(
+                        (
+                          row.original as unknown as SelectBookingWithReservations
+                        ).reservations,
+                      ) === "warning") ||
+                    (type === "aviation" &&
+                      !!row.original &&
+                      getAviationRowStatus(
+                        (
+                          row.original as unknown as SelectBookingWithReservations
+                        ).domesticFlights,
+                      ) === "warning"),
                   "bg-red-100":
-                    isReservation &&
-                    !!row.original &&
-                    getRowStatus(
-                      (row.original as unknown as SelectBookingWithReservations)
-                        .reservations,
-                    ) === "danger",
+                    (type === "reservation" &&
+                      !!row.original &&
+                      getReservationRowStatus(
+                        (
+                          row.original as unknown as SelectBookingWithReservations
+                        ).reservations,
+                      ) === "danger") ||
+                    (type === "aviation" &&
+                      !!row.original &&
+                      getAviationRowStatus(
+                        (
+                          row.original as unknown as SelectBookingWithReservations
+                        ).domesticFlights,
+                      ) === "danger"),
                 })}
               >
                 {row.getVisibleCells()?.map((cell) => (

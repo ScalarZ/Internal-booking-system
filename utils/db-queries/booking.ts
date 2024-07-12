@@ -14,12 +14,18 @@ import { addReservations, deleteBookingReservations } from "./reservation";
 export async function getBookings() {
   return await db.query.bookings.findMany({ with: { reservations: true } });
 }
+export async function getBooking(bookingId: number) {
+  return await db.query.bookings.findFirst({
+    with: { reservations: true },
+    where: ({ id }) => eq(id, bookingId),
+  });
+}
 
 export async function filterBookings(filters: BookingFilters) {
   const whereList: ReturnType<typeof eq>[] = [];
   if (filters.id)
     whereList.push(ilike(bookings.internalBookingId, `%${filters.id}%`));
- 
+
   if (filters.country)
     whereList.push(arrayContains(bookings.countries, [filters.country]));
 
@@ -62,6 +68,7 @@ export async function addBookings(
   >[],
   passports: { url: string; name: string }[],
   domesticFlightsTickets: string[],
+  internationalFlightsTickets: string[],
 ) {
   const row = await db
     .insert(bookings)
@@ -72,6 +79,12 @@ export async function addBookings(
         ...props,
         url: domesticFlightsTickets[i],
       })),
+      internationalFlights: booking.internationalFlights?.map(
+        (props, i) => ({
+          ...props,
+          url: internationalFlightsTickets[i],
+        }),
+      ),
     })
     .returning();
 
@@ -82,11 +95,11 @@ export async function addBookings(
         bookingId: row[0].id,
       })),
     );
-  await db.insert(notifications).values({
+  return await db.insert(notifications).values({
     type: "booking",
     message: "new booking has been added with id " + row[0].id,
   });
-  revalidatePath("/bookings");
+  // revalidatePath("/bookings");
 }
 
 export async function updateBooking(
@@ -104,18 +117,19 @@ export async function updateBooking(
       .where(eq(bookings.id, booking.id)),
     deleteBookingReservations(booking.id),
   ]);
-  await addReservations(
-    reservations?.map((reservation) => ({
-      ...reservation,
-      bookingId: booking.id,
-    })),
-  );
+  if (reservations.length)
+    await addReservations(
+      reservations.map((reservation) => ({
+        ...reservation,
+        bookingId: booking.id,
+      })),
+    );
   if (reservations.every(({ finalPrice }) => finalPrice))
     await db.insert(notifications).values({
       type: "reservation",
       message: "Booking with id " + booking.id + " has received a final price",
     });
-  revalidatePath("/bookings");
+  return res;
 }
 
 export async function deleteBooking(bookingId: number) {

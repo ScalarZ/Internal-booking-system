@@ -12,8 +12,6 @@ import { SelectNotifications } from "@/drizzle/schema";
 import { usePathname } from "next/navigation";
 import { getNotifications } from "@/utils/db-queries/notification";
 
-const supabase = createClient();
-
 export default function Notifications() {
   const [notificationsList, setNotificationsList] = useState<
     SelectNotifications[]
@@ -31,6 +29,7 @@ export default function Notifications() {
     [],
   );
   useEffect(() => {
+    const supabase = createClient();
     const channel = supabase
       .channel("realtime notifications")
       .on(
@@ -60,7 +59,7 @@ export default function Notifications() {
     } else {
       listNotifications("reservation");
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
   return (
     <div>

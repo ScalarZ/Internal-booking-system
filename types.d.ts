@@ -37,16 +37,21 @@ type Itinerary = {
 };
 
 type InternationalFlight = {
-  flightNumber?: number;
-  arrivalDate?: Date;
-  departureDate?: Date;
+  flightNumber?: string;
   destinations?: string;
-  file?: File;
-  url?: string;
+  referenceTicket?: string;
+};
+type DomesticFlight = {
+  issued: boolean;
+  from?: string;
+  to?: string;
+  flightNumber?: string;
 };
 
-type DomesticFlight = InternationalFlight & {
+type ArrivalDeparturePair<T> = {
   id: string;
-  included: boolean;
-  note?: string;
+  arrival: { arrivalDate?: Date; arrivalTime?: Date } & T;
+  departure: { departureDate?: Date; departureTime?: Date } & T;
+  file?: File;
+  url?: string;
 };
