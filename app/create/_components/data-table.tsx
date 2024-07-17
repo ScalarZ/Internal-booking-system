@@ -36,6 +36,8 @@ function getReservationRowStatus(reservations?: SelectReservations[]) {
 function getAviationRowStatus(
   domesticFlights?: Omit<ArrivalDeparturePair<DomesticFlight>[], "file"> | null,
 ) {
+  if (domesticFlights?.some(({ arrival, departure }) => !arrival || !departure))
+    return "danger";
   if (
     domesticFlights?.every(
       ({ arrival, departure }) =>
