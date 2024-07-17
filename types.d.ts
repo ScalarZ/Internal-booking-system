@@ -28,6 +28,11 @@ type SelectHotelsWithCitiesAndCountries = SelectHotels & {
 type SelectCitiesWithCountries = SelectCities & {
   country: SelectCountries | null;
 };
+type Passport = {
+  url?: string;
+  name?: string;
+  image?: ImageType;
+};
 
 type Itinerary = {
   id: string;
@@ -43,15 +48,18 @@ type InternationalFlight = {
 };
 type DomesticFlight = {
   issued: boolean;
+  included: boolean;
   from?: string;
   to?: string;
   flightNumber?: string;
 };
 
+type Ticket = { url?: string; name?: string; image?: ImageType };
+
 type ArrivalDeparturePair<T> = {
   id: string;
   arrival: { arrivalDate?: Date; arrivalTime?: Date } & T;
   departure: { departureDate?: Date; departureTime?: Date } & T;
-  file?: File;
-  url?: string;
+  files?: { image?: ImageType; name?: string; url?: string }[];
+  urls: Ticket[];
 };

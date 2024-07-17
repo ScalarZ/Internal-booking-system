@@ -173,13 +173,13 @@ export const bookings = pgTable("bookings", {
   nileCruises: jsonb("nile_cruises").array().$type<string[]>(),
   internationalFlights: jsonb("international_flights")
     .array()
-    .$type<Omit<ArrivalDeparturePair<InternationalFlight>, "file">[]>(),
+    .$type<Omit<ArrivalDeparturePair<InternationalFlight>, "files">[]>(),
   domesticFlights: jsonb("domestic_flights")
     .array()
-    .$type<Omit<ArrivalDeparturePair<DomesticFlight>, "file">[]>(),
+    .$type<Omit<ArrivalDeparturePair<DomesticFlight>, "files">[]>(),
   passports: jsonb("passports")
     .array()
-    .$type<{ url: string; name: string }[]>(),
+    .$type<{ url?: string; name?: string }[]>(),
 });
 
 export const reservations = pgTable("reservations", {

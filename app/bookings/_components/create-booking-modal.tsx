@@ -56,7 +56,7 @@ import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
-import { addDays, format } from "date-fns";
+import { addDays, format, formatDate } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -80,9 +80,8 @@ import AddItineraryModal from "./create-itinerary-modal";
 import { generateRandomId } from "@/utils/generate-random-id";
 import Reservations from "./reservations";
 import { DialogDescription } from "@radix-ui/react-dialog";
-import UploadPassport from "./upload-passport";
-import { ImageType } from "react-images-uploading";
 import { createClient } from "@/utils/supabase/client";
+import UploadImage from "./upload-image";
 
 type Reservation = Omit<
   SelectReservations,
@@ -203,9 +202,7 @@ function From({
   const [touristsNames, setTouristsNames] = useState<string[]>([]);
   const [tourCountries, setTourCountries] = useState<SelectCountries[]>([]);
   const [tourCities, setTourCities] = useState<SelectCities[]>([]);
-  const [passports, setPassports] = useState<
-    { image: ImageType; name: string; url: string }[]
-  >([]);
+  const [passports, setPassports] = useState<Passport[]>([]);
   const [citiesHotels, setCitiesHotels] = useState<SelectHotels[]>([]);
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);
   const [itineraryInitialValues, setItineraryInitialValues] =
@@ -222,6 +219,7 @@ function From({
         from: undefined,
         to: undefined,
         issued: false,
+        included: true,
       },
       departure: {
         departureDate: undefined,
@@ -230,9 +228,10 @@ function From({
         from: undefined,
         to: undefined,
         issued: false,
+        included: true,
       },
-      file: undefined,
-      url: undefined,
+      files: [],
+      urls: [],
     },
   ]);
   const [internationalFlights, setInternationalFlights] = useState<
@@ -254,8 +253,8 @@ function From({
         flightNumber: undefined,
         referenceTicket: undefined,
       },
-      file: undefined,
-      url: undefined,
+      files: [],
+      urls: [],
     },
   ]);
 
@@ -316,22 +315,36 @@ function From({
         ),
       );
       const res2 = await Promise.all(
-        domesticFlights.map(({ file }) =>
-          file
-            ? supabase.storage
-                .from("flight tickets")
-                .upload(`${internalBookingId}/${file.name}-${date}`, file)
-            : undefined,
-        ),
+        domesticFlights
+          .map(({ files }) =>
+            files
+              ? files.map(({ image }) =>
+                  supabase.storage
+                    .from("flight tickets")
+                    .upload(
+                      `${internalBookingId}/${image.file?.name}-${date}`,
+                      image.file,
+                    ),
+                )
+              : [],
+          )
+          .flat(),
       );
       const res3 = await Promise.all(
-        internationalFlights!.map(({ file }) =>
-          file
-            ? supabase.storage
-                .from("international flights tickets")
-                .upload(`${internalBookingId}/${file.name}-${date}`, file)
-            : undefined,
-        ),
+        internationalFlights
+          .map(({ files }) =>
+            files
+              ? files.map(({ image }) =>
+                  supabase.storage
+                    .from("international flights tickets")
+                    .upload(
+                      `${internalBookingId}/${image.file?.name}-${date}`,
+                      image.file,
+                    ),
+                )
+              : [],
+          )
+          .flat(),
       );
       const paths = res1
         .map((res) => res?.data?.path)
@@ -341,21 +354,31 @@ function From({
           name: `${passports[i].image.file?.name}-${date}`,
         }));
 
-      const domesticFlightsTickets = res2
-        .map((res) => res?.data?.path)
-        .filter((path) => path !== undefined)
-        .map(
-          (path) =>
-            `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/flight%20tickets/${path}`,
+      let index = 0;
+      const domesticFlightsTickets: Ticket[][] = [];
+      for (const row of domesticFlights) {
+        const rowLength = row.files?.length ?? 0;
+        domesticFlightsTickets.push(
+          res2.slice(index, index + rowLength).map(({ data }, i) => ({
+            url: `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/flight%20tickets/${data?.path}`,
+            name: row.files?.[i]?.name,
+          })),
         );
-
-      const internationalFlightsTickets = res3
-        .map((res) => res?.data?.path)
-        .filter((path) => path !== undefined)
-        .map(
-          (path) =>
-            `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/international%20flights%20tickets/${path}`,
+        index += rowLength;
+      }
+      index = 0;
+      const internationalFlightsTickets: Ticket[][] = [];
+      for (const row of internationalFlights) {
+        const rowLength = row.files?.length ?? 0;
+        internationalFlightsTickets.push(
+          res3.slice(index, index + rowLength).map(({ data }, i) => ({
+            url: `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/international%20flights%20tickets/${data?.path}`,
+            name: row.files?.[i]?.name,
+          })),
         );
+        index += rowLength;
+      }
+      console.log(res3, internationalFlightsTickets, internationalFlights);
       await addBookings(
         {
           arrivalDate: values.arrivalDepartureDate.from ?? null,
@@ -384,9 +407,9 @@ function From({
           status: values.status,
           itinerary: itineraries,
           nileCruises: values.nileCruises ?? null,
-          domesticFlights: domesticFlights.map(({ file, ...props }) => props),
+          domesticFlights: domesticFlights.map(({ files, ...props }) => props),
           internationalFlights: internationalFlights.map(
-            ({ file, ...props }) => props,
+            ({ files, ...props }) => props,
           ),
           passports: [],
         },
@@ -641,7 +664,7 @@ function From({
                         <Button
                           variant={"outline"}
                           className={cn(
-                            "w-[240px] pl-3 text-left font-normal",
+                            "pl-3 text-left font-normal",
                             !field.value && "text-muted-foreground",
                           )}
                           type="button"
@@ -753,10 +776,20 @@ function From({
               </div>
               <FormMessage />
             </FormItem>
-            <UploadPassport
-              passports={passports}
-              setPassports={setPassports}
-              pax={form.watch("pax") ?? 0}
+            <UploadImage
+              title="Upload Tourists Passports"
+              images={passports}
+              setImages={setPassports}
+              maxNumber={form.watch("pax")}
+              button={
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="mb-8 self-center"
+                >
+                  Upload Passports
+                </Button>
+              }
             />
             <FormField
               control={form.control}
@@ -831,7 +864,7 @@ function From({
               control={form.control}
               name="tour"
               render={({ field }) => (
-                <FormItem className="flex items-center gap-x-4">
+                <FormItem className="items-center gap-x-4">
                   <div className="flex flex-col space-y-2">
                     <FormLabel className="block">Tour</FormLabel>
                     <Popover open={tourOpen} onOpenChange={setTourOpen}>
@@ -962,7 +995,7 @@ function From({
                   layoutScroll
                   className="flex w-full flex-nowrap overflow-x-auto border"
                 >
-                  {itineraries?.map(({ id, day, activities, cities }) => (
+                  {itineraries?.map(({ id, day, activities, cities }, i) => (
                     <Reorder.Item
                       key={id}
                       value={id}
@@ -970,6 +1003,17 @@ function From({
                     >
                       <div className="flex flex-col gap-y-1">
                         <span className="font-medium">{day}</span>
+                        <span className="text-sm">
+                          {form.watch("arrivalDepartureDate.from")
+                            ? format(
+                                addDays(
+                                  form.watch("arrivalDepartureDate.from")!,
+                                  i,
+                                ),
+                                "dd-MM-yyyy",
+                              )
+                            : null}
+                        </span>
                         <div className="flex items-start gap-x-2 text-sm">
                           <span className="font-medium">Cities:</span>
                           <ul className="flex flex-wrap gap-x-1 gap-y-1 text-white">
@@ -1302,9 +1346,16 @@ function From({
                         </PopoverContent>
                       </Popover>
                     </FormItem>
-                    <FormItem className="flex flex-col justify-start">
+                    <FormItem className="relative flex flex-col justify-start">
                       <FormLabel>Arrival Time</FormLabel>
-
+                      <div className="absolute left-1 top-5 bg-white px-6 py-1 text-sm">
+                        {internationalFlights[i].arrival.arrivalTime
+                          ? format(
+                              internationalFlights[i].arrival.arrivalTime!,
+                              "HH:mm",
+                            )
+                          : "--:--"}
+                      </div>
                       <Input
                         type="time"
                         onChange={(e) =>
@@ -1397,8 +1448,16 @@ function From({
                         </PopoverContent>
                       </Popover>
                     </FormItem>
-                    <FormItem className="flex flex-col justify-start">
+                    <FormItem className="relative flex flex-col justify-start">
                       <FormLabel>Departure Time</FormLabel>
+                      <div className="absolute left-1 top-5 bg-white px-6 py-1 text-sm">
+                        {internationalFlights[i].departure.departureTime
+                          ? format(
+                              internationalFlights[i].departure.departureTime!,
+                              "HH:mm",
+                            )
+                          : "--:--"}
+                      </div>
                       <Input
                         type="time"
                         onChange={(e) =>
@@ -1461,35 +1520,29 @@ function From({
                     className="flex flex-col gap-y-2"
                   >
                     Ticket
-                    <div
-                      className={cn(
-                        "flex h-10 cursor-pointer items-center justify-center rounded border hover:bg-sky-100",
-                        {
-                          "bg-sky-100": flight.file,
-                        },
-                      )}
-                    >
-                      <Upload strokeWidth={2} size={18} />
-                    </div>
-                  </FormLabel>
-                  <input
-                    type="file"
-                    hidden
-                    id={flight.id}
-                    onChange={(e) => {
-                      const files = e.target.files;
-                      if (files) {
+                    <UploadImage
+                      title="Upload International Flights Ticket"
+                      images={flight.files ?? []}
+                      setImages={(images) => {
                         setInternationalFlights((prev) => {
-                          prev[i].file = files[0];
-                          prev[i].url = URL.createObjectURL(files[0]);
+                          prev[i].files = images;
                           return [...prev];
                         });
+                      }}
+                      button={
+                        <div
+                          className={cn(
+                            "flex h-10 cursor-pointer items-center justify-center rounded border hover:bg-sky-100",
+                            {
+                              "bg-sky-100": flight.files?.length,
+                            },
+                          )}
+                        >
+                          <Upload strokeWidth={2} size={18} />
+                        </div>
                       }
-                    }}
-                  />
-                  <div className="absolute bottom-full right-0 hidden w-52 p-2 group-hover:block">
-                    <img src={flight.url} className="w-full" />
-                  </div>
+                    />
+                  </FormLabel>
                 </FormItem>
 
                 <X
@@ -1529,8 +1582,8 @@ function From({
                       flightNumber: undefined,
                       referenceTicket: undefined,
                     },
-                    file: undefined,
-                    url: undefined,
+                    files: [],
+                    urls: [],
                   },
                 ])
               }
@@ -1545,6 +1598,20 @@ function From({
               <div key={flight.id} className="flex gap-x-4">
                 <div className="flex flex-grow flex-col gap-y-4">
                   <div className="flex gap-x-4">
+                    <FormItem className="flex flex-col justify-start">
+                      <FormLabel>Included</FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={flight.arrival.included}
+                          onCheckedChange={(value) =>
+                            setDomesticFlights((prev) => {
+                              prev[i].arrival.included = value;
+                              return [...prev];
+                            })
+                          }
+                        />
+                      </FormControl>
+                    </FormItem>
                     <FormItem className="flex flex-col justify-start">
                       <FormLabel>Arrival Date</FormLabel>
                       <Popover>
@@ -1582,9 +1649,16 @@ function From({
                         </PopoverContent>
                       </Popover>
                     </FormItem>
-                    <FormItem className="flex flex-col justify-start">
+                    <FormItem className="relative flex flex-col justify-start">
                       <FormLabel>Arrival Time</FormLabel>
-
+                      <div className="absolute left-1 top-5 bg-white px-6 py-1 text-sm">
+                        {domesticFlights[i].arrival.arrivalTime
+                          ? format(
+                              domesticFlights[i].arrival.arrivalTime!,
+                              "HH:mm",
+                            )
+                          : "--:--"}
+                      </div>
                       <Input
                         type="time"
                         onChange={(e) =>
@@ -1655,6 +1729,20 @@ function From({
                   </div>
                   <div className="flex gap-x-4">
                     <FormItem className="flex flex-col justify-start">
+                      <FormLabel>Included</FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={flight.departure.included}
+                          onCheckedChange={(value) =>
+                            setDomesticFlights((prev) => {
+                              prev[i].departure.included = value;
+                              return [...prev];
+                            })
+                          }
+                        />
+                      </FormControl>
+                    </FormItem>
+                    <FormItem className="flex flex-col justify-start">
                       <FormLabel>Departure Date</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
@@ -1691,9 +1779,16 @@ function From({
                         </PopoverContent>
                       </Popover>
                     </FormItem>
-                    <FormItem className="flex flex-col justify-start">
+                    <FormItem className="relative flex flex-col justify-start">
                       <FormLabel>Arrival Time</FormLabel>
-
+                      <div className="absolute left-1 top-5 bg-white px-6 py-1 text-sm">
+                        {domesticFlights[i].departure.departureTime
+                          ? format(
+                              domesticFlights[i].departure.departureTime!,
+                              "HH:mm",
+                            )
+                          : "--:--"}
+                      </div>
                       <Input
                         type="time"
                         onChange={(e) =>
@@ -1769,35 +1864,29 @@ function From({
                     className="flex flex-col gap-y-2"
                   >
                     Ticket
-                    <div
-                      className={cn(
-                        "flex h-10 cursor-pointer items-center justify-center rounded border hover:bg-sky-100",
-                        {
-                          "bg-sky-100": flight.file,
-                        },
-                      )}
-                    >
-                      <Upload strokeWidth={2} size={18} />
-                    </div>
-                  </FormLabel>
-                  <input
-                    type="file"
-                    hidden
-                    id={flight.id}
-                    onChange={(e) => {
-                      const files = e.target.files;
-                      if (files) {
+                    <UploadImage
+                      title="Upload Domestic Flights Ticket"
+                      images={flight.files ?? []}
+                      setImages={(images) => {
                         setDomesticFlights((prev) => {
-                          prev[i].file = files[0];
-                          prev[i].url = URL.createObjectURL(files[0]);
+                          prev[i].files = images;
                           return [...prev];
                         });
+                      }}
+                      button={
+                        <div
+                          className={cn(
+                            "flex h-10 cursor-pointer items-center justify-center rounded border hover:bg-sky-100",
+                            {
+                              "bg-sky-100": flight.files?.length,
+                            },
+                          )}
+                        >
+                          <Upload strokeWidth={2} size={18} />
+                        </div>
                       }
-                    }}
-                  />
-                  <div className="absolute bottom-full right-0 hidden w-52 p-2 group-hover:block">
-                    <img src={flight.url} className="w-full" />
-                  </div>
+                    />
+                  </FormLabel>
                 </FormItem>
 
                 <X
@@ -1830,6 +1919,7 @@ function From({
                       from: undefined,
                       to: undefined,
                       issued: false,
+                      included: true,
                     },
                     departure: {
                       departureDate: undefined,
@@ -1838,9 +1928,10 @@ function From({
                       from: undefined,
                       to: undefined,
                       issued: false,
+                      included: true,
                     },
-                    file: undefined,
-                    url: undefined,
+                    files: [],
+                    urls: [],
                   },
                 ])
               }

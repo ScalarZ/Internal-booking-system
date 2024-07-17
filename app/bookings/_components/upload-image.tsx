@@ -13,20 +13,24 @@ import ImageUploading, {
 } from "react-images-uploading";
 import { File, XCircle } from "lucide-react";
 
-export default function UploadPassport({
-  passports,
-  setPassports,
-  pax,
+export default function UploadImage({
+  images,
+  setImages,
+  title,
+  button,
+  maxNumber,
 }: {
-  passports: { image: ImageType; name: string; url: string }[];
-  setPassports: (
-    passports: { image: ImageType; name: string; url: string }[],
+  images: { image?: ImageType; name?: string; url?: string }[];
+  setImages: (
+    images: { image?: ImageType; name?: string; url?: string }[],
   ) => void;
-  pax: number;
+  title: string;
+  button: React.ReactElement;
+  maxNumber?: number;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const onChange = (imageList: ImageListType) => {
-    setPassports(
+    setImages(
       imageList.map((image) =>
         image.name !== undefined
           ? (image as { image: ImageType; name: string; url: string })
@@ -39,27 +43,23 @@ export default function UploadPassport({
     );
   };
 
+  const TriggerButton = React.cloneElement(button, {
+    onClick: () => setIsOpen(true),
+  });
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <Button
-        type="button"
-        variant="secondary"
-        onClick={() => setIsOpen(true)}
-        className="mb-8 self-center"
-        disabled={!pax}
-      >
-        Upload passport
-      </Button>
+      {TriggerButton}
       <DialogContent className="max-h-screen min-w-[1360px] gap-y-2">
         <DialogHeader>
-          <DialogTitle className="mb-2">Upload Tourists Passports</DialogTitle>
+          <DialogTitle className="mb-2">{title}</DialogTitle>
           <ImageUploading
             multiple
-            value={passports}
+            value={images}
             onChange={onChange}
-            maxNumber={pax}
             dataURLKey="data_url"
             allowNonImageType
+            maxNumber={maxNumber}
           >
             {({
               imageList,
@@ -112,7 +112,7 @@ export default function UploadPassport({
             variant="outline"
             onClick={() => {
               setIsOpen(false);
-              setPassports([]);
+              setImages([]);
             }}
           >
             Cancel

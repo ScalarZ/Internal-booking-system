@@ -57,13 +57,7 @@ import {
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
-import {
-  Dispatch,
-  SetStateAction,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { addDays, format, formatDate } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -81,7 +75,6 @@ import {
   SelectTours,
 } from "@/drizzle/schema";
 import capitalize from "@/utils/capitalize";
-import { updateBooking } from "@/utils/db-queries/booking";
 import { getCitiesHotels, getCityHotels } from "@/utils/db-queries/hotel";
 import EditItineraryModal from "@/app/create/tours/_components/edit-itinerary-modal";
 import AddItineraryModal from "./create-itinerary-modal";
@@ -97,20 +90,14 @@ import {
 } from "@/components/ui/table";
 import { generateRandomId } from "@/utils/generate-random-id";
 import { getCountryCities } from "@/utils/db-queries/city";
-import Image from "next/image";
-import { Label } from "@/components/ui/label";
 import { createClient } from "@/utils/supabase/client";
 import ImageUploading, {
   ImageListType,
   ImageType,
 } from "react-images-uploading";
+import { updateBooking } from "@/utils/db-queries/booking";
 
 type Reservation = Omit<SelectReservations, "id" | "createdAt" | "updatedAt">;
-type Passport = {
-  url: string;
-  name: string;
-  image?: ImageType;
-};
 
 export default function EditBookingModal({
   companies,
@@ -275,6 +262,7 @@ export function From({
           from: undefined,
           to: undefined,
           issued: false,
+          included: true,
         },
         departure: {
           departureDate: undefined,
@@ -283,9 +271,11 @@ export function From({
           from: undefined,
           to: undefined,
           issued: false,
+          included: true,
         },
-        file: undefined,
-        url: undefined,
+        files: [],
+        urls: [],
+        src: undefined,
       },
     ],
   );
@@ -309,8 +299,8 @@ export function From({
           flightNumber: undefined,
           referenceTicket: undefined,
         },
-        file: undefined,
-        url: undefined,
+        files: [],
+        urls: [],
       },
     ],
   );
@@ -449,48 +439,76 @@ export function From({
             },
       );
       // Domestic Flights
-      const updatedDomesticTickets = domesticFlights.map(({ file }) => file);
+      const updatedDomesticTickets = domesticFlights
+        .map(({ urls }) => urls)
+        .flat();
 
       const res2 = await Promise.all(
         updatedDomesticTickets.map((file) =>
-          file
+          file.image
             ? supabase.storage
                 .from("flight tickets")
-                .upload(`${internalBookingId}/${file.name}-${Date.now()}`, file)
+                .upload(
+                  `${internalBookingId}/${file.image?.name}-${Date.now()}`,
+                  file.image,
+                )
             : undefined,
         ),
       );
-      const domesticFlightTickets = res2
-        .map((res) => res?.data?.path)
-        .map((path) =>
-          path
-            ? `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/flight%20tickets/${path}`
-            : undefined,
+      const domesticFlightsTickets: Ticket[][] = [];
+      let index = 0;
+      for (const row of domesticFlights) {
+        const rowLength = row.urls?.length ?? 0;
+        domesticFlightsTickets.push(
+          res2.slice(index, index + rowLength).map((res, i) =>
+            res
+              ? {
+                  url: `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/flight%20tickets/${res.data?.path}`,
+                  name: row.urls?.[i]?.name,
+                }
+              : row.urls[i],
+          ),
         );
+        index += rowLength;
+      }
 
       // International Flights
 
-      const updatedInternationalTickets = internationalFlights.map(
-        ({ file }) => file,
-      );
+      const updatedInternationalTickets = internationalFlights
+        .map(({ urls }) => urls)
+        .flat();
 
       const res3 = await Promise.all(
         updatedInternationalTickets.map((file) =>
-          file
+          file.image
             ? supabase.storage
                 .from("flight tickets")
-                .upload(`${internalBookingId}/${file.name}-${Date.now()}`, file)
+                .upload(
+                  `${internalBookingId}/${file.image?.name}-${Date.now()}`,
+                  file.image,
+                )
             : undefined,
         ),
       );
-      const internationalFlightTickets = res3
-        .map((res) => res?.data?.path)
-        .map((path) =>
-          path
-            ? `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/flight%20tickets/${path}`
-            : undefined,
-        );
+      console.log(res3, internationalFlights, res2, domesticFlights);
+      const internationalFlightTickets: Ticket[][] = [];
 
+      index = 0;
+      for (const row of internationalFlights) {
+        const rowLength = row.urls?.length ?? 0;
+        internationalFlightTickets.push(
+          res3.slice(index, index + rowLength).map((res, i) =>
+            res
+              ? {
+                  url: `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/international%20flights%20tickets/${res.data?.path}`,
+                  name: row.urls?.[i]?.name,
+                }
+              : row.urls[i],
+          ),
+        );
+        index += rowLength;
+      }
+      console.log(internationalFlightTickets, domesticFlightsTickets);
       await updateBooking(
         {
           id: initialValues.id,
@@ -520,18 +538,14 @@ export function From({
           status: values.status,
           itinerary: itineraries,
           nileCruises: values.nileCruises ?? null,
-          internationalFlights: internationalFlights.map(
-            ({ file, src, ...props }, i) => {
-              return internationalFlightTickets[i] !== undefined
-                ? { ...props, url: internationalFlightTickets[i] }
-                : props;
-            },
+          //@ts-ignore
+          domesticFlights: domesticFlights.map(({ urls }) =>
+            urls.map(({ image, ...props }) => props),
           ),
-          domesticFlights: domesticFlights.map(({ file, src, ...props }, i) => {
-            return domesticFlightTickets[i] !== undefined
-              ? { ...props, url: domesticFlightTickets[i] }
-              : props;
-          }),
+          //@ts-ignore
+          internationalFlights: internationalFlights.map(({ urls }) =>
+            urls.map(({ image, ...props }) => props),
+          ),
         },
         reservationsList?.map(
           ({
@@ -557,6 +571,8 @@ export function From({
           }),
         ),
         paths,
+        domesticFlightsTickets,
+        internationalFlightTickets,
       );
     } catch (error) {
       console.error(error);
@@ -567,7 +583,7 @@ export function From({
       setInitialValues(null);
     }
   }
-
+  console.log(domesticFlights);
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -796,7 +812,7 @@ export function From({
                           <Button
                             variant={"outline"}
                             className={cn(
-                              "w-[240px] pl-3 text-left font-normal",
+                              "pl-3 text-left font-normal",
                               !field.value && "text-muted-foreground",
                             )}
                           >
@@ -906,10 +922,20 @@ export function From({
                 </div>
                 <FormMessage />
               </FormItem>
-              <UploadPassport
-                passports={passports}
-                setPassports={setPassports}
-                pax={form.watch("pax")}
+              <UploadImage
+                title="Upload Tourists Passports"
+                images={passports}
+                setImages={setPassports}
+                maxNumber={form.watch("pax")}
+                button={
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="mb-8 self-center"
+                  >
+                    Upload Passports
+                  </Button>
+                }
               />
               <FormField
                 control={form.control}
@@ -989,7 +1015,7 @@ export function From({
                 name="tour"
                 disabled
                 render={({ field }) => (
-                  <FormItem className="flex items-center gap-x-4">
+                  <FormItem className="items-center gap-x-4">
                     <div className="flex flex-col space-y-2">
                       <FormLabel className="block">Tour</FormLabel>
                       <Popover open={tourOpen} onOpenChange={setTourOpen}>
@@ -1111,7 +1137,7 @@ export function From({
                     layoutScroll
                     className="flex w-full flex-nowrap overflow-x-auto border"
                   >
-                    {itineraries?.map(({ id, day, activities, cities }) => (
+                    {itineraries?.map(({ id, day, activities, cities }, i) => (
                       <Reorder.Item
                         key={id}
                         value={id}
@@ -1119,6 +1145,17 @@ export function From({
                       >
                         <div className="flex flex-col gap-y-1">
                           <span className="font-medium">{day}</span>
+                          <span className="text-sm">
+                            {form.watch("arrivalDepartureDate.from")
+                              ? format(
+                                  addDays(
+                                    form.watch("arrivalDepartureDate.from")!,
+                                    i,
+                                  ),
+                                  "dd-MM-yyyy",
+                                )
+                              : null}
+                          </span>
                           <div className="flex items-start gap-x-2 text-sm">
                             <span className="font-medium">Cities:</span>
                             <ul className="flex flex-wrap gap-x-1 gap-y-1 text-white">
@@ -1412,12 +1449,7 @@ export function From({
             <h3 className="pb-2 text-xl font-semibold">
               International Flights
             </h3>
-
-            <div
-              className={cn("flex flex-col gap-y-4", {
-                "pointer-events-none opacity-70": type === "aviation",
-              })}
-            >
+            <div className="flex flex-col gap-y-4">
               {internationalFlights?.map((flight, i) => (
                 <div key={flight.id} className="flex gap-x-4">
                   <div className="flex flex-grow flex-col gap-y-4">
@@ -1432,12 +1464,12 @@ export function From({
                                 variant={"outline"}
                                 className={cn(
                                   "w-[160px] pl-3 text-left font-normal",
-                                  !flight.arrival.arrivalDate &&
+                                  !flight.arrival?.arrivalDate &&
                                     "text-muted-foreground",
                                 )}
                               >
-                                {flight.arrival.arrivalDate ? (
-                                  `${format(flight.arrival.arrivalDate, "PPP")}`
+                                {flight.arrival?.arrivalDate ? (
+                                  `${format(flight.arrival?.arrivalDate, "PPP")}`
                                 ) : (
                                   <span>Pick a date</span>
                                 )}
@@ -1448,7 +1480,7 @@ export function From({
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                               mode="single"
-                              selected={flight.arrival.arrivalDate}
+                              selected={flight.arrival?.arrivalDate}
                               onSelect={(value) => {
                                 setInternationalFlights((prev) => {
                                   prev[i].arrival.arrivalDate = value;
@@ -1459,13 +1491,20 @@ export function From({
                           </PopoverContent>
                         </Popover>
                       </FormItem>
-                      <FormItem className="flex flex-col justify-start">
+                      <FormItem className="relative flex flex-col justify-start">
                         <FormLabel>Arrival Time</FormLabel>
-
+                        <div className="absolute left-1 top-5 bg-white px-6 py-1 text-sm">
+                          {internationalFlights[i].arrival?.arrivalTime
+                            ? format(
+                                internationalFlights[i].arrival.arrivalTime!,
+                                "HH:mm",
+                              )
+                            : "--:--"}
+                        </div>
                         <Input
                           type="time"
                           defaultValue={formatDate(
-                            flight.arrival.arrivalTime ?? new Date(),
+                            flight.arrival?.arrivalTime ?? new Date(),
                             "hh:mm",
                           )}
                           onChange={(e) =>
@@ -1481,7 +1520,7 @@ export function From({
                         <FormLabel>Number</FormLabel>
                         <FormControl>
                           <Input
-                            defaultValue={flight.arrival.flightNumber}
+                            defaultValue={flight.arrival?.flightNumber}
                             onChange={(e) =>
                               setInternationalFlights((prev) => {
                                 prev[i].arrival.flightNumber = e.target.value;
@@ -1496,7 +1535,7 @@ export function From({
                         <FormLabel>Destination</FormLabel>
                         <FormControl>
                           <Input
-                            defaultValue={flight.arrival.destinations}
+                            defaultValue={flight.arrival?.destinations}
                             onChange={(e) =>
                               setInternationalFlights((prev) => {
                                 prev[i].arrival.destinations = e.target.value;
@@ -1511,7 +1550,7 @@ export function From({
                         <FormLabel>Reference ticket</FormLabel>
                         <FormControl>
                           <Input
-                            defaultValue={flight.arrival.referenceTicket}
+                            defaultValue={flight.arrival?.referenceTicket}
                             onChange={(e) =>
                               setInternationalFlights((prev) => {
                                 prev[i].arrival.referenceTicket =
@@ -1535,12 +1574,12 @@ export function From({
                                 variant={"outline"}
                                 className={cn(
                                   "w-[160px] pl-3 text-left font-normal",
-                                  !flight.departure.departureDate &&
+                                  !flight.departure?.departureDate &&
                                     "text-muted-foreground",
                                 )}
                               >
-                                {flight.departure.departureDate ? (
-                                  `${format(flight.departure.departureDate, "PPP")}`
+                                {flight.departure?.departureDate ? (
+                                  `${format(flight.departure?.departureDate, "PPP")}`
                                 ) : (
                                   <span>Pick a date</span>
                                 )}
@@ -1551,7 +1590,7 @@ export function From({
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                               mode="single"
-                              selected={flight.departure.departureDate}
+                              selected={flight.departure?.departureDate}
                               onSelect={(value) => {
                                 setInternationalFlights((prev) => {
                                   prev[i].departure.departureDate = value;
@@ -1562,12 +1601,21 @@ export function From({
                           </PopoverContent>
                         </Popover>
                       </FormItem>
-                      <FormItem className="flex flex-col justify-start">
+                      <FormItem className="relative flex flex-col justify-start">
                         <FormLabel>Departure Time</FormLabel>
+                        <div className="absolute left-1 top-5 bg-white px-6 py-1 text-sm">
+                          {internationalFlights[i].departure?.departureTime
+                            ? format(
+                                internationalFlights[i].departure
+                                  .departureTime!,
+                                "HH:mm",
+                              )
+                            : "--:--"}
+                        </div>
                         <Input
                           type="time"
                           defaultValue={formatDate(
-                            flight.departure.departureTime ?? new Date(),
+                            flight.departure?.departureTime ?? new Date(),
                             "HH:mm",
                           )}
                           onChange={(e) =>
@@ -1583,7 +1631,7 @@ export function From({
                         <FormLabel>Number</FormLabel>
                         <FormControl>
                           <Input
-                            defaultValue={flight.departure.flightNumber}
+                            defaultValue={flight.departure?.flightNumber}
                             onChange={(e) =>
                               setInternationalFlights((prev) => {
                                 prev[i].departure.flightNumber = e.target.value;
@@ -1598,7 +1646,7 @@ export function From({
                         <FormLabel>Destination</FormLabel>
                         <FormControl>
                           <Input
-                            defaultValue={flight.departure.destinations}
+                            defaultValue={flight.departure?.destinations}
                             onChange={(e) =>
                               setInternationalFlights((prev) => {
                                 prev[i].departure.destinations = e.target.value;
@@ -1613,7 +1661,7 @@ export function From({
                         <FormLabel>Reference ticket</FormLabel>
                         <FormControl>
                           <Input
-                            defaultValue={flight.departure.referenceTicket}
+                            defaultValue={flight.departure?.referenceTicket}
                             onChange={(e) =>
                               setInternationalFlights((prev) => {
                                 prev[i].departure.referenceTicket =
@@ -1630,34 +1678,29 @@ export function From({
                   <FormItem className="group relative flex flex-col justify-start">
                     <FormLabel className="flex flex-col gap-y-2">
                       Ticket
-                      <div
-                        className={cn(
-                          "flex h-10 cursor-pointer items-center justify-center rounded border hover:bg-sky-100",
-                        )}
-                        onClick={() =>
-                          setIsImageModalOpen({
-                            index: i,
-                            state: true,
-                            url: flight.src ?? flight.url,
-                            type: "international",
-                          })
+                      <UploadImage
+                        title="Upload International Flights Ticket"
+                        images={flight.urls ?? []}
+                        setImages={(images) => {
+                          setInternationalFlights((prev) => {
+                            prev[i].urls = images;
+                            return [...prev];
+                          });
+                        }}
+                        button={
+                          <div
+                            className={cn(
+                              "flex h-10 cursor-pointer items-center justify-center rounded border hover:bg-sky-100",
+                              {
+                                "bg-sky-100": flight.files?.length,
+                              },
+                            )}
+                          >
+                            <Upload strokeWidth={2} size={18} />
+                          </div>
                         }
-                      >
-                        <ImageIcon strokeWidth={2} size={18} />
-                      </div>
+                      />
                     </FormLabel>
-
-                    {(!!flight.url || !!flight.src) && (
-                      <div className="absolute bottom-full right-0 hidden w-52 p-2 group-hover:block">
-                        <Image
-                          src={flight.src ?? flight.url ?? ""}
-                          className="w-full"
-                          width={208}
-                          height={104}
-                          alt="#"
-                        />
-                      </div>
-                    )}
                   </FormItem>
 
                   <X
@@ -1702,8 +1745,8 @@ export function From({
                         flightNumber: undefined,
                         referenceTicket: undefined,
                       },
-                      file: undefined,
-                      url: undefined,
+                      files: [],
+                      urls: [],
                     },
                   ])
                 }
@@ -1719,6 +1762,20 @@ export function From({
                   <div className="flex flex-grow flex-col gap-y-4">
                     <div className="flex gap-x-4">
                       <FormItem className="flex flex-col justify-start">
+                        <FormLabel>Included</FormLabel>
+                        <FormControl>
+                          <Switch
+                            checked={flight.arrival?.included}
+                            onCheckedChange={(value) =>
+                              setDomesticFlights((prev) => {
+                                prev[i].arrival.included = value;
+                                return [...prev];
+                              })
+                            }
+                          />
+                        </FormControl>
+                      </FormItem>
+                      <FormItem className="flex flex-col justify-start">
                         <FormLabel>Arrival Date</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
@@ -1728,12 +1785,12 @@ export function From({
                                 variant={"outline"}
                                 className={cn(
                                   "w-[160px] pl-3 text-left font-normal",
-                                  !flight.arrival.arrivalDate &&
+                                  !flight.arrival?.arrivalDate &&
                                     "text-muted-foreground",
                                 )}
                               >
-                                {flight.arrival.arrivalDate ? (
-                                  `${format(flight.arrival.arrivalDate, "PPP")}`
+                                {flight.arrival?.arrivalDate ? (
+                                  `${format(flight.arrival?.arrivalDate, "PPP")}`
                                 ) : (
                                   <span>Pick a date</span>
                                 )}
@@ -1744,7 +1801,7 @@ export function From({
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                               mode="single"
-                              selected={flight.arrival.arrivalDate}
+                              selected={flight.arrival?.arrivalDate}
                               onSelect={(value) => {
                                 setDomesticFlights((prev) => {
                                   prev[i].arrival.arrivalDate = value;
@@ -1755,13 +1812,20 @@ export function From({
                           </PopoverContent>
                         </Popover>
                       </FormItem>
-                      <FormItem className="flex flex-col justify-start">
+                      <FormItem className="relative flex flex-col justify-start">
                         <FormLabel>Arrival Time</FormLabel>
-
+                        <div className="absolute left-1 top-5 bg-white px-6 py-1 text-sm">
+                          {domesticFlights[i].arrival?.arrivalTime
+                            ? format(
+                                domesticFlights[i].arrival.arrivalTime!,
+                                "HH:mm",
+                              )
+                            : "--:--"}
+                        </div>
                         <Input
                           type="time"
                           defaultValue={formatDate(
-                            flight.arrival.arrivalTime ?? new Date(),
+                            flight.arrival?.arrivalTime ?? new Date(),
                             "HH:mm",
                           )}
                           onChange={(e) =>
@@ -1777,7 +1841,7 @@ export function From({
                         <FormLabel>Number</FormLabel>
                         <FormControl>
                           <Input
-                            defaultValue={flight.arrival.flightNumber}
+                            defaultValue={flight.arrival?.flightNumber}
                             onChange={(e) =>
                               setDomesticFlights((prev) => {
                                 prev[i].arrival.flightNumber = e.target.value;
@@ -1792,7 +1856,7 @@ export function From({
                         <FormLabel>From</FormLabel>
                         <FormControl>
                           <Input
-                            defaultValue={flight.arrival.from}
+                            defaultValue={flight.arrival?.from}
                             onChange={(e) =>
                               setDomesticFlights((prev) => {
                                 prev[i].arrival.from = e.target.value;
@@ -1807,7 +1871,7 @@ export function From({
                         <FormLabel>To</FormLabel>
                         <FormControl>
                           <Input
-                            defaultValue={flight.arrival.to}
+                            defaultValue={flight.arrival?.to}
                             onChange={(e) =>
                               setDomesticFlights((prev) => {
                                 prev[i].arrival.to = e.target.value;
@@ -1822,7 +1886,7 @@ export function From({
                         <FormLabel>Issued</FormLabel>
                         <FormControl>
                           <Switch
-                            checked={flight.arrival.issued}
+                            checked={flight.arrival?.issued}
                             onCheckedChange={(value) =>
                               setDomesticFlights((prev) => {
                                 prev[i].arrival.issued = value;
@@ -1835,6 +1899,20 @@ export function From({
                     </div>
                     <div className="flex gap-x-4">
                       <FormItem className="flex flex-col justify-start">
+                        <FormLabel>Included</FormLabel>
+                        <FormControl>
+                          <Switch
+                            checked={flight.departure?.included}
+                            onCheckedChange={(value) =>
+                              setDomesticFlights((prev) => {
+                                prev[i].departure.included = value;
+                                return [...prev];
+                              })
+                            }
+                          />
+                        </FormControl>
+                      </FormItem>
+                      <FormItem className="flex flex-col justify-start">
                         <FormLabel>Departure Date</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
@@ -1844,12 +1922,12 @@ export function From({
                                 variant={"outline"}
                                 className={cn(
                                   "w-[160px] pl-3 text-left font-normal",
-                                  !flight.departure.departureDate &&
+                                  !flight.departure?.departureDate &&
                                     "text-muted-foreground",
                                 )}
                               >
-                                {flight.departure.departureDate ? (
-                                  `${format(flight.departure.departureDate, "PPP")}`
+                                {flight.departure?.departureDate ? (
+                                  `${format(flight.departure?.departureDate, "PPP")}`
                                 ) : (
                                   <span>Pick a date</span>
                                 )}
@@ -1860,7 +1938,7 @@ export function From({
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                               mode="single"
-                              selected={flight.departure.departureDate}
+                              selected={flight.departure?.departureDate}
                               onSelect={(value) => {
                                 setDomesticFlights((prev) => {
                                   prev[i].departure.departureDate = value;
@@ -1871,12 +1949,20 @@ export function From({
                           </PopoverContent>
                         </Popover>
                       </FormItem>
-                      <FormItem className="flex flex-col justify-start">
-                        <FormLabel>Arrival Time</FormLabel>
+                      <FormItem className="relative flex flex-col justify-start">
+                        <FormLabel>Departure Time</FormLabel>
+                        <div className="absolute left-1 top-5 bg-white px-6 py-1 text-sm">
+                          {domesticFlights[i].departure?.departureTime
+                            ? format(
+                                domesticFlights[i].departure?.departureTime!,
+                                "HH:mm",
+                              )
+                            : "--:--"}
+                        </div>
                         <Input
                           type="time"
                           defaultValue={formatDate(
-                            flight.departure.departureTime ?? new Date(),
+                            flight.departure?.departureTime ?? new Date(),
                             "HH:mm",
                           )}
                           onChange={(e) =>
@@ -1892,7 +1978,7 @@ export function From({
                         <FormLabel>Number</FormLabel>
                         <FormControl>
                           <Input
-                            defaultValue={flight.departure.flightNumber}
+                            defaultValue={flight.departure?.flightNumber}
                             onChange={(e) =>
                               setDomesticFlights((prev) => {
                                 prev[i].departure.flightNumber = e.target.value;
@@ -1907,7 +1993,7 @@ export function From({
                         <FormLabel>From</FormLabel>
                         <FormControl>
                           <Input
-                            defaultValue={flight.departure.from}
+                            defaultValue={flight.departure?.from}
                             onChange={(e) =>
                               setDomesticFlights((prev) => {
                                 prev[i].departure.from = e.target.value;
@@ -1922,7 +2008,7 @@ export function From({
                         <FormLabel>To</FormLabel>
                         <FormControl>
                           <Input
-                            defaultValue={flight.departure.to}
+                            defaultValue={flight.departure?.to}
                             onChange={(e) =>
                               setDomesticFlights((prev) => {
                                 prev[i].departure.to = e.target.value;
@@ -1937,7 +2023,7 @@ export function From({
                         <FormLabel>Issued</FormLabel>
                         <FormControl>
                           <Switch
-                            checked={flight.departure.issued}
+                            checked={flight.departure?.issued}
                             onCheckedChange={(value) =>
                               setDomesticFlights((prev) => {
                                 prev[i].departure.issued = value;
@@ -1952,34 +2038,29 @@ export function From({
                   <FormItem className="group relative flex flex-col justify-start">
                     <FormLabel className="flex flex-col gap-y-2">
                       Ticket
-                      <div
-                        className={cn(
-                          "flex h-10 cursor-pointer items-center justify-center rounded border hover:bg-sky-100",
-                        )}
-                        onClick={() =>
-                          setIsImageModalOpen({
-                            index: i,
-                            state: true,
-                            url: flight.src ?? flight.url,
-                            type: "domestic",
-                          })
+                      <UploadImage
+                        title="Upload Domestic Flights Ticket"
+                        images={flight.urls ?? []}
+                        setImages={(images) => {
+                          setDomesticFlights((prev) => {
+                            prev[i].urls = images;
+                            return [...prev];
+                          });
+                        }}
+                        button={
+                          <div
+                            className={cn(
+                              "flex h-10 cursor-pointer items-center justify-center rounded border hover:bg-sky-100",
+                              {
+                                "bg-sky-100": flight.files?.length,
+                              },
+                            )}
+                          >
+                            <Upload strokeWidth={2} size={18} />
+                          </div>
                         }
-                      >
-                        <ImageIcon strokeWidth={2} size={18} />
-                      </div>
+                      />
                     </FormLabel>
-
-                    {(!!flight.url || !!flight.src) && (
-                      <div className="absolute bottom-full right-0 hidden w-52 p-2 group-hover:block">
-                        <Image
-                          src={flight.src ?? flight.url ?? ""}
-                          className="w-full"
-                          width={208}
-                          height={104}
-                          alt="#"
-                        />
-                      </div>
-                    )}
                   </FormItem>
 
                   <X
@@ -2017,6 +2098,7 @@ export function From({
                         from: undefined,
                         to: undefined,
                         issued: false,
+                        included: true,
                       },
                       departure: {
                         departureDate: undefined,
@@ -2025,9 +2107,10 @@ export function From({
                         from: undefined,
                         to: undefined,
                         issued: false,
+                        included: true,
                       },
-                      file: undefined,
-                      url: undefined,
+                      files: [],
+                      urls: [],
                     },
                   ])
                 }
@@ -2107,40 +2190,6 @@ export function From({
           generateReservations={generateReservations}
         />
       )}
-      {isImageModalOpen.state &&
-        (isImageModalOpen.type === "domestic" ? (
-          <ImageModal<DomesticFlight>
-            index={isImageModalOpen.index}
-            src={isImageModalOpen.url}
-            isOpen={isImageModalOpen.state}
-            closeModal={() =>
-              setIsImageModalOpen({
-                state: false,
-                url: undefined,
-                index: -1,
-                type: "domestic",
-              })
-            }
-            type={type}
-            setFlightTicket={setDomesticFlights}
-          />
-        ) : (
-          <ImageModal<InternationalFlight>
-            index={isImageModalOpen.index}
-            src={isImageModalOpen.url}
-            isOpen={isImageModalOpen.state}
-            closeModal={() =>
-              setIsImageModalOpen({
-                state: false,
-                url: undefined,
-                index: -1,
-                type: "domestic",
-              })
-            }
-            type={type}
-            setFlightTicket={setInternationalFlights}
-          />
-        ))}
     </Form>
   );
 }
@@ -2938,21 +2987,27 @@ function AlterModal({
   );
 }
 
-function UploadPassport({
-  passports,
-  setPassports,
-  pax,
+function UploadImage({
+  images,
+  setImages,
+  title,
+  button,
+  maxNumber,
 }: {
-  passports: Passport[];
-  setPassports: (passports: Passport[]) => void;
-  pax: number;
+  images: { image?: ImageType; name?: string; url?: string }[];
+  setImages: (
+    images: { image?: ImageType; name?: string; url?: string }[],
+  ) => void;
+  title: string;
+  button: React.ReactElement;
+  maxNumber?: number;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const onChange = (imageList: ImageListType) => {
-    setPassports(
+    setImages(
       imageList.map((image) =>
         image.name !== undefined
-          ? (image as Passport)
+          ? (image as { image: ImageType; name: string; url: string })
           : {
               image,
               name: image.file?.name ?? "",
@@ -2961,25 +3016,22 @@ function UploadPassport({
       ),
     );
   };
+
+  const TriggerButton = React.cloneElement(button, {
+    onClick: () => setIsOpen(true),
+  });
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <Button
-        type="button"
-        variant="secondary"
-        onClick={() => setIsOpen(true)}
-        className="mb-8 self-center"
-        disabled={!pax}
-      >
-        Upload passport
-      </Button>
+      {TriggerButton}
       <DialogContent className="max-h-screen min-w-[1360px] gap-y-2">
         <DialogHeader>
-          <DialogTitle className="mb-2">Upload Tourists Passports</DialogTitle>
+          <DialogTitle className="mb-2">{title}</DialogTitle>
           <ImageUploading
             multiple
-            value={passports}
+            value={images}
             onChange={onChange}
-            maxNumber={pax}
+            maxNumber={maxNumber}
             dataURLKey="data_url"
             allowNonImageType
           >
@@ -3035,7 +3087,7 @@ function UploadPassport({
             variant="outline"
             onClick={() => {
               setIsOpen(false);
-              setPassports([]);
+              setImages([]);
             }}
           >
             Cancel
@@ -3049,99 +3101,6 @@ function UploadPassport({
             Save
           </Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function ImageModal<T>({
-  index,
-  src,
-  isOpen,
-  closeModal,
-  setFlightTicket,
-  type,
-}: {
-  index: number;
-  src?: string;
-  isOpen: boolean;
-  type?: "booking" | "reservation" | "aviation";
-  closeModal: () => void;
-  setFlightTicket: Dispatch<
-    SetStateAction<(ArrivalDeparturePair<T> & { src?: string })[]>
-  >;
-}) {
-  const [ticket, setTicket] = useState<{ file: File; src: string } | null>(
-    null,
-  );
-  return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(value) => (!value ? closeModal() : undefined)}
-    >
-      <DialogContent className="max-h-screen min-w-[1360px] gap-y-2 overflow-auto">
-        <DialogHeader>
-          <DialogTitle className="mb-2">Ticket</DialogTitle>
-        </DialogHeader>
-        {src || ticket ? (
-          <Image
-            src={ticket?.src ?? src ?? ""}
-            width={1400}
-            height={500}
-            alt="#"
-          />
-        ) : (
-          <p className="text-center text-gray-500">No ticket uploaded</p>
-        )}
-        <div className="flex w-full items-center justify-between pt-4">
-          {type === "booking" && (
-            <>
-              <Label
-                htmlFor="ticket"
-                className="cursor-pointer rounded border px-8 py-3"
-              >
-                Upload ticket
-              </Label>
-              <input
-                id="ticket"
-                name="ticket"
-                type="file"
-                hidden
-                onChange={(e) => {
-                  const files = e.target.files;
-                  if (files) {
-                    setTicket({
-                      file: files[0],
-                      src: URL.createObjectURL(files[0]),
-                    });
-                  }
-                }}
-              />
-            </>
-          )}
-
-          <div className="flex gap-x-2">
-            <Button type="button" variant="outline" onClick={closeModal}>
-              Cancel
-            </Button>
-            {type === "booking" && (
-              <Button
-                type="button"
-                disabled={!ticket}
-                onClick={() => {
-                  setFlightTicket((prev) => {
-                    prev[index].file = ticket?.file;
-                    prev[index].src = ticket?.src;
-                    return [...prev];
-                  });
-                  closeModal();
-                }}
-              >
-                Save
-              </Button>
-            )}
-          </div>
-        </div>
       </DialogContent>
     </Dialog>
   );

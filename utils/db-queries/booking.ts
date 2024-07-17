@@ -67,8 +67,8 @@ export async function addBookings(
     "id" | "createdAt" | "updatedAt" | "bookingId" | "finalPrice"
   >[],
   passports: { url: string; name: string }[],
-  domesticFlightsTickets: string[],
-  internationalFlightsTickets: string[],
+  domesticFlightsTickets: Ticket[][],
+  internationalFlightsTickets: Ticket[][],
 ) {
   const row = await db
     .insert(bookings)
@@ -77,14 +77,12 @@ export async function addBookings(
       passports,
       domesticFlights: booking.domesticFlights?.map((props, i) => ({
         ...props,
-        url: domesticFlightsTickets[i],
+        urls: domesticFlightsTickets[i],
       })),
-      internationalFlights: booking.internationalFlights?.map(
-        (props, i) => ({
-          ...props,
-          url: internationalFlightsTickets[i],
-        }),
-      ),
+      internationalFlights: booking.internationalFlights?.map((props, i) => ({
+        ...props,
+        urls: internationalFlightsTickets[i],
+      })),
     })
     .returning();
 
@@ -108,12 +106,25 @@ export async function updateBooking(
     SelectReservations,
     "id" | "createdAt" | "updatedAt" | "bookingId"
   >[],
-  passports: { url: string; name: string }[],
+  passports: { url?: string; name?: string }[],
+  domesticFlightsTickets: Ticket[][],
+  internationalFlightsTickets: Ticket[][],
 ) {
   const res = await Promise.all([
     db
       .update(bookings)
-      .set({ ...booking, passports })
+      .set({
+        ...booking,
+        passports,
+        domesticFlights: booking.domesticFlights?.map((props, i) => ({
+          ...props,
+          urls: domesticFlightsTickets[i],
+        })),
+        internationalFlights: booking.internationalFlights?.map((props, i) => ({
+          ...props,
+          urls: internationalFlightsTickets[i],
+        })),
+      })
       .where(eq(bookings.id, booking.id)),
     deleteBookingReservations(booking.id),
   ]);
@@ -131,6 +142,7 @@ export async function updateBooking(
     });
   return res;
 }
+
 
 export async function deleteBooking(bookingId: number) {
   await db.delete(bookings).where(eq(bookings.id, bookingId));
