@@ -30,6 +30,7 @@ import { createClient } from "@/utils/supabase/client";
 import { z } from "zod";
 import { citySchema } from "@/utils/zod-schema";
 import { updateActivity } from "@/utils/db-queries/activity";
+import { Switch } from "@/components/ui/switch";
 
 const supabase = createClient();
 
@@ -52,6 +53,7 @@ export default function EditActivityModal({
   const [countryId, setCountryId] = useState("");
   const [cityId, setCityId] = useState("");
   const [citiesList, setCitiesList] = useState<SelectCountries[]>([]);
+  const [isOptional, setIsOptional] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState({
     nameError: "",
@@ -95,7 +97,13 @@ export default function EditActivityModal({
     }
     setIsLoading(true);
     try {
-      await updateActivity({ name, countryId, cityId, id: initialValues.id });
+      await updateActivity({
+        name,
+        countryId,
+        cityId,
+        id: initialValues.id,
+        isOptional,
+      });
     } catch (err) {
       console.error(err);
     } finally {
@@ -132,6 +140,7 @@ export default function EditActivityModal({
     setName(initialValues.name ?? "");
     setCountryId(initialValues.countryId ?? "");
     setCityId(initialValues.cityId ?? "");
+    setIsOptional(initialValues.isOptional ?? "");
   }, [initialValues]);
 
   return (
@@ -146,6 +155,10 @@ export default function EditActivityModal({
         <DialogHeader>
           <DialogTitle>Update Activity</DialogTitle>
         </DialogHeader>
+        <div className="flex items-center gap-x-2 py-2">
+          <Label>Optional</Label>
+          <Switch checked={isOptional} onCheckedChange={setIsOptional} />
+        </div>
         <div>
           <Select
             type="country"

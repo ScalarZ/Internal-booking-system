@@ -102,6 +102,7 @@ export const activities = pgTable("activities", {
   cityId: uuid("city_id").references(() => cities.id, {
     onDelete: "cascade",
   }),
+  isOptional: boolean("is_optional").default(false),
 });
 
 export const activitiesRelations = relations(activities, ({ one }) => ({
@@ -183,7 +184,9 @@ export const bookings = pgTable("bookings", {
 });
 
 export const reservations = pgTable("reservations", {
-  id: serial("id").primaryKey(),
+  id: serial("id")
+    .primaryKey()
+    .references(() => bookings.id),
   start: timestamp("start", { withTimezone: true }).defaultNow(),
   end: timestamp("end", { withTimezone: true }).defaultNow(),
   meal: text("meal"),

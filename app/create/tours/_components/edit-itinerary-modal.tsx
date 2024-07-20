@@ -57,9 +57,14 @@ export default function EditItineraryModal({
   const [selectedActivities, setSelectedActivities] = useState<
     SelectActivities[]
   >(initialValues.activities);
-
+  const [selectedOptionalActivities, setSelectedOptionalActivities] = useState<
+    SelectActivities[]
+  >(initialValues.optionalActivities ?? []);
   const [citiesList, setCitiesList] = useState<SelectCities[]>([]);
   const [activitiesList, setActivitiesList] = useState<SelectActivities[]>([]);
+  const [optionalActivitiesList, setOptionalActivitiesList] = useState<
+    SelectActivities[]
+  >([]);
   const [errorMessage, setErrorMessage] = useState({
     nameError: "",
     countryError: "",
@@ -85,6 +90,7 @@ export default function EditItineraryModal({
         if (itinerary.day === initialValues?.day) {
           itinerary.cities = selectedCities;
           itinerary.activities = selectedActivities;
+          itinerary.optionalActivities = selectedOptionalActivities;
         }
         return itinerary;
       }),
@@ -118,16 +124,41 @@ export default function EditItineraryModal({
     try {
       const { data, error } = await supabase
         .from("activities")
-        .select("id, name, countryId:country_id, cityId:city_id")
+        .select(
+          "id, name, countryId:country_id, cityId:city_id, isOptional:is_optional",
+        )
         .in(
           "city_id",
           selectedCities?.map(({ id }) => id),
-        );
-
+        )
+        .eq("is_optional", true);
       if (error) throw error;
 
       const activities = z.array(activitySchema).parse(data);
       setActivitiesList(activities);
+    } catch (err) {
+      console.error(err);
+    }
+  }, [selectedCities]);
+
+  const getOptionalActivities = useCallback(async () => {
+    setOptionalActivitiesList([]);
+    try {
+      const { data, error } = await supabase
+        .from("activities")
+        .select(
+          "id, name, countryId:country_id, cityId:city_id, isOptional:is_optional",
+        )
+        .in(
+          "city_id",
+          selectedCities?.map(({ id }) => id),
+        )
+        .eq("is_optional", false);
+
+      if (error) throw error;
+
+      const activities = z.array(activitySchema).parse(data);
+      setOptionalActivitiesList(activities);
     } catch (err) {
       console.error(err);
     }
@@ -142,6 +173,7 @@ export default function EditItineraryModal({
   useEffect(() => {
     if (!selectedCities?.length) return;
     getActivities();
+    getOptionalActivities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCities]);
 
@@ -169,7 +201,7 @@ export default function EditItineraryModal({
             }
             type="city"
           />
-          <ul className="flex gap-2 p-2 text-white flex-wrap">
+          <ul className="flex flex-wrap gap-2 p-2 text-white">
             {selectedCities?.map(({ id, name }) => (
               <li
                 key={id}
@@ -203,7 +235,7 @@ export default function EditItineraryModal({
             }
             type="activity"
           />
-          <ul className="flex gap-2 p-2 text-white flex-wrap">
+          <ul className="flex flex-wrap gap-2 p-2 text-white">
             {selectedActivities?.map(({ id, name }) => (
               <li
                 key={id}
@@ -215,6 +247,39 @@ export default function EditItineraryModal({
                   className="cursor-pointer"
                   onClick={() =>
                     setSelectedActivities((prev) =>
+                      prev.filter(
+                        (selectedActivity) => selectedActivity.id != id,
+                      ),
+                    )
+                  }
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+        {/* Optional Activities */}
+        <div>
+          <Select<SelectActivities>
+            list={optionalActivitiesList}
+            onClick={(activity: SelectActivities) =>
+              !selectedOptionalActivities.some(({ id }) => id === activity.id)
+                ? setSelectedOptionalActivities((prev) => [...prev, activity])
+                : null
+            }
+            type="optional activity"
+          />
+          <ul className="flex flex-wrap gap-2 p-2 text-white">
+            {selectedOptionalActivities?.map(({ id, name }) => (
+              <li
+                key={id}
+                className="flex items-center gap-x-1 rounded-full bg-sky-700 px-2 py-1 text-sm font-medium"
+              >
+                {name}
+                <XCircle
+                  size={18}
+                  className="cursor-pointer"
+                  onClick={() =>
+                    setSelectedOptionalActivities((prev) =>
                       prev.filter(
                         (selectedActivity) => selectedActivity.id != id,
                       ),
@@ -245,7 +310,7 @@ function Select<T extends SelectCountries | SelectCities | SelectActivities>({
 }: {
   list: T[];
   onClick: (value: T) => void;
-  type: "country" | "city" | "activity";
+  type: "country" | "city" | "activity" | "optional activity";
 }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
@@ -256,7 +321,7 @@ function Select<T extends SelectCountries | SelectCities | SelectActivities>({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[200px] justify-between"
+          className="w-[240px] justify-between"
         >
           Select a {type}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />

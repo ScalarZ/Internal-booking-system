@@ -119,7 +119,7 @@ export default function Bookings({
           setInitialValues,
           setIsEditModalOpen,
           setIsDeleteModalOpen,
-          type:"reservation",
+          type,
         })}
         data={data}
         onRowClick={(row: SelectBookingWithReservations) => {

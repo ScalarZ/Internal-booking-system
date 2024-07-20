@@ -16,4 +16,5 @@ export const activitySchema = z.object({
   name: z.string().nullable(),
   countryId: z.string().nullable(),
   cityId: z.string().nullable(),
+  isOptional: z.boolean().default(false),
 });

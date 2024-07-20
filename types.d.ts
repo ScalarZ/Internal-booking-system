@@ -39,6 +39,7 @@ type Itinerary = {
   day: string;
   cities: SelectCities[];
   activities: SelectActivities[];
+  optionalActivities?: SelectActivities[];
 };
 
 type InternationalFlight = {

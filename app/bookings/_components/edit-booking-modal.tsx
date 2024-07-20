@@ -140,7 +140,6 @@ export default function EditBookingModal({
     </Dialog>
   );
 }
-
 const formSchema = z.object({
   pax: z.number({ required_error: "Please enter a number" }).min(1),
   internalBookingId: z
@@ -508,7 +507,6 @@ export function From({
         );
         index += rowLength;
       }
-      console.log(internationalFlightTickets, domesticFlightsTickets);
       await updateBooking(
         {
           id: initialValues.id,
@@ -539,12 +537,16 @@ export function From({
           itinerary: itineraries,
           nileCruises: values.nileCruises ?? null,
           //@ts-ignore
-          domesticFlights: domesticFlights.map(({ urls }) =>
-            urls.map(({ image, ...props }) => props),
-          ),
+          domesticFlights: domesticFlights.map(({ urls, ...props }) => ({
+            ...props,
+            urls: urls.map(({ image, ...props }) => props),
+          })),
           //@ts-ignore
-          internationalFlights: internationalFlights.map(({ urls }) =>
-            urls.map(({ image, ...props }) => props),
+          internationalFlights: internationalFlights.map(
+            ({ urls, ...props }) => ({
+              ...props,
+              urls: urls.map(({ image, ...props }) => props),
+            }),
           ),
         },
         reservationsList?.map(
@@ -583,7 +585,12 @@ export function From({
       setInitialValues(null);
     }
   }
-  console.log(domesticFlights);
+  console.log(
+    "domesticFlights",
+    domesticFlights,
+    "internationalFlights",
+    internationalFlights,
+  );
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -1137,83 +1144,108 @@ export function From({
                     layoutScroll
                     className="flex w-full flex-nowrap overflow-x-auto border"
                   >
-                    {itineraries?.map(({ id, day, activities, cities }, i) => (
-                      <Reorder.Item
-                        key={id}
-                        value={id}
-                        className="flex max-w-min cursor-grab items-start justify-between border-l border-neutral-200 bg-white p-2 first:border-none"
-                      >
-                        <div className="flex flex-col gap-y-1">
-                          <span className="font-medium">{day}</span>
-                          <span className="text-sm">
-                            {form.watch("arrivalDepartureDate.from")
-                              ? format(
-                                  addDays(
-                                    form.watch("arrivalDepartureDate.from")!,
-                                    i,
-                                  ),
-                                  "dd-MM-yyyy",
-                                )
-                              : null}
-                          </span>
-                          <div className="flex items-start gap-x-2 text-sm">
-                            <span className="font-medium">Cities:</span>
-                            <ul className="flex flex-wrap gap-x-1 gap-y-1 text-white">
-                              {cities?.map(({ id, name }) => (
-                                <li
-                                  key={id}
-                                  className="flex items-center gap-x-1 whitespace-nowrap rounded-full bg-neutral-900 px-2 py-0.5 text-sm font-medium"
-                                >
-                                  {name}
-                                </li>
-                              ))}
-                            </ul>
+                    {itineraries?.map(
+                      (
+                        { id, day, activities, cities, optionalActivities },
+                        i,
+                      ) => (
+                        <Reorder.Item
+                          key={id}
+                          value={id}
+                          className="flex max-w-min cursor-grab items-start justify-between border-l border-neutral-200 bg-white p-2 first:border-none"
+                        >
+                          <div className="flex flex-col gap-y-1">
+                            <span className="font-medium">{day}</span>
+                            <span className="text-sm">
+                              {form.watch("arrivalDepartureDate.from")
+                                ? format(
+                                    addDays(
+                                      form.watch("arrivalDepartureDate.from")!,
+                                      i,
+                                    ),
+                                    "dd-MM-yyyy",
+                                  )
+                                : null}
+                            </span>
+                            <div className="flex items-start gap-x-2 text-sm">
+                              <span className="font-medium">Cities:</span>
+                              <ul className="flex flex-wrap gap-x-1 gap-y-1 text-white">
+                                {cities?.map(({ id, name }) => (
+                                  <li
+                                    key={id}
+                                    className="flex items-center gap-x-1 whitespace-nowrap rounded-full bg-neutral-900 px-2 py-0.5 text-sm font-medium"
+                                  >
+                                    {name}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                            <div className="flex items-start gap-x-2 text-sm">
+                              <span className="font-medium">Activities:</span>
+                              <ul className="flex flex-wrap gap-x-1 gap-y-1 text-white">
+                                {activities?.map(({ id, name }) => (
+                                  <li
+                                    key={id}
+                                    className="flex items-center gap-x-1 whitespace-nowrap rounded-full bg-neutral-900 px-2 py-0.5 text-sm font-medium"
+                                  >
+                                    {name}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                            {!!optionalActivities?.length && (
+                              <div className="flex items-start gap-x-2 text-sm">
+                                <span className="whitespace-nowrap font-medium">
+                                  Optional Activities:
+                                </span>
+                                <ul className="flex flex-wrap gap-x-1 gap-y-1 text-white">
+                                  {optionalActivities?.map(({ id, name }) => (
+                                    <li
+                                      key={id}
+                                      className="flex items-center gap-x-1 whitespace-nowrap rounded-full bg-sky-700 px-2 py-0.5 text-sm font-medium"
+                                    >
+                                      {name}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-start gap-x-2 text-sm">
-                            <span className="font-medium">Activities:</span>
-                            <ul className="flex flex-wrap gap-x-1 gap-y-1 text-white">
-                              {activities?.map(({ id, name }) => (
-                                <li
-                                  key={id}
-                                  className="flex items-center gap-x-1 whitespace-nowrap rounded-full bg-neutral-900 px-2 py-0.5 text-sm font-medium"
-                                >
-                                  {name}
-                                </li>
-                              ))}
-                            </ul>
+                          <div className="flex gap-x-2">
+                            <Edit
+                              size={18}
+                              className="cursor-pointer text-neutral-600"
+                              onClick={() => {
+                                setItineraryInitialValues({
+                                  id,
+                                  day,
+                                  cities,
+                                  activities,
+                                  optionalActivities: optionalActivities || [],
+                                });
+                                setIsEditItineraryModalOpen(true);
+                              }}
+                            />
+                            <Trash
+                              size={18}
+                              className="cursor-pointer text-red-500"
+                              onClick={() => {
+                                setItineraries((prev) =>
+                                  prev
+                                    .filter(
+                                      (itinerary) => itinerary.day !== day,
+                                    )
+                                    ?.map((itinerary, i) => ({
+                                      ...itinerary,
+                                      day: `Day ${i + 1}`,
+                                    })),
+                                );
+                              }}
+                            />
                           </div>
-                        </div>
-                        <div className="flex gap-x-2">
-                          <Edit
-                            size={18}
-                            className="cursor-pointer text-neutral-600"
-                            onClick={() => {
-                              setItineraryInitialValues({
-                                id,
-                                day,
-                                cities,
-                                activities,
-                              });
-                              setIsEditItineraryModalOpen(true);
-                            }}
-                          />
-                          <Trash
-                            size={18}
-                            className="cursor-pointer text-red-500"
-                            onClick={() => {
-                              setItineraries((prev) =>
-                                prev
-                                  .filter((itinerary) => itinerary.day !== day)
-                                  ?.map((itinerary, i) => ({
-                                    ...itinerary,
-                                    day: `Day ${i + 1}`,
-                                  })),
-                              );
-                            }}
-                          />
-                        </div>
-                      </Reorder.Item>
-                    ))}
+                        </Reorder.Item>
+                      ),
+                    )}
                   </Reorder.Group>
                 </div>
               )}

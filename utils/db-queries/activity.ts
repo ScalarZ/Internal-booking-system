@@ -24,6 +24,7 @@ export async function updateActivity(activity: SelectActivities) {
       name: activity.name,
       countryId: activity.countryId,
       cityId: activity.cityId,
+      isOptional: activity.isOptional,
     })
     .where(eq(activities.id, activity.id));
   revalidatePath("/create/activities");

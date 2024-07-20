@@ -33,6 +33,7 @@ import { citySchema } from "@/utils/zod-schema";
 import { addActivity } from "@/utils/db-queries/activity";
 import { getCountryCities } from "@/utils/db-queries/city";
 import { listCountryCities } from "@/utils/list-country-cities";
+import { Switch } from "@/components/ui/switch";
 
 const supabase = createClient();
 
@@ -45,6 +46,7 @@ export default function CreateButton({
   const [countryId, setCountryId] = useState("");
   const [cityId, setCityId] = useState("");
   const [open, setIsOpen] = useState(false);
+  const [isOptional, setIsOptional] = useState(false);
   const [citiesList, setCitiesList] = useState<SelectCountries[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState({
@@ -88,7 +90,7 @@ export default function CreateButton({
     }
     setIsLoading(true);
     try {
-      await addActivity({ name, countryId, cityId });
+      await addActivity({ name, countryId, cityId, isOptional });
     } catch (err) {
       console.error(err);
     } finally {
@@ -97,7 +99,6 @@ export default function CreateButton({
       resetModalInputs();
     }
   }
-
   useEffect(() => {
     if (!countryId) return;
     listCountryCities({ countryId, setCitiesList });
@@ -119,6 +120,10 @@ export default function CreateButton({
         <DialogHeader>
           <DialogTitle>Add New Activity</DialogTitle>
         </DialogHeader>
+        <div className="flex items-center gap-x-2 py-2">
+          <Label>Optional</Label>
+          <Switch onCheckedChange={setIsOptional} />
+        </div>
         <div>
           <Select
             type="country"

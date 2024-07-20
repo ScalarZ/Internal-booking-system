@@ -206,7 +206,7 @@ export function columns({
       header: "Updated at",
       cell: ({ row }) => format(row.original.updatedAt!, "dd/MM/yyyy"),
     },
-    type !== "reservation"
+    type === "booking"
       ? {
           accessorKey: "action",
           header: "Action",

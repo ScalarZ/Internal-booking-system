@@ -59,9 +59,14 @@ export default function AddItineraryModal({
   const [selectedActivities, setSelectedActivities] = useState<
     SelectActivities[]
   >([]);
-
+  const [selectedOptionalActivities, setSelectedOptionalActivities] = useState<
+    SelectActivities[]
+  >([]);
   const [citiesList, setCitiesList] = useState<SelectCities[]>([]);
   const [activitiesList, setActivitiesList] = useState<SelectActivities[]>([]);
+  const [optionalActivitiesList, setOptionalActivitiesList] = useState<
+    SelectActivities[]
+  >([]);
   const [errorMessage, setErrorMessage] = useState(initialErrorMessage);
 
   function resetModalInputs() {
@@ -71,9 +76,10 @@ export default function AddItineraryModal({
 
   function resetItineraryInputs() {
     setSelectedCities([]);
-    setCitiesList([]);
     setSelectedActivities([]);
     setActivitiesList([]);
+    setSelectedOptionalActivities([]);
+    setOptionalActivitiesList([]);
   }
 
   function AddItinerary() {
@@ -85,6 +91,7 @@ export default function AddItineraryModal({
         day: `Day ${prev?.length + 1}`,
         cities: selectedCities,
         activities: selectedActivities,
+        optionalActivities: selectedOptionalActivities,
       },
     ]);
     setIsOpen(false);
@@ -140,16 +147,42 @@ export default function AddItineraryModal({
     try {
       const { data, error } = await supabase
         .from("activities")
-        .select("id, name, countryId:country_id, cityId:city_id")
+        .select(
+          "id, name, countryId:country_id, cityId:city_id, isOptional:is_optional",
+        )
         .in(
           "city_id",
           selectedCities?.map(({ id }) => id),
-        );
+        )
+        .eq("is_optional", true);
 
       if (error) throw error;
 
       const activities = z.array(activitySchema).parse(data);
       setActivitiesList(activities);
+    } catch (err) {
+      console.error(err);
+    }
+  }, [selectedCities]);
+
+  const getOptionalActivities = useCallback(async () => {
+    setOptionalActivitiesList([]);
+    try {
+      const { data, error } = await supabase
+        .from("activities")
+        .select(
+          "id, name, countryId:country_id, cityId:city_id, isOptional:is_optional",
+        )
+        .in(
+          "city_id",
+          selectedCities?.map(({ id }) => id),
+        )
+        .eq("is_optional", false);
+
+      if (error) throw error;
+
+      const activities = z.array(activitySchema).parse(data);
+      setOptionalActivitiesList(activities);
     } catch (err) {
       console.error(err);
     }
@@ -164,6 +197,7 @@ export default function AddItineraryModal({
   useEffect(() => {
     if (!selectedCities?.length) return;
     getActivities();
+    getOptionalActivities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCities]);
 
@@ -204,11 +238,11 @@ export default function AddItineraryModal({
                 <XCircle
                   size={18}
                   className="cursor-pointer"
-                  onClick={() =>
+                  onClick={() => {
                     setSelectedCities((prev) =>
                       prev.filter((selectedCity) => selectedCity.id != id),
-                    )
-                  }
+                    );
+                  }}
                 />
               </li>
             ))}
@@ -252,6 +286,39 @@ export default function AddItineraryModal({
             ))}
           </ul>
         </div>
+        {/* Optional Activities */}
+        <div>
+          <Select<SelectActivities>
+            list={optionalActivitiesList}
+            onClick={(activity: SelectActivities) =>
+              !selectedOptionalActivities.some(({ id }) => id === activity.id)
+                ? setSelectedOptionalActivities((prev) => [...prev, activity])
+                : null
+            }
+            type="optional activity"
+          />
+          <ul className="flex flex-wrap gap-2 p-2 text-white">
+            {selectedOptionalActivities?.map(({ id, name }) => (
+              <li
+                key={id}
+                className="flex items-center gap-x-1 rounded-full bg-sky-700 px-2 py-1 text-sm font-medium"
+              >
+                {name}
+                <XCircle
+                  size={18}
+                  className="cursor-pointer"
+                  onClick={() =>
+                    setSelectedOptionalActivities((prev) =>
+                      prev.filter(
+                        (selectedActivity) => selectedActivity.id != id,
+                      ),
+                    )
+                  }
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
         <DialogFooter className="pt-4">
           <Button type="button" variant={"outline"}>
             Cancel
@@ -272,20 +339,20 @@ function Select<T extends SelectCountries | SelectCities | SelectActivities>({
 }: {
   list: T[];
   onClick: (value: T) => void;
-  type: "country" | "city" | "activity";
+  type: "country" | "city" | "activity" | "optional activity";
 }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild disabled={!list?.length}>
+      <PopoverTrigger asChild disabled={!list?.length} className="w-full">
         <Button
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[200px] justify-between"
+          className="w-[240px] justify-between"
         >
-          Select a {type}
+          Select {type}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
