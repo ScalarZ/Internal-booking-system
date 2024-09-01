@@ -6,7 +6,6 @@ import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
 import getQueryClient from "@/utils/get-query-provider";
 import { getNationalities } from "@/utils/db-queries/nationality";
 import { getNileCruises } from "@/utils/db-queries/nile-cruise";
-import CreateBookingModal from "../bookings/_components/create-booking-modal";
 import Bookings from "../bookings/_components/bookings";
 
 export default async function BookingPage() {

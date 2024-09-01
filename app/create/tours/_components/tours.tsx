@@ -1,20 +1,21 @@
 "use client";
 
-import { SelectCountries, SelectTours } from "@/drizzle/schema";
+import { SelectCountries, SelectToursWithItineraries } from "@/drizzle/schema";
 import React, { useState } from "react";
 import { DataTable } from "../../_components/data-table";
 import { columns } from "./columns";
 import DeleteTourModal from "./delete-tour-modal";
-import EditTourModal from "./edit-tour-modal";
+import TourModal from "./tour-modal";
 
 export default function Tours({
   tours,
   countries,
 }: {
-  tours: SelectTours[];
+  tours: SelectToursWithItineraries[];
   countries: SelectCountries[];
 }) {
-  const [initialValues, setInitialValues] = useState<SelectTours | null>(null);
+  const [initialValues, setInitialValues] =
+    useState<SelectToursWithItineraries | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
@@ -29,7 +30,8 @@ export default function Tours({
         data={tours}
       />
       {initialValues && (
-        <EditTourModal
+        <TourModal
+          modalMode="edit"
           countriesList={countries}
           initialValues={initialValues}
           setInitialValues={setInitialValues}

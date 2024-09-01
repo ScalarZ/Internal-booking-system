@@ -33,5 +33,7 @@ export async function deleteReservation(reservationId: number) {
 }
 
 export async function deleteBookingReservations(bookingId: number) {
-  await db.delete(reservations).where(eq(reservations.bookingId, bookingId));
+  return await db
+    .delete(reservations)
+    .where(eq(reservations.bookingId, bookingId));
 }

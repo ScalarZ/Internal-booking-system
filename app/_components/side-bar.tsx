@@ -1,6 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
-import { BookPlusIcon, Hotel, Plane, Plus } from "lucide-react";
+import { BookPlusIcon, CalendarDays, Hotel, Plane, Plus } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -9,6 +9,11 @@ const list = [
   { name: "Bookings", link: "/bookings", icon: <BookPlusIcon size={18} /> },
   { name: "Reservations", link: "/reservations", icon: <Hotel size={18} /> },
   { name: "Aviations", link: "/aviations", icon: <Plane size={18} /> },
+  {
+    name: "Guide Screen",
+    link: "/guide-screen",
+    icon: <CalendarDays size={18} />,
+  },
 ];
 export default function SideBar() {
   const pathname = usePathname();
@@ -21,7 +26,7 @@ export default function SideBar() {
             className={cn(
               "flex items-center gap-x-2 rounded bg-white px-8 py-1.5 font-medium text-black",
               {
-                "bg-yellow-400 text-black": pathname === link,
+                "bg-yellow-400 text-black": pathname.includes(link),
               },
             )}
           >

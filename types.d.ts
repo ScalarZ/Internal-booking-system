@@ -34,14 +34,6 @@ type Passport = {
   image?: ImageType;
 };
 
-type Itinerary = {
-  id: string;
-  day: string;
-  cities: SelectCities[];
-  activities: SelectActivities[];
-  optionalActivities?: SelectActivities[];
-};
-
 type InternationalFlight = {
   flightNumber?: string;
   destinations?: string;

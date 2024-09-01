@@ -11,19 +11,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { generateRandomId } from "@/utils/generate-random-id";
 import { format } from "date-fns";
-import EditReservationModal from "./edit-reservation-modal";
-import AddReservationModal from "./add-reservation-modal";
+import ReservationModal from "./reservation-modal";
+import { Input } from "@/components/ui/input";
 
-type Reservation = Omit<
-  SelectReservations,
-  "id" | "createdAt" | "updatedAt" | "bookingId" | "finalPrice"
->;
+type Reservation = Omit<SelectReservations, "id" | "createdAt" | "updatedAt">;
 
 export default function Reservations({
+  type,
   reservationsList,
   tourCountries,
   setReservationsList,
 }: {
+  type?: "booking" | "reservation" | "aviation";
   reservationsList: Reservation[];
   tourCountries: SelectCountries[];
   setReservationsList: (
@@ -31,11 +30,10 @@ export default function Reservations({
   ) => void;
 }) {
   const [editedReservation, setEditedReservation] = useState<
-    (Reservation & { index: number })[]
-  >([]);
+    Reservation & { index: number }
+  >();
 
-  const [isEditReservationOpen, setIsEditReservationOpen] = useState(false);
-  const [isAddReservationOpen, setIsAddReservationOpen] = useState(false);
+  const [isReservationOpen, setIsReservationOpen] = useState(false);
 
   return (
     <>
@@ -49,71 +47,73 @@ export default function Reservations({
             <TableHead>Meal</TableHead>
             <TableHead>Currency</TableHead>
             <TableHead>Target Price</TableHead>
+            {type === "reservation" && <TableHead>Final Price</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {reservationsList?.map(
-            (
-              { start, end, city, hotels, meal, targetPrice, currency },
-              index,
-            ) => (
-              <TableRow
-                key={generateRandomId()}
-                onClick={() => {
-                  setEditedReservation([
-                    {
-                      start,
-                      end,
-                      city,
-                      hotels: [...hotels!],
-                      meal,
-                      targetPrice,
-                      index,
-                      currency,
-                    },
-                  ]);
-                  setIsEditReservationOpen(true);
-                }}
-              >
+          {reservationsList?.map((props, index) => (
+            <TableRow
+              key={generateRandomId()}
+              onClick={() => {
+                setEditedReservation({
+                  ...props,
+                  hotels: [...props.hotels!],
+                  index,
+                });
+                setIsReservationOpen(true);
+              }}
+            >
+              <TableCell>
+                {!props.start ? "Start Date" : format(props.start, "dd/MM/yyy")}
+              </TableCell>
+              <TableCell>
+                {!props.end ? "End Date" : format(props.end, "dd/MM/yyy")}
+              </TableCell>
+              <TableCell>{props.city?.name}</TableCell>
+              <TableCell>{props.hotels?.map((name) => `${name}, `)}</TableCell>
+              <TableCell>{props.meal}</TableCell>
+              <TableCell>{props.currency}</TableCell>
+              <TableCell>{props.targetPrice}</TableCell>
+              {type === "reservation" ? (
                 <TableCell>
-                  {!start ? "Start Date" : format(start, "dd/MM/yyy")}
+                  <Input
+                    placeholder="Final price..."
+                    defaultValue={props.finalPrice ?? undefined}
+                    type="number"
+                    onChange={(e) =>
+                      setReservationsList((prev) => {
+                        prev[index].finalPrice = isNaN(e.target.valueAsNumber)
+                          ? 0
+                          : e.target.valueAsNumber;
+                        return [...prev];
+                      })
+                    }
+                  />
                 </TableCell>
-                <TableCell>
-                  {!end ? "End Date" : format(end, "dd/MM/yyy")}
-                </TableCell>
-                <TableCell>{city?.name}</TableCell>
-                <TableCell>{hotels?.map((name) => `${name}, `)}</TableCell>
-                <TableCell>{meal}</TableCell>
-                <TableCell>{currency}</TableCell>
-                <TableCell>{targetPrice}</TableCell>
-              </TableRow>
-            ),
-          )}
+              ) : (
+                <TableCell>{props.finalPrice}</TableCell>
+              )}
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
       <Button
         type="button"
         variant="secondary"
         className="mt-4"
-        onClick={() => setIsAddReservationOpen(true)}
+        onClick={() => setIsReservationOpen(true)}
       >
         Add reservation
       </Button>
-      {isEditReservationOpen && (
-        <EditReservationModal
-          isOpen={isEditReservationOpen}
-          setIsOpen={setIsEditReservationOpen}
-          editedReservation={editedReservation}
-          setEditedReservation={setEditedReservation}
-          setReservationsList={setReservationsList}
-        />
-      )}
-      {isAddReservationOpen && (
-        <AddReservationModal
-          isOpen={isAddReservationOpen}
-          setIsOpen={setIsAddReservationOpen}
+
+      {isReservationOpen && (
+        <ReservationModal
+          isOpen={isReservationOpen}
+          setIsOpen={setIsReservationOpen}
           setReservationsList={setReservationsList}
           selectedCountry={tourCountries[0]}
+          editedReservation={editedReservation}
+          setEditedReservation={setEditedReservation}
         />
       )}
     </>

@@ -132,7 +132,19 @@ export const tours = pgTable("tours", {
   countries: jsonb("countries")
     .array()
     .$type<(typeof countries.$inferSelect)[]>(),
-  itinerary: jsonb("itinerary").array().$type<Itinerary[]>(),
+});
+
+export const itineraries = pgTable("itineraries", {
+  id: serial("id").primaryKey(),
+  tourId: uuid("tour_id").references(() => tours.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  day: text("day"),
+  cities: jsonb("cities").array().$type<SelectCities[]>(),
+  activities: jsonb("activities").array().$type<SelectActivities[]>(),
+  optionalActivities: jsonb("optional_activities")
+    .array()
+    .$type<SelectActivities[]>(),
 });
 
 export const nileCruises = pgTable("nile_cruises", {
@@ -147,7 +159,6 @@ export const bookings = pgTable("bookings", {
   tourists: jsonb("tourists").array().$type<string[]>(),
   referenceBookingId: text("reference_booking_id"),
   internalBookingId: text("internal_booking_id"),
-  tour: text("tour"),
   company: text("company"),
   currency: text("currency"),
   arrivalDate: timestamp("arrival_date", { withTimezone: true }).defaultNow(),
@@ -170,7 +181,6 @@ export const bookings = pgTable("bookings", {
   countries: jsonb("countries").array().$type<string[]>(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-  itinerary: jsonb("itinerary").array().$type<Itinerary[]>(),
   nileCruises: jsonb("nile_cruises").array().$type<string[]>(),
   internationalFlights: jsonb("international_flights")
     .array()
@@ -181,6 +191,29 @@ export const bookings = pgTable("bookings", {
   passports: jsonb("passports")
     .array()
     .$type<{ url?: string; name?: string }[]>(),
+});
+
+export const bookingTours = pgTable("booking_tours", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name"),
+  countries: jsonb("countries")
+    .array()
+    .$type<(typeof countries.$inferSelect)[]>(),
+  bookingId: integer("booking_id").references(() => bookings.id),
+});
+
+export const bookingItineraries = pgTable("booking_itineraries", {
+  id: serial("id").primaryKey(),
+  tourId: uuid("tour_id").references(() => bookingTours.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  day: text("day"),
+  cities: jsonb("cities").array().$type<SelectCities[]>(),
+  activities: jsonb("activities").array().$type<SelectActivities[]>(),
+  optionalActivities: jsonb("optional_activities")
+    .array()
+    .$type<SelectActivities[]>(),
+  guide: text("guide"),
 });
 
 export const reservations = pgTable("reservations", {
@@ -207,9 +240,25 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-export const bookingsRelations = relations(bookings, ({ many }) => ({
+export const bookingsRelations = relations(bookings, ({ many, one }) => ({
   reservations: many(reservations),
+  bookingTour: one(bookingTours),
 }));
+
+export const toursRelations = relations(tours, ({ many }) => ({
+  itineraries: many(itineraries),
+}));
+
+export const BookingToursRelations = relations(
+  bookingTours,
+  ({ many, one }) => ({
+    itineraries: many(bookingItineraries),
+    booking: one(bookings, {
+      fields: [bookingTours.bookingId],
+      references: [bookings.id],
+    }),
+  }),
+);
 
 export const reservationsRelations = relations(reservations, ({ one }) => ({
   booking: one(bookings, {
@@ -217,6 +266,23 @@ export const reservationsRelations = relations(reservations, ({ one }) => ({
     references: [bookings.id],
   }),
 }));
+
+export const itinerariesRelations = relations(itineraries, ({ one }) => ({
+  tour: one(tours, {
+    fields: [itineraries.tourId],
+    references: [tours.id],
+  }),
+}));
+
+export const bookingItinerariesRelations = relations(
+  bookingItineraries,
+  ({ one }) => ({
+    tour: one(bookingTours, {
+      fields: [bookingItineraries.tourId],
+      references: [bookingTours.id],
+    }),
+  }),
+);
 
 export type SelectCountries = typeof countries.$inferSelect;
 export type SelectCities = typeof cities.$inferSelect;
@@ -230,7 +296,25 @@ export type SelectBookings = typeof bookings.$inferSelect;
 export type SelectNationalities = typeof nationalities.$inferSelect;
 export type SelectNileCruises = typeof nileCruises.$inferSelect;
 export type SelectReservations = typeof reservations.$inferSelect;
+export type SelectNotifications = typeof notifications.$inferSelect;
+export type SelectItineraries = typeof itineraries.$inferSelect;
+export type SelectBookingTours = typeof bookingTours.$inferSelect;
+export type SelectBookingItineraries = typeof bookingItineraries.$inferSelect;
+//With relation types
+export type SelectGuidesWithCountries = SelectGuides & {
+  country: SelectCountries | null;
+};
+export type SelectToursWithItineraries = SelectTours & {
+  itineraries: SelectItineraries[];
+};
+export type SelectBookingToursWithItineraries = SelectBookingTours & {
+  itineraries: SelectBookingItineraries[];
+};
+
+export type SelectBookingWithItineraries = SelectBookings & {
+  bookingTour: SelectBookingToursWithItineraries;
+};
 export type SelectBookingWithReservations = SelectBookings & {
   reservations: SelectReservations[];
+  bookingTour: SelectBookingToursWithItineraries;
 };
-export type SelectNotifications = typeof notifications.$inferSelect;

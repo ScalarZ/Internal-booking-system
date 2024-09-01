@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  SelectBookings,
-  SelectBookingWithReservations,
-} from "@/drizzle/schema";
+import { SelectBookingWithReservations } from "@/drizzle/schema";
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { Check, Edit, Trash, X } from "lucide-react";
@@ -153,6 +150,7 @@ export function columns({
     {
       accessorKey: "tour",
       header: "Tour",
+      cell: ({ row }) => row.original.bookingTour?.name,
     },
     {
       accessorKey: "visa",

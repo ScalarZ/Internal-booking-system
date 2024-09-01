@@ -2,9 +2,8 @@
 
 import { db } from "@/drizzle/db";
 import {
-  SelectActivities,
-  SelectCities,
-  SelectCountries,
+  itineraries,
+  SelectItineraries,
   SelectTours,
   tours,
 } from "@/drizzle/schema";
@@ -12,28 +11,47 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function getTours() {
-  return db.select().from(tours);
+  return db.query.tours.findMany({ with: { itineraries: true } });
 }
 
-export async function addTour(tour: {
-  name: string;
-  countries: SelectCountries[];
-  itinerary: Itinerary[];
+export async function addTour({
+  tour,
+  tourItineraries,
+}: {
+  tour: Omit<SelectTours, "id">;
+  tourItineraries: Omit<
+    SelectItineraries,
+    "id" | "createdAt" | "updatedAt" | "tourId"
+  >[];
 }) {
   "use server";
-  await db.insert(tours).values(tour);
-  revalidatePath("/create/activities");
+  const tourRow = await db.insert(tours).values(tour).returning();
+  const tourId = tourRow[0].id;
+  await db
+    .insert(itineraries)
+    .values(tourItineraries.map((itinerary) => ({ ...itinerary, tourId })));
+  revalidatePath("/create/tours");
 }
 
-export async function updateTour(tour: SelectTours) {
-  await db
+export async function updateTour({
+  tour,
+  tourItineraries,
+}: {
+  tour: SelectTours;
+  tourItineraries: Omit<SelectItineraries, "id" | "createdAt" | "updatedAt">[];
+}) {
+  const tourRow = await db
     .update(tours)
-    .set({
-      name: tour.name,
-      itinerary: tour.itinerary,
-      countries: tour.countries,
-    })
-    .where(eq(tours.id, tour.id));
+    .set(tour)
+    .where(eq(tours.id, tour.id))
+    .returning();
+  const tourId = tourRow[0].id;
+
+  await db.delete(itineraries).where(eq(itineraries.tourId, tourId));
+  await db
+    .insert(itineraries)
+    .values(tourItineraries.map((itinerary) => ({ ...itinerary, tourId })));
+
   revalidatePath("/create/tours");
 }
 
@@ -42,6 +60,9 @@ export async function deleteTour(tour: { id: string }) {
   revalidatePath("/create/tours");
 }
 
-export async function getTourCities(tourName: string) {
-  return db.select().from(tours).where(eq(tours.name, tourName));
+export async function getTourCountries(tourId: string) {
+  return db.query.tours.findMany({
+    with: { itineraries: true },
+    where: ({ id }) => eq(id, tourId),
+  });
 }

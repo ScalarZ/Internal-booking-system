@@ -8,17 +8,18 @@ import {
   SelectCountries,
   SelectNationalities,
   SelectNileCruises,
-  SelectTours,
+  SelectToursWithItineraries,
+  SelectBookingToursWithItineraries,
 } from "@/drizzle/schema";
 import React, { useEffect, useState } from "react";
 import { columns } from "./columns";
-import EditBookingModal from "./edit-booking-modal";
 import FilterBookings from "./filter-bookings";
 import DeleteBookingModal from "./delete-booking-modal";
 import { useQuery } from "@tanstack/react-query";
 import { getBooking, getBookings } from "@/utils/db-queries/booking";
 import { createClient } from "@/utils/supabase/client";
 import { queryClient } from "@/utils/provider";
+import BookingModal from "./booking-modal";
 
 export default function Bookings({
   companies,
@@ -30,7 +31,7 @@ export default function Bookings({
 }: {
   countries: SelectCountries[];
   companies: SelectCompanies[];
-  tours: SelectTours[];
+  tours: SelectToursWithItineraries[] | SelectBookingToursWithItineraries[];
   nationalities: SelectNationalities[];
   nileCruises: SelectNileCruises[];
   type?: "booking" | "reservation" | "aviation";
@@ -43,7 +44,6 @@ export default function Bookings({
     queryKey: ["bookings"],
     queryFn: getBookings,
   });
-
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -61,7 +61,6 @@ export default function Bookings({
           new: { id: number };
           old: { id: number };
         }) => {
-          console.log(payload);
           try {
             if (payload.eventType === "DELETE") {
               queryClient.setQueryData(
@@ -115,6 +114,7 @@ export default function Bookings({
     <div>
       <FilterBookings countries={countries} />
       <DataTable
+        //@ts-ignore
         columns={columns({
           setInitialValues,
           setIsEditModalOpen,
@@ -129,8 +129,9 @@ export default function Bookings({
         }}
         type={type}
       />
-      {!!initialValues && (
-        <EditBookingModal
+      {isEditModalOpen && !!initialValues && (
+        <BookingModal
+          modalMode="edit"
           companies={companies}
           nationalities={nationalities}
           tours={tours}

@@ -7,87 +7,128 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, ChevronsUpDown, X, XCircle, Edit } from "lucide-react";
-import { cn } from "@/lib/utils";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+
 import {
   SelectActivities,
   SelectCities,
   SelectCountries,
+  SelectItineraries,
 } from "@/drizzle/schema";
 import { createClient } from "@/utils/supabase/client";
 import { activitySchema, citySchema } from "@/utils/zod-schema";
 import { z } from "zod";
+import { generateRandomId } from "@/utils/generate-random-id";
+import Select from "./select";
+import { XCircle } from "lucide-react";
 
 const supabase = createClient();
 
-export default function EditItineraryModal({
+const initialErrorMessage = {
+  activityError: "",
+  cityError: "",
+};
+
+type Itinerary =
+  | (Omit<SelectItineraries, "id" | "createdAt" | "updatedAt"> & {
+      id: string | number;
+    })
+  | (Omit<SelectItineraries, "id" | "createdAt" | "updatedAt" | "tourId"> & {
+      id: string | number;
+    });
+
+export default function ItineraryModal<T extends Itinerary>({
+  day,
   isOpen,
-  initialValues,
   selectedCountries,
+  initialValues,
   setIsOpen,
   setItineraries,
   setInitialValues,
 }: {
+  day?: string;
   isOpen: boolean;
-  initialValues: Itinerary;
+  initialValues?: T;
   selectedCountries: SelectCountries[];
   setIsOpen: (value: boolean) => void;
-  setInitialValues: (initialValues: Itinerary | null) => void;
-  setItineraries: (cb: (itinerary: Itinerary[]) => Itinerary[]) => void;
+  setItineraries: (cb: (itinerary: T[]) => T[]) => void;
+  setInitialValues?: (initialValues: T | null) => void;
 }) {
   const [selectedCities, setSelectedCities] = useState<SelectCities[]>(
-    initialValues.cities,
+    initialValues?.cities ?? [],
   );
   const [selectedActivities, setSelectedActivities] = useState<
     SelectActivities[]
-  >(initialValues.activities);
+  >(initialValues?.activities ?? []);
   const [selectedOptionalActivities, setSelectedOptionalActivities] = useState<
     SelectActivities[]
-  >(initialValues.optionalActivities ?? []);
+  >(initialValues?.optionalActivities ?? []);
   const [citiesList, setCitiesList] = useState<SelectCities[]>([]);
   const [activitiesList, setActivitiesList] = useState<SelectActivities[]>([]);
   const [optionalActivitiesList, setOptionalActivitiesList] = useState<
     SelectActivities[]
   >([]);
-  const [errorMessage, setErrorMessage] = useState({
-    nameError: "",
-    countryError: "",
-    cityError: "",
-  });
+  const [errorMessage, setErrorMessage] = useState(initialErrorMessage);
 
   function resetModalInputs() {
     resetItineraryInputs();
-    setErrorMessage({ nameError: "", countryError: "", cityError: "" });
+    setErrorMessage(initialErrorMessage);
   }
 
   function resetItineraryInputs() {
     setSelectedCities([]);
-    setCitiesList([]);
     setSelectedActivities([]);
     setActivitiesList([]);
-    setInitialValues(null);
+    setSelectedOptionalActivities([]);
+    setOptionalActivitiesList([]);
+    setInitialValues?.(null);
+  }
+
+  function checkForItineraryErrorMessage() {
+    const inputs = {
+      cityError: {
+        value: selectedCities?.length,
+        message: "Please select a city",
+      },
+      activityError: {
+        value: selectedActivities?.length,
+        message: "Please select an activity",
+      },
+    };
+
+    Object.entries(inputs).forEach((input) => {
+      if (!input[1].value) {
+        setErrorMessage((prev) => ({
+          ...prev,
+          [input[0]]: input[1].message,
+        }));
+      }
+    });
+
+    return Object.values(inputs).every((input) => input.value);
+  }
+  function addItinerary() {
+    if (!checkForItineraryErrorMessage()) return;
+    setItineraries((prev) => [
+      ...prev,
+      {
+        id: generateRandomId(),
+        cities: selectedCities,
+        activities: selectedActivities,
+        optionalActivities: selectedOptionalActivities,
+        day: `Day ${prev.length + 1}`,
+      } as T,
+    ]);
+    setIsOpen(false);
+    resetItineraryInputs();
   }
 
   function editItinerary() {
     setItineraries((prev) =>
       prev?.map((itinerary) => {
-        if (itinerary.day === initialValues?.day) {
+        if (itinerary.id === initialValues?.id) {
           itinerary.cities = selectedCities;
           itinerary.activities = selectedActivities;
           itinerary.optionalActivities = selectedOptionalActivities;
@@ -97,6 +138,14 @@ export default function EditItineraryModal({
     );
     setIsOpen(false);
     resetItineraryInputs();
+  }
+
+  function handleAction() {
+    if (initialValues) {
+      editItinerary();
+    } else {
+      addItinerary();
+    }
   }
 
   const getCities = useCallback(async () => {
@@ -119,19 +168,16 @@ export default function EditItineraryModal({
     }
   }, [selectedCountries]);
 
-  const getActivities = useCallback(async () => {
-    setActivitiesList([]);
+  const getActivities = useCallback(async (cities: string[]) => {
     try {
       const { data, error } = await supabase
         .from("activities")
         .select(
           "id, name, countryId:country_id, cityId:city_id, isOptional:is_optional",
         )
-        .in(
-          "city_id",
-          selectedCities?.map(({ id }) => id),
-        )
+        .in("city_id", cities)
         .eq("is_optional", true);
+
       if (error) throw error;
 
       const activities = z.array(activitySchema).parse(data);
@@ -139,20 +185,16 @@ export default function EditItineraryModal({
     } catch (err) {
       console.error(err);
     }
-  }, [selectedCities]);
+  }, []);
 
-  const getOptionalActivities = useCallback(async () => {
-    setOptionalActivitiesList([]);
+  const getOptionalActivities = useCallback(async (cities: string[]) => {
     try {
       const { data, error } = await supabase
         .from("activities")
         .select(
           "id, name, countryId:country_id, cityId:city_id, isOptional:is_optional",
         )
-        .in(
-          "city_id",
-          selectedCities?.map(({ id }) => id),
-        )
+        .in("city_id", cities)
         .eq("is_optional", false);
 
       if (error) throw error;
@@ -162,20 +204,36 @@ export default function EditItineraryModal({
     } catch (err) {
       console.error(err);
     }
-  }, [selectedCities]);
+  }, []);
+
+  function RemoveSelectedCity(id: string) {
+    setSelectedCities((prev) =>
+      prev.filter((selectedCity) => selectedCity.id != id),
+    );
+    setSelectedActivities((prev) =>
+      prev.filter((selectedActivity) => selectedActivity.cityId != id),
+    );
+    setSelectedOptionalActivities((prev) =>
+      prev.filter(
+        (selectedOptionalActivity) => selectedOptionalActivity.cityId != id,
+      ),
+    );
+    setActivitiesList((prev) =>
+      prev.filter((activity) => activity.cityId != id),
+    );
+    setOptionalActivitiesList((prev) =>
+      prev.filter((activity) => activity.cityId != id),
+    );
+  }
 
   useEffect(() => {
     if (!selectedCountries?.length) return;
     getCities();
+    if (!initialValues?.cities) return;
+    getActivities(initialValues.cities.map(({ id }) => id));
+    getOptionalActivities(initialValues.cities.map(({ id }) => id));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCountries]);
-
-  useEffect(() => {
-    if (!selectedCities?.length) return;
-    getActivities();
-    getOptionalActivities();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCities]);
 
   return (
     <Dialog
@@ -187,20 +245,29 @@ export default function EditItineraryModal({
     >
       <DialogContent className="gap-y-2">
         <DialogHeader>
-          <DialogTitle>Edit Itinerary</DialogTitle>
+          <DialogTitle>Add Itinerary</DialogTitle>
         </DialogHeader>
-        <span className="font-medium">{initialValues?.day}</span>
+        <span className="font-medium">{initialValues?.day ?? day}</span>
         {/* Cities */}
         <div>
           <Select<SelectCities>
             list={citiesList}
-            onClick={(city: SelectCities) =>
-              !selectedCities.some(({ id }) => id === city.id)
-                ? setSelectedCities((prev) => [...prev, city])
-                : null
-            }
+            onClick={async (city: SelectCities) => {
+              if (selectedCities.some(({ id }) => id === city.id)) return;
+              setSelectedCities((prev) => [...prev, city]);
+              await Promise.allSettled([
+                getActivities([...selectedCities.map(({ id }) => id), city.id]),
+                getOptionalActivities([
+                  ...selectedCities.map(({ id }) => id),
+                  city.id,
+                ]),
+              ]);
+            }}
             type="city"
           />
+          {!selectedCities?.length && errorMessage.cityError && (
+            <p className="p-2 text-sm text-red-500">{errorMessage.cityError}</p>
+          )}
           <ul className="flex flex-wrap gap-2 p-2 text-white">
             {selectedCities?.map(({ id, name }) => (
               <li
@@ -211,18 +278,11 @@ export default function EditItineraryModal({
                 <XCircle
                   size={18}
                   className="cursor-pointer"
-                  onClick={() =>
-                    setSelectedCities((prev) =>
-                      prev.filter((selectedCity) => selectedCity.id != id),
-                    )
-                  }
+                  onClick={() => RemoveSelectedCity(id)}
                 />
               </li>
             ))}
           </ul>
-          {!selectedCities?.length && errorMessage.cityError && (
-            <p className="p-2 text-sm text-red-500">{errorMessage.cityError}</p>
-          )}
         </div>
         {/* Activities */}
         <div>
@@ -235,6 +295,11 @@ export default function EditItineraryModal({
             }
             type="activity"
           />
+          {!selectedActivities?.length && errorMessage.activityError && (
+            <p className="p-2 text-sm text-red-500">
+              {errorMessage.activityError}
+            </p>
+          )}
           <ul className="flex flex-wrap gap-2 p-2 text-white">
             {selectedActivities?.map(({ id, name }) => (
               <li
@@ -294,66 +359,11 @@ export default function EditItineraryModal({
           <Button type="button" variant={"outline"}>
             Cancel
           </Button>
-          <Button className="flex gap-x-1" onClick={editItinerary}>
-            Update
+          <Button className="flex gap-x-1" onClick={handleAction}>
+            Add
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function Select<T extends SelectCountries | SelectCities | SelectActivities>({
-  list,
-  onClick,
-  type,
-}: {
-  list: T[];
-  onClick: (value: T) => void;
-  type: "country" | "city" | "activity" | "optional activity";
-}) {
-  const [open, setOpen] = useState(false);
-  const [value, setValue] = useState("");
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild disabled={!list?.length}>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-[240px] justify-between"
-        >
-          Select a {type}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className=" w-[200px] p-0">
-        <Command>
-          <CommandInput placeholder="Search..." />
-          <CommandEmpty>No framework found.</CommandEmpty>
-          <CommandGroup className="max-h-[240px] overflow-y-auto">
-            {list?.map((item) => (
-              <CommandItem
-                key={item.id}
-                value={item.name!}
-                onSelect={(currentValue) => {
-                  setValue(currentValue);
-                  onClick(item);
-                  setOpen(false);
-                }}
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    value === item.id ? "opacity-100" : "opacity-0",
-                  )}
-                />
-                {item.name}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </Command>
-      </PopoverContent>
-    </Popover>
   );
 }

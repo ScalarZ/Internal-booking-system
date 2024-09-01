@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { useState } from "react";
 import { Loader } from "lucide-react";
-import { SelectTours } from "@/drizzle/schema";
+import { SelectToursWithItineraries } from "@/drizzle/schema";
 import { deleteTour } from "@/utils/db-queries/tour";
 
 export default function DeleteTourModal({
@@ -22,7 +22,7 @@ export default function DeleteTourModal({
   isOpen: boolean;
   setIsOpen: (value: boolean) => void;
   tourId: string;
-  setInitialValues: (value: SelectTours | null) => void;
+  setInitialValues: (value: SelectToursWithItineraries | null) => void;
 }) {
   const [isLoading, setIsLoading] = useState(false);
 

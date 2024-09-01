@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export default async function Home() {

@@ -12,40 +12,22 @@ import {
 import { Label } from "@radix-ui/react-label";
 import { Input } from "@/components/ui/input";
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import {
-  Loader,
-  Check,
-  ChevronsUpDown,
-  X,
-  XCircle,
-  Edit,
-  Trash,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Loader, XCircle, Edit, Trash } from "lucide-react";
 import {
   SelectActivities,
   SelectCities,
   SelectCountries,
+  SelectItineraries,
+  SelectToursWithItineraries,
 } from "@/drizzle/schema";
 import { createClient } from "@/utils/supabase/client";
 import { activitySchema, citySchema } from "@/utils/zod-schema";
 import { z } from "zod";
-import EditItineraryModal from "./edit-itinerary-modal";
-import { addTour } from "@/utils/db-queries/tour";
+import { addTour, updateTour } from "@/utils/db-queries/tour";
 import { Reorder } from "framer-motion";
 import { generateRandomId } from "@/utils/generate-random-id";
+import Select from "@/app/bookings/_components/select";
+import ItineraryModal from "@/app/bookings/_components/itinerary-modal";
 
 const supabase = createClient();
 
@@ -59,33 +41,57 @@ const itineraryInitialError = {
   activityError: "",
 };
 
-export default function CreateButton({
+type Itinerary = Omit<
+  SelectItineraries,
+  "id" | "createdAt" | "updatedAt" | "tourId"
+> & {
+  id: string | number;
+};
+
+export default function TourModal({
+  modalMode,
+  isOpen,
   countriesList,
+  initialValues,
+  setIsOpen,
+  setInitialValues,
 }: {
+  modalMode: "add" | "edit";
+  isOpen: boolean;
   countriesList: SelectCountries[];
+  initialValues?: SelectToursWithItineraries;
+  setIsOpen: (val: boolean) => void;
+  setInitialValues?: (tour: SelectToursWithItineraries | null) => void;
 }) {
   const [itineraryInitialValues, setItineraryInitialValues] =
     useState<Itinerary | null>(null);
 
-  const [name, setName] = useState("");
+  const [name, setName] = useState(initialValues?.name ?? "");
   const [selectedCountries, setSelectedCountries] = useState<SelectCountries[]>(
-    [],
+    initialValues?.countries ?? [],
   );
   const [selectedCities, setSelectedCities] = useState<SelectCities[]>([]);
-  const [citiesList, setCitiesList] = useState<SelectCities[]>([]);
-  const [activitiesList, setActivitiesList] = useState<SelectActivities[]>([]);
   const [selectedActivities, setSelectedActivities] = useState<
     SelectActivities[]
   >([]);
-  const [isOpen, setIsOpen] = useState(false);
+  const [selectedOptionalActivities, setSelectedOptionalActivities] = useState<
+    SelectActivities[]
+  >([]);
+  const [citiesList, setCitiesList] = useState<SelectCities[]>([]);
+  const [activitiesList, setActivitiesList] = useState<SelectActivities[]>([]);
+  const [optionalActivitiesList, setOptionalActivitiesList] = useState<
+    SelectActivities[]
+  >([]);
   const [isEditItineraryModalOpen, setIsEditItineraryModalOpen] =
     useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(initialError);
+  const [itineraries, setItineraries] = useState<Itinerary[]>(
+    initialValues?.itineraries ?? [],
+  );
   const [itineraryErrorMessage, setItineraryErrorMessage] = useState(
     itineraryInitialError,
   );
-  const [itineraries, setItineraries] = useState<Itinerary[]>([]);
 
   function resetErrorMessage() {
     setErrorMessage(initialError);
@@ -94,18 +100,19 @@ export default function CreateButton({
   function resetModalInputs() {
     setName("");
     setSelectedCountries([]);
-    setSelectedCities([]);
-    setSelectedActivities([]);
     setCitiesList([]);
-    setActivitiesList([]);
     setItineraries([]);
     resetErrorMessage();
+    resetItineraryInputs();
   }
 
   function resetItineraryInputs() {
     setSelectedCities([]);
     setSelectedActivities([]);
     setActivitiesList([]);
+    setSelectedOptionalActivities([]);
+    setOptionalActivitiesList([]);
+    setInitialValues?.(null);
   }
 
   function checkForErrorMessage() {
@@ -149,6 +156,49 @@ export default function CreateButton({
 
     return Object.values(inputs).every((input) => input.value);
   }
+  function RemoveSelectedCountry(id: string) {
+    setSelectedCountries((prev) =>
+      prev.filter((selectedCountry) => selectedCountry.id != id),
+    );
+    setSelectedCities((prev) =>
+      prev.filter((selectedCity) => selectedCity.countryId != id),
+    );
+    setSelectedActivities((prev) =>
+      prev.filter((selectedActivity) => selectedActivity.countryId != id),
+    );
+    setSelectedOptionalActivities((prev) =>
+      prev.filter(
+        (selectedOptionalActivity) => selectedOptionalActivity.countryId != id,
+      ),
+    );
+    setCitiesList((prev) => prev.filter((city) => city.countryId != id));
+    setActivitiesList((prev) =>
+      prev.filter((activity) => activity.countryId != id),
+    );
+    setOptionalActivitiesList((prev) =>
+      prev.filter((activity) => activity.countryId != id),
+    );
+  }
+
+  function RemoveSelectedCity(id: string) {
+    setSelectedCities((prev) =>
+      prev.filter((selectedCity) => selectedCity.id != id),
+    );
+    setSelectedActivities((prev) =>
+      prev.filter((selectedActivity) => selectedActivity.cityId != id),
+    );
+    setSelectedOptionalActivities((prev) =>
+      prev.filter(
+        (selectedOptionalActivity) => selectedOptionalActivity.cityId != id,
+      ),
+    );
+    setActivitiesList((prev) =>
+      prev.filter((activity) => activity.cityId != id),
+    );
+    setOptionalActivitiesList((prev) =>
+      prev.filter((activity) => activity.cityId != id),
+    );
+  }
 
   async function handleAddTour(e: FormEvent) {
     e.preventDefault();
@@ -158,11 +208,25 @@ export default function CreateButton({
     }
     setIsLoading(true);
     try {
-      await addTour({
-        name,
-        itinerary: itineraries,
-        countries: selectedCountries,
-      });
+      if (modalMode === "edit" && initialValues)
+        await updateTour({
+          tour: {
+            id: initialValues.id,
+            name,
+            countries: selectedCountries,
+          },
+          tourItineraries: itineraries.map((itinerary) => ({
+            ...itinerary,
+            tourId: initialValues.id,
+          })),
+        });
+      else
+        await addTour({
+          tour: { name, countries: selectedCountries },
+          tourItineraries: itineraries?.map(
+            ({ id, ...itinerary }) => itinerary,
+          ),
+        });
     } catch (err) {
       console.error(err);
     } finally {
@@ -176,28 +240,41 @@ export default function CreateButton({
     if (!checkForItineraryErrorMessage()) {
       return;
     }
-    setItineraries((prev) => [
-      ...prev,
-      {
-        id: generateRandomId(),
-        day: `Day ${itineraries?.length + 1}`,
-        cities: selectedCities,
-        activities: selectedActivities,
-      },
-    ]);
+    if (modalMode === "edit" && initialValues)
+      setItineraries((prev) => [
+        ...prev,
+        {
+          id: generateRandomId(),
+          name: "",
+          cities: selectedCities,
+          activities: selectedActivities,
+          optionalActivities: selectedOptionalActivities,
+          tourId: initialValues.id,
+          day: `Day ${prev?.length + 1}`,
+        },
+      ]);
+    else
+      setItineraries((prev) => [
+        ...prev,
+        {
+          id: generateRandomId(),
+          name: "",
+          cities: selectedCities,
+          activities: selectedActivities,
+          optionalActivities: selectedOptionalActivities,
+          day: `Day ${prev?.length + 1}`,
+        },
+      ]);
     resetItineraryInputs();
     setItineraryErrorMessage(itineraryInitialError);
   }
 
-  const getCities = useCallback(async () => {
+  const getCities = useCallback(async (countries: string[]) => {
     try {
       const { data, error } = await supabase
         .from("cities")
         .select("id, name, countryId:country_id")
-        .in(
-          "country_id",
-          selectedCountries?.map(({ id }) => id),
-        );
+        .in("country_id", countries);
 
       if (error) throw error;
 
@@ -206,17 +283,15 @@ export default function CreateButton({
     } catch (err) {
       console.error(err);
     }
-  }, [selectedCountries]);
+  }, []);
 
-  const getActivities = useCallback(async () => {
+  const getActivities = useCallback(async (cities: string[]) => {
     try {
       const { data, error } = await supabase
         .from("activities")
         .select("id, name, countryId:country_id, cityId:city_id")
-        .in(
-          "city_id",
-          selectedCities?.map(({ id }) => id),
-        );
+        .in("city_id", cities)
+        .eq("is_optional", true);
 
       if (error) throw error;
 
@@ -225,19 +300,26 @@ export default function CreateButton({
     } catch (err) {
       console.error(err);
     }
-  }, [selectedCities]);
+  }, []);
 
-  useEffect(() => {
-    if (!selectedCountries?.length) return;
-    getCities();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCountries]);
+  const getOptionalActivities = useCallback(async (cities: string[]) => {
+    try {
+      const { data, error } = await supabase
+        .from("activities")
+        .select(
+          "id, name, countryId:country_id, cityId:city_id, isOptional:is_optional",
+        )
+        .in("city_id", cities)
+        .eq("is_optional", false);
 
-  useEffect(() => {
-    if (!selectedCities?.length) return;
-    getActivities();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCities]);
+      if (error) throw error;
+
+      const activities = z.array(activitySchema).parse(data);
+      setOptionalActivitiesList(activities);
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
 
   return (
     <Dialog
@@ -252,7 +334,9 @@ export default function CreateButton({
       </DialogTrigger>
       <DialogContent className="gap-y-2">
         <DialogHeader>
-          <DialogTitle>Add New Tour</DialogTitle>
+          <DialogTitle>
+            {modalMode === "edit" ? "Edit" : "Add New"} Tour
+          </DialogTitle>
         </DialogHeader>
         <div className="mb-4">
           <Label htmlFor="country">Name</Label>
@@ -272,11 +356,14 @@ export default function CreateButton({
         <div>
           <Select<SelectCountries>
             list={countriesList}
-            onClick={(country: SelectCountries) =>
-              !selectedCountries.some(({ id }) => id === country.id)
-                ? setSelectedCountries((prev) => [...prev, country])
-                : null
-            }
+            onClick={async (country: SelectCountries) => {
+              if (selectedCountries.some(({ id }) => id === country.id)) return;
+              setSelectedCountries((prev) => [...prev, country]);
+              await getCities([
+                ...selectedCountries.map(({ id }) => id),
+                country.id,
+              ]);
+            }}
             type="country"
           />
           {!selectedCountries?.length && errorMessage.countryError && (
@@ -295,13 +382,7 @@ export default function CreateButton({
                 <XCircle
                   size={18}
                   className="cursor-pointer"
-                  onClick={() =>
-                    setSelectedCountries((prev) =>
-                      prev.filter(
-                        (selectedCountry) => selectedCountry.id != id,
-                      ),
-                    )
-                  }
+                  onClick={() => RemoveSelectedCountry(id)}
                 />
               </li>
             ))}
@@ -313,11 +394,17 @@ export default function CreateButton({
         <div>
           <Select<SelectCities>
             list={citiesList}
-            onClick={(city: SelectCities) =>
-              !selectedCities.some(({ id }) => id === city.id)
-                ? setSelectedCities((prev) => [...prev, city])
-                : null
-            }
+            onClick={async (city: SelectCities) => {
+              if (selectedCities.some(({ id }) => id === city.id)) return;
+              setSelectedCities((prev) => [...prev, city]);
+              await Promise.allSettled([
+                getActivities([...selectedCities.map(({ id }) => id), city.id]),
+                getOptionalActivities([
+                  ...selectedCities.map(({ id }) => id),
+                  city.id,
+                ]),
+              ]);
+            }}
             type="city"
           />
           {!selectedCities?.length && itineraryErrorMessage.cityError && (
@@ -335,11 +422,7 @@ export default function CreateButton({
                 <XCircle
                   size={18}
                   className="cursor-pointer"
-                  onClick={() =>
-                    setSelectedCities((prev) =>
-                      prev.filter((selectedCity) => selectedCity.id != id),
-                    )
-                  }
+                  onClick={() => RemoveSelectedCity(id)}
                 />
               </li>
             ))}
@@ -384,6 +467,45 @@ export default function CreateButton({
             ))}
           </ul>
         </div>
+        {/* Optional Activities */}
+        <div>
+          <Select<SelectActivities>
+            list={optionalActivitiesList}
+            onClick={(activity: SelectActivities) =>
+              !selectedOptionalActivities.some(({ id }) => id === activity.id)
+                ? setSelectedOptionalActivities((prev) => [...prev, activity])
+                : null
+            }
+            type="optional activity"
+          />
+          {!selectedOptionalActivities?.length &&
+            itineraryErrorMessage.activityError && (
+              <p className="p-2 text-sm text-red-500">
+                {itineraryErrorMessage.activityError}
+              </p>
+            )}
+          <ul className="flex gap-x-2 p-2 text-white">
+            {selectedOptionalActivities?.map(({ id, name }) => (
+              <li
+                key={id}
+                className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-1 text-sm font-medium"
+              >
+                {name}
+                <XCircle
+                  size={18}
+                  className="cursor-pointer"
+                  onClick={() =>
+                    setSelectedOptionalActivities((prev) =>
+                      prev.filter(
+                        (selectedActivity) => selectedActivity.id != id,
+                      ),
+                    )
+                  }
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
         <Button className="max-w-max" onClick={addItinerary}>
           Add day
         </Button>
@@ -405,76 +527,74 @@ export default function CreateButton({
             }
             layoutScroll
           >
-            {itineraries?.map(({ id, day, activities, cities }) => (
-              <Reorder.Item
-                key={id}
-                value={id}
-                className="flex cursor-grab items-start justify-between border-t border-neutral-200 bg-white p-2 first:border-none"
-              >
-                <div className="flex flex-col gap-y-1">
-                  <span className="font-medium">{day}</span>
-                  <div className="flex items-center gap-x-2 text-sm">
-                    <span className="font-medium">Cities:</span>
-                    <ul className="flex gap-x-1 text-white">
-                      {cities?.map(({ id, name }) => (
-                        <li
-                          key={id}
-                          className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-0.5 text-sm font-medium"
-                        >
-                          {name}
-                        </li>
-                      ))}
-                    </ul>
+            {itineraries?.map(
+              ({ id, activities, cities, optionalActivities, day }, i) => (
+                <Reorder.Item
+                  key={id}
+                  value={id}
+                  className="flex cursor-grab items-start justify-between border-t border-neutral-200 bg-white p-2 first:border-none"
+                >
+                  <div className="flex flex-col gap-y-1">
+                    <span className="font-medium">{day}</span>
+                    <div className="flex items-center gap-x-2 text-sm">
+                      <span className="font-medium">Cities:</span>
+                      <ul className="flex gap-x-1 text-white">
+                        {cities?.map(({ id, name }) => (
+                          <li
+                            key={id}
+                            className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-0.5 text-sm font-medium"
+                          >
+                            {name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="flex items-center gap-x-2 text-sm">
+                      <span className="font-medium">Activities:</span>
+                      <ul className="flex gap-x-1 text-white">
+                        {activities?.map(({ id, name }) => (
+                          <li
+                            key={id}
+                            className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-0.5 text-sm font-medium"
+                          >
+                            {name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-x-2 text-sm">
-                    <span className="font-medium">Activities:</span>
-                    <ul className="flex gap-x-1 text-white">
-                      {activities?.map(({ id, name }) => (
-                        <li
-                          key={id}
-                          className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-0.5 text-sm font-medium"
-                        >
-                          {name}
-                        </li>
-                      ))}
-                    </ul>
+                  <div className="flex gap-x-2">
+                    <Edit
+                      size={18}
+                      className="cursor-pointer text-neutral-600"
+                      onClick={() => {
+                        setItineraryInitialValues({
+                          id,
+                          cities,
+                          activities,
+                          optionalActivities,
+                          day: `Day ${i + 1}`,
+                        });
+                        setIsEditItineraryModalOpen(true);
+                      }}
+                    />
+                    <Trash
+                      size={18}
+                      className="cursor-pointer text-red-500"
+                      onClick={() => {
+                        setItineraries((prev) =>
+                          prev.filter((itinerary) => itinerary.id !== id),
+                        );
+                      }}
+                    />
                   </div>
-                </div>
-                <div className="flex gap-x-2">
-                  <Edit
-                    size={18}
-                    className="cursor-pointer text-neutral-600"
-                    onClick={() => {
-                      setItineraryInitialValues({
-                        id,
-                        day,
-                        cities,
-                        activities,
-                      });
-                      setIsEditItineraryModalOpen(true);
-                    }}
-                  />
-                  <Trash
-                    size={18}
-                    className="cursor-pointer text-red-500"
-                    onClick={() => {
-                      setItineraries((prev) =>
-                        prev
-                          .filter((itinerary) => itinerary.day !== day)
-                          ?.map((itinerary, i) => ({
-                            ...itinerary,
-                            day: `Day ${i + 1}`,
-                          })),
-                      );
-                    }}
-                  />
-                </div>
-              </Reorder.Item>
-            ))}
+                </Reorder.Item>
+              ),
+            )}
           </Reorder.Group>
         </div>
-        {itineraryInitialValues && (
-          <EditItineraryModal
+        {isEditItineraryModalOpen && itineraryInitialValues && (
+          <ItineraryModal
             initialValues={itineraryInitialValues}
             isOpen={isEditItineraryModalOpen}
             selectedCountries={selectedCountries}
@@ -494,60 +614,5 @@ export default function CreateButton({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function Select<T extends SelectCountries | SelectCities | SelectActivities>({
-  list,
-  onClick,
-  type,
-}: {
-  list: T[];
-  onClick: (value: T) => void;
-  type: "country" | "city" | "activity";
-}) {
-  const [open, setOpen] = useState(false);
-  const [value, setValue] = useState("");
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild disabled={!list?.length}>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-[200px] justify-between"
-        >
-          Select a {type}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className=" w-[200px] p-0">
-        <Command>
-          <CommandInput placeholder="Search..." />
-          <CommandEmpty>No framework found.</CommandEmpty>
-          <CommandGroup className="max-h-[240px] overflow-y-auto">
-            {list?.map((item) => (
-              <CommandItem
-                key={item.id}
-                value={item.name!}
-                onSelect={(currentValue) => {
-                  setValue(currentValue);
-                  onClick(item);
-                  setOpen(false);
-                }}
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    value === item.id ? "opacity-100" : "opacity-0",
-                  )}
-                />
-                {item.name}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </Command>
-      </PopoverContent>
-    </Popover>
   );
 }

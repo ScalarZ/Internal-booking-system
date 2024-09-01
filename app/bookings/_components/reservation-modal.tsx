@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
+import { CalendarIcon, ChevronsUpDown } from "lucide-react";
 import {
   Command,
   CommandEmpty,
@@ -50,37 +50,48 @@ import { getCountryCities } from "@/utils/db-queries/city";
 import capitalize from "@/utils/capitalize";
 import { format } from "date-fns";
 
-type Reservation = Omit<
-  SelectReservations,
-  "id" | "createdAt" | "updatedAt" | "bookingId" | "finalPrice"
->;
+type Reservation = Omit<SelectReservations, "id" | "createdAt" | "updatedAt">;
 
-export default function AddReservationModal({
+export default function ReservationModal({
   isOpen,
   selectedCountry,
+  editedReservation,
   setIsOpen,
   setReservationsList,
+  setEditedReservation,
 }: {
   isOpen: boolean;
   selectedCountry: SelectCountries;
+  editedReservation?: Reservation & { index: number };
   setIsOpen: (value: boolean) => void;
+  setEditedReservation?: (value?: Reservation & { index: number }) => void;
   setReservationsList: (
     cb: (reservations: Reservation[]) => Reservation[],
   ) => void;
 }) {
+  // Toggles
   const [hotelsOpen, setHotelsOpen] = useState(false);
-  const [selectedHotels, setSelectedHotels] = useState<string[]>([]);
   const [citiesOpen, setCitiesOpen] = useState(false);
+  // Lists
   const [cities, setCities] = useState<SelectCities[]>([]);
-  const [selectedCity, setSelectedCity] = useState<SelectCities | null>(null);
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({
-    from: undefined,
-    to: undefined,
-  });
   const [cityHotels, setCityHotels] = useState<SelectHotels[]>([]);
-  const [meal, setMeal] = useState("");
-  const [targetPrice, setTargetPrice] = useState<number | null>(null);
-  const [currency, setCurrency] = useState("USD");
+  const [selectedHotels, setSelectedHotels] = useState<string[]>(
+    editedReservation?.hotels ?? [],
+  );
+  const [selectedCity, setSelectedCity] = useState<SelectCities | null>(
+    editedReservation?.city ?? null,
+  );
+  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({
+    from: editedReservation?.start ?? undefined,
+    to: editedReservation?.end ?? undefined,
+  });
+  const [meal, setMeal] = useState(editedReservation?.meal ?? "");
+  const [targetPrice, setTargetPrice] = useState<number | null>(
+    editedReservation?.targetPrice ?? null,
+  );
+  const [currency, setCurrency] = useState(
+    editedReservation?.currency ?? "USD",
+  );
 
   const listCityHotels = useCallback(async (city: SelectCities) => {
     try {
@@ -104,46 +115,84 @@ export default function AddReservationModal({
     }
   }, [selectedCountry]);
 
+  const reservation: Reservation = {
+    city: selectedCity,
+    currency,
+    targetPrice,
+    meal,
+    hotels: selectedHotels,
+    start: dateRange.from ?? null,
+    end: dateRange.to ?? null,
+    bookingId: null,
+    finalPrice: null,
+  };
+  function closeModal() {
+    setIsOpen(false);
+    setEditedReservation?.();
+  }
+  function addReservation() {
+    setReservationsList((prev) =>
+      [...prev, reservation].sort((a, b) => {
+        if (!a.start || !b.start) return -1;
+        if (a.start === b.start) {
+          if (!a.end || !b.end) return -1;
+          return a.end?.getTime() - b.end?.getTime();
+        }
+        return a.start?.getTime() - b.start?.getTime();
+      }),
+    );
+    closeModal();
+  }
+
+  function editReservation() {
+    if (!editedReservation) return;
+    setReservationsList((prev) => {
+      const newReservations = [...prev];
+      newReservations[editedReservation.index] = reservation;
+      return newReservations;
+    });
+    closeModal();
+  }
+
   useEffect(() => {
+    if (editedReservation?.city) {
+      listCityHotels(editedReservation.city);
+      return;
+    }
     listCities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(value) => {
-        setIsOpen(value);
-        if (!value) {
-          setCityHotels([]);
-        }
-      }}
-    >
-      <DialogContent className="max-h-screen min-w-[1280px] gap-y-2 overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={closeModal}>
+      <DialogContent className="max-h-screen min-w-[1340px] gap-y-2 overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Reservation</DialogTitle>
         </DialogHeader>
         <Table className="mt-4 rounded border">
           <TableHeader>
             <TableRow>
-              <TableHead>City</TableHead>
-              <TableHead>Start ⟹ End</TableHead>
-              <TableHead>Hotel</TableHead>
-              <TableHead>Meal</TableHead>
-              <TableHead>Currency</TableHead>
-              <TableHead>Target Price</TableHead>
+              <TableHead className="px-2">City</TableHead>
+              <TableHead className="px-2">Start ⟹ End</TableHead>
+              <TableHead className="px-2">Hotel</TableHead>
+              <TableHead className="px-2">Meal</TableHead>
+              <TableHead className="px-2">Currency</TableHead>
+              <TableHead className="px-2">Target Price</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow>
-              <TableCell>
+              <TableCell className="px-2">
                 <Popover open={citiesOpen} onOpenChange={setCitiesOpen}>
-                  <PopoverTrigger asChild disabled={!cities?.length}>
+                  <PopoverTrigger
+                    asChild
+                    disabled={!cities?.length || !!editedReservation?.city}
+                  >
                     <Button
                       variant="outline"
                       role="combobox"
                       aria-expanded={citiesOpen}
-                      className="w-full justify-between overflow-hidden"
+                      className="max-w-[200px] justify-between overflow-hidden"
                     >
                       {selectedCity ? selectedCity.name : "Select a city"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -170,6 +219,8 @@ export default function AddReservationModal({
                                   setSelectedCity(null);
                                   setCityHotels([]);
                                 }
+                                if (selectedCity !== city)
+                                  setSelectedHotels([]);
                                 setCitiesOpen(false);
                               }}
                             />
@@ -181,22 +232,25 @@ export default function AddReservationModal({
                   </PopoverContent>
                 </Popover>
               </TableCell>
-              <TableCell>
+              <TableCell className="px-2">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant={"outline"}
                       className={cn(
-                        "w-[240px] pl-3 text-left font-normal",
+                        "max-w-[300px] pl-3 text-left font-normal",
                         !dateRange.from &&
                           !dateRange.to &&
                           "text-muted-foreground",
                       )}
+                      disabled={
+                        !!editedReservation?.start && !!editedReservation?.end
+                      }
                     >
                       {dateRange.from && dateRange.to ? (
                         `${format(dateRange.from, "PPP")} ⟹ ${format(dateRange.to, "PPP")}`
                       ) : (
-                        <span>Pick a date</span>
+                        <span className="pr-1">Pick a date</span>
                       )}
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
@@ -215,14 +269,14 @@ export default function AddReservationModal({
                   </PopoverContent>
                 </Popover>
               </TableCell>
-              <TableCell>
+              <TableCell className="px-2">
                 <Popover open={hotelsOpen} onOpenChange={setHotelsOpen}>
                   <PopoverTrigger asChild disabled={!cityHotels?.length}>
                     <Button
                       variant="outline"
                       role="combobox"
                       aria-expanded={hotelsOpen}
-                      className="w-full justify-between overflow-hidden"
+                      className="max-w-[340px] whitespace-break-spaces text-left"
                     >
                       {selectedHotels?.length
                         ? selectedHotels.map((name) => capitalize(`${name} ,`))
@@ -252,7 +306,6 @@ export default function AddReservationModal({
                                   setSelectedHotels((prev) =>
                                     prev.filter((hotel) => hotel !== name),
                                   );
-                                  setCityHotels([]);
                                 }
                                 setHotelsOpen(false);
                               }}
@@ -265,14 +318,14 @@ export default function AddReservationModal({
                   </PopoverContent>
                 </Popover>
               </TableCell>
-              <TableCell>
+              <TableCell className="px-2">
                 <Input
                   placeholder="Meal..."
                   value={meal}
                   onChange={(e) => setMeal(e.target.value)}
                 />
               </TableCell>
-              <TableCell>
+              <TableCell className="px-2">
                 <Select
                   onValueChange={(value) => setCurrency(value)}
                   defaultValue={"USD"}
@@ -289,7 +342,7 @@ export default function AddReservationModal({
                   </SelectContent>
                 </Select>
               </TableCell>
-              <TableCell>
+              <TableCell className="px-2">
                 <Input
                   defaultValue={targetPrice ?? undefined}
                   placeholder="Target price..."
@@ -304,37 +357,18 @@ export default function AddReservationModal({
         </Table>
         <DialogFooter className="flex w-full justify-between pt-4">
           <div className="flex gap-x-2">
-            <Button type="button" variant={"outline"}>
+            <Button
+              type="button"
+              variant={"outline"}
+              onClick={() => setIsOpen(false)}
+            >
               Cancel
             </Button>
             <Button
               className="flex gap-x-1"
-              onClick={() => {
-                setReservationsList((prev) => {
-                  const reservation: Reservation = {
-                    city: selectedCity,
-                    currency,
-                    targetPrice,
-                    meal,
-                    hotels: selectedHotels,
-                    start: dateRange.from ?? null,
-                    end: dateRange.to ?? null,
-                  };
-                  return [...prev, reservation].sort((a, b) => {
-                    if (!a.start || !b.start) return -1;
-                    if (a.start === b.start) {
-                      if (!a.end || !b.end) return -1;
-                      return a.end?.getTime() - b.end?.getTime();
-                    }
-                    return a.start?.getTime() - b.start?.getTime();
-                  });
-                });
-                setCityHotels([]);
-                setCities([]);
-                setIsOpen(false);
-              }}
+              onClick={editedReservation ? editReservation : addReservation}
             >
-              Create
+              {editedReservation ? "Update" : "Create"}
             </Button>
           </div>
         </DialogFooter>

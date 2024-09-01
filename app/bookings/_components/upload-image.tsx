@@ -59,7 +59,7 @@ export default function UploadImage({
             onChange={onChange}
             dataURLKey="data_url"
             allowNonImageType
-            maxNumber={maxNumber}
+            onError={(e) => console.log(e)}
           >
             {({
               imageList,

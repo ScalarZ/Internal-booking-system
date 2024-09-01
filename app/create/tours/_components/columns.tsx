@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { SelectTours } from "@/drizzle/schema";
+import { SelectToursWithItineraries } from "@/drizzle/schema";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, Edit, Trash } from "lucide-react";
 
@@ -10,10 +10,10 @@ export function columns({
   setIsEditModalOpen,
   setIsDeleteModalOpen,
 }: {
-  setInitialValues: ({ id, name }: SelectTours) => void;
+  setInitialValues: ({ id, name }: SelectToursWithItineraries) => void;
   setIsEditModalOpen: (value: boolean) => void;
   setIsDeleteModalOpen: (value: boolean) => void;
-}): ColumnDef<SelectTours>[] {
+}): ColumnDef<SelectToursWithItineraries>[] {
   return [
     {
       accessorKey: "id",

@@ -1,7 +1,7 @@
-import CreateTourButton from "./_components/create-tour-button";
 import Tours from "./_components/tours";
 import { getTours } from "@/utils/db-queries/tour";
 import { getCountries } from "@/utils/db-queries/country";
+import CreateTour from "./_components/create-tour";
 
 export default async function ToursPage() {
   try {
@@ -9,7 +9,7 @@ export default async function ToursPage() {
     return (
       <div>
         <div className="flex w-full justify-end">
-          <CreateTourButton countriesList={countries} />
+          <CreateTour countriesList={countries} />
         </div>
         <Tours tours={tours} countries={countries} />
       </div>
