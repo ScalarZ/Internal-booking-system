@@ -290,8 +290,7 @@ export default function TourModal({
       const { data, error } = await supabase
         .from("activities")
         .select("id, name, countryId:country_id, cityId:city_id")
-        .in("city_id", cities)
-        .eq("is_optional", true);
+        .in("city_id", cities);
 
       if (error) throw error;
 
@@ -310,7 +309,7 @@ export default function TourModal({
           "id, name, countryId:country_id, cityId:city_id, isOptional:is_optional",
         )
         .in("city_id", cities)
-        .eq("is_optional", false);
+        .eq("is_optional", true);
 
       if (error) throw error;
 
