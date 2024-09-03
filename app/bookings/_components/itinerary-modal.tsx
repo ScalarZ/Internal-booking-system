@@ -176,7 +176,6 @@ export default function ItineraryModal<T extends Itinerary>({
           "id, name, countryId:country_id, cityId:city_id, isOptional:is_optional",
         )
         .in("city_id", cities)
-        .eq("is_optional", true);
 
       if (error) throw error;
 
@@ -195,7 +194,7 @@ export default function ItineraryModal<T extends Itinerary>({
           "id, name, countryId:country_id, cityId:city_id, isOptional:is_optional",
         )
         .in("city_id", cities)
-        .eq("is_optional", false);
+        .eq("is_optional", true);
 
       if (error) throw error;
 

@@ -169,7 +169,7 @@ export function ToursSection({
             </FormItem>
           )}
         />
-        {!!itineraries?.length && (
+        {!!tourCountries?.length && (
           <div className="col-span-full space-y-2">
             <div className="flex w-full justify-end">
               <Button
