@@ -27,15 +27,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { SelectCountries } from "@/drizzle/schema";
-import { createClient } from "@/utils/supabase/client";
-import { z } from "zod";
-import { citySchema } from "@/utils/zod-schema";
 import { addActivity } from "@/utils/db-queries/activity";
-import { getCountryCities } from "@/utils/db-queries/city";
 import { listCountryCities } from "@/utils/list-country-cities";
 import { Switch } from "@/components/ui/switch";
-
-const supabase = createClient();
 
 export default function CreateButton({
   countriesList,

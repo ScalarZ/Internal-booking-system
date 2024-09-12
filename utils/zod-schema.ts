@@ -1,3 +1,4 @@
+import { SelectHotels } from "@/drizzle/schema";
 import { z } from "zod";
 
 export const citySchema = z.object({
@@ -16,7 +17,13 @@ export const activitySchema = z.object({
   name: z.string().nullable(),
   countryId: z.string().nullable(),
   cityId: z.string().nullable(),
-  isOptional: z.boolean().default(false),
+  isOptional: z.boolean().default(false).nullable(),
+});
+
+export const representativesSChema = z.object({
+  id: z.string(),
+  name: z.string(),
+  countryId: z.string(),
 });
 
 export const formSchema = z.object({
@@ -44,9 +51,11 @@ export const formSchema = z.object({
       .date({ required_error: "Please select an departure date" })
       .optional(),
   }),
-  hotels: z.array(z.string()).refine((value) => value.some((item) => item), {
-    message: "Please select at least one hotel.",
-  }),
+  hotels: z
+    .array(z.custom<SelectHotels>())
+    .refine((value) => value.some((item) => item), {
+      message: "Please select at least one hotel.",
+    }),
   nileCruises: z.array(z.string()).optional(),
   singleRoom: z.number().optional(),
   doubleRoom: z.number().optional(),
@@ -78,4 +87,48 @@ export const formSchema = z.object({
       file: z.string().optional(),
     })
     .optional(),
+});
+
+export const optionalTourSchema = z.object({
+  representatives: z
+    .array(representativesSChema)
+    .min(1, { message: "Please select at least one representative" })
+    .refine((arr) => arr.every(({ name }) => typeof name === "string")),
+  optionalActivities: z
+    .array(
+      activitySchema.extend(
+        z.object({
+          date: z
+            .date()
+            .optional()
+            .refine((value) => value, "Please select pick a date"),
+        }).shape,
+      ),
+    )
+    .refine(
+      (values) => values.length > 0,
+      "Please select at least one activity",
+    ),
+  pax: z.number().min(1),
+  price: z.number().min(1),
+  currency: z.string(),
+  files: z
+    .custom<FileList>()
+    .refine(
+      (files) => files !== undefined && files.length > 0,
+      "At least one file is required.",
+    ),
+});
+
+export const feedbackSchema = z.object({
+  representatives: z
+    .array(representativesSChema)
+    .min(1, { message: "Please select at least one representative" })
+    .refine((arr) => arr.every(({ name }) => typeof name === "string")),
+  files: z
+    .custom<FileList>()
+    .refine(
+      (files) => files !== undefined && files.length > 0,
+      "At least one file is required.",
+    ),
 });

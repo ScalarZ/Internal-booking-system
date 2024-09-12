@@ -49,7 +49,7 @@ export default function FilterBookings({
   }, [debouncedValue]);
 
   return (
-    <div className="absolute top-0 flex w-2/3 gap-x-4 py-4">
+    <div className="flex w-full gap-x-4">
       <Select
         onValueChange={(value) =>
           handleFilterBookings({

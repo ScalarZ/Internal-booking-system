@@ -1,6 +1,14 @@
 "use client";
 import { cn } from "@/lib/utils";
-import { BookPlusIcon, CalendarDays, Hotel, Plane, Plus } from "lucide-react";
+import {
+  BookPlusIcon,
+  CalendarDays,
+  Hotel,
+  ListOrdered,
+  Plane,
+  Plus,
+  TextSearch,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -14,6 +22,12 @@ const list = [
     link: "/guide-screen",
     icon: <CalendarDays size={18} />,
   },
+  {
+    name: "Search Screen",
+    link: "/search-screen",
+    icon: <TextSearch size={18} />,
+  },
+  { name: "Orders", link: "/orders", icon: <ListOrdered size={18} /> },
 ];
 export default function SideBar() {
   const pathname = usePathname();

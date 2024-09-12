@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Providers from "@/utils/provider";
-import { auth } from "@/auth";
 import SideBar from "./_components/side-bar";
 import "./globals.css";
 import Navbar from "./_components/nav-bar";
+import { DeleteModalProvider } from "@/context/delete-modal-context";
 import { createClient } from "@/utils/supabase/server";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -20,6 +20,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const supabase = createClient();
+
   const {
     data: { user },
     error,
@@ -30,7 +31,9 @@ export default async function RootLayout({
         {<Navbar user={user} />}
         {user && <SideBar />}
         <Providers>
-          <div className={user ? "ml-56" : "pl-0"}>{children}</div>
+          <DeleteModalProvider>
+            <div className={user ? "ml-56" : "pl-0"}>{children}</div>
+          </DeleteModalProvider>
         </Providers>
       </body>
     </html>

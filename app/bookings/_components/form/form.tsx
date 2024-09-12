@@ -21,12 +21,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon, Loader, Upload, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { cn } from "@/lib/utils";
+import { cn, listItineraryCities } from "@/lib/utils";
 import { useCallback, useEffect, useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { addDays, format } from "date-fns";
 import {
-  SelectBookingWithReservations,
+  Bookings,
   SelectCities,
   SelectCompanies,
   SelectCountries,
@@ -54,6 +54,7 @@ import { ToursSection } from "./tours-section";
 import HotelsSection from "./hotels-section";
 import { Switch } from "@/components/ui/switch";
 import AlertModal from "./alert";
+import { useBooking } from "@/context/booking-context";
 
 const flightDefaultValue = {
   arrival: {
@@ -82,26 +83,21 @@ export default function From({
   tours,
   companies,
   nileCruises,
-  initialValues,
   nationalities,
   type,
   modalMode,
-  setInitialValues,
-  closeModal,
 }: {
   companies: SelectCompanies[];
   tours: SelectToursWithItineraries[] | SelectBookingToursWithItineraries[];
   nationalities: SelectNationalities[];
   nileCruises: SelectNileCruises[];
-  initialValues?: SelectBookingWithReservations;
   type?: "booking" | "reservation" | "aviation";
   modalMode: "edit" | "add";
-  closeModal: () => void;
-  setInitialValues?: (value: SelectBookingWithReservations | null) => void;
 }) {
+  const { booking, setBooking, setIsEditModalOpen } = useBooking();
   const [name, setName] = useState("");
   const [internalBookingId, setInternalBookingId] = useState(
-    initialValues?.internalBookingId ?? "",
+    booking?.internalBookingId ?? "",
   );
   // toggles
   const [isLoading, setIsLoading] = useState(false);
@@ -112,23 +108,23 @@ export default function From({
   // lists
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
   const [passports, setPassports] = useState<Passport[]>(
-    initialValues?.passports ?? [],
+    booking?.passports ?? [],
   );
   const [touristsNames, setTouristsNames] = useState<string[]>(
-    initialValues?.tourists ?? [],
+    booking?.tourists ?? [],
   );
   const [tourCountries, setTourCountries] = useState<SelectCountries[]>(
-    initialValues?.bookingTour?.countries ?? [],
+    booking?.bookingTour?.countries ?? [],
   );
   const [tourCities, setTourCities] = useState<SelectCities[]>([]);
   const [citiesHotels, setCitiesHotels] = useState<SelectHotels[]>([]);
   const [itineraries, setItineraries] = useState<Itinerary[]>(
-    initialValues?.bookingTour?.itineraries ?? [],
+    booking?.bookingTour?.itineraries ?? [],
   );
   const [domesticFlights, setDomesticFlights] = useState<
     (ArrivalDeparturePair<DomesticFlight> & { src?: string })[]
   >(
-    initialValues?.domesticFlights ?? [
+    booking?.domesticFlights ?? [
       {
         id: "v1rlr7m0fb",
         arrival: {
@@ -156,7 +152,7 @@ export default function From({
     ],
   );
   const [reservationsList, setReservationsList] = useState<Reservation[]>(
-    initialValues?.reservations?.map(({ city, ...props }) => ({
+    booking?.reservations?.map(({ city, ...props }) => ({
       ...props,
       city: typeof city === "string" ? JSON.parse(city) : city,
     })) ?? [],
@@ -164,7 +160,7 @@ export default function From({
   const [internationalFlights, setInternationalFlights] = useState<
     (ArrivalDeparturePair<InternationalFlight> & { src?: string })[]
   >(
-    initialValues?.internationalFlights ?? [
+    booking?.internationalFlights ?? [
       {
         id: "v1rlr7m0fa",
         arrival: {
@@ -192,38 +188,38 @@ export default function From({
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialValues
+    defaultValues: booking
       ? {
-          hotels: (initialValues.hotels as string[]) ?? [],
-          pax: initialValues.pax ?? undefined,
-          internalBookingId: initialValues.internalBookingId ?? undefined,
+          hotels: booking.bookingHotels.map(({ hotel }) => hotel) ?? [],
+          pax: booking.pax ?? undefined,
+          internalBookingId: booking.internalBookingId ?? undefined,
           arrivalDepartureDate:
             {
-              from: initialValues.arrivalDate ?? undefined,
-              to: initialValues.departureDate ?? undefined,
+              from: booking.arrivalDate ?? undefined,
+              to: booking.departureDate ?? undefined,
             } ?? undefined,
-          company: initialValues.company ?? undefined,
-          currency: initialValues.currency ?? undefined,
-          internalFlights: initialValues.internalFlights ?? undefined,
-          internalFlightsNote: initialValues.internalFlightsNote ?? undefined,
-          generalNote: initialValues.generalNote ?? undefined,
-          singleRoom: initialValues.single ?? undefined,
-          doubleRoom: initialValues.double ?? undefined,
-          tripleRoom: initialValues.triple ?? undefined,
-          roomNote: initialValues.roomNote ?? undefined,
-          language: initialValues.language ?? undefined,
-          nationality: initialValues.nationality ?? undefined,
-          referenceBookingId: initialValues.referenceBookingId ?? undefined,
-          tips: initialValues.tips ?? undefined,
+          company: booking.company ?? undefined,
+          currency: booking.currency ?? undefined,
+          internalFlights: booking.internalFlights ?? undefined,
+          internalFlightsNote: booking.internalFlightsNote ?? undefined,
+          generalNote: booking.generalNote ?? undefined,
+          singleRoom: booking.single ?? undefined,
+          doubleRoom: booking.double ?? undefined,
+          tripleRoom: booking.triple ?? undefined,
+          roomNote: booking.roomNote ?? undefined,
+          language: booking.language ?? undefined,
+          nationality: booking.nationality ?? undefined,
+          referenceBookingId: booking.referenceBookingId ?? undefined,
+          tips: booking.tips ?? undefined,
           tour:
             {
-              id: initialValues?.bookingTour?.id ?? undefined,
-              name: initialValues?.bookingTour?.name ?? undefined,
+              id: booking?.bookingTour?.id ?? undefined,
+              name: booking?.bookingTour?.name ?? undefined,
             } ?? undefined,
-          visa: initialValues.visa ?? undefined,
-          nileCruises: initialValues.nileCruises ?? undefined,
-          status: initialValues.status ?? undefined,
-          tipsIncluded: initialValues.tipsIncluded ?? undefined,
+          visa: booking.visa ?? undefined,
+          nileCruises: booking.nileCruises ?? undefined,
+          status: booking.status ?? undefined,
+          tipsIncluded: booking.tipsIncluded ?? undefined,
         }
       : {
           hotels: [],
@@ -231,6 +227,10 @@ export default function From({
           status: true,
         },
   });
+
+  function closeModal() {
+    setIsAlertModalOpen(false);
+  }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -310,6 +310,8 @@ export default function From({
           ),
         })),
       };
+      const hotels = values.hotels;
+
       if (modalMode === "add")
         await addBookings(
           {
@@ -325,12 +327,13 @@ export default function From({
             passports: [],
           },
           bookingTour,
+          hotels,
           bookingsLists,
         );
-      if (modalMode === "edit" && initialValues)
+      if (modalMode === "edit" && booking)
         await updateBooking(
           {
-            id: initialValues.id,
+            id: booking.id,
             ...bookingProps,
             //Remove image file from domestic flights
             domesticFlights: domesticFlights.map(({ urls, ...props }) => ({
@@ -347,8 +350,9 @@ export default function From({
           },
           {
             ...bookingTour,
-            id: initialValues.bookingTour.id,
+            id: booking.bookingTour.id,
           },
+          hotels,
           bookingsLists,
         );
     } catch (error) {
@@ -357,7 +361,7 @@ export default function From({
       setIsLoading(false);
       form.reset();
       closeModal();
-      setInitialValues?.(null);
+      setBooking?.(undefined);
     }
   }
 
@@ -389,7 +393,7 @@ export default function From({
           meal: null,
           targetPrice: null,
           currency: "USD",
-          bookingId: initialValues?.id ?? -1,
+          bookingId: booking?.id ?? -1,
           finalPrice: null,
         });
         tacker++;
@@ -398,11 +402,13 @@ export default function From({
       return [...acc];
     }, []);
     setReservationsList(reservations);
-  }, [form, initialValues?.id, itineraries]);
+  }, [form, booking?.id, itineraries]);
 
   useEffect(() => {
-    if (!initialValues) return;
-    // listTourCountries();
+    if (!booking || !booking.bookingTour?.itineraries.length) return;
+    listCitiesHotels(
+      listItineraryCities(booking.bookingTour.itineraries ?? []),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

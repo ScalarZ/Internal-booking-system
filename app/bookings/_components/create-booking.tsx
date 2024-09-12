@@ -20,12 +20,9 @@ export default function CreateBooking({
   nationalities: SelectNationalities[];
   tours: SelectToursWithItineraries[];
 }) {
-  const [isOpen, setIsOpen] = useState(false);
   return (
     <BookingModal
       modalMode="add"
-      isOpen={isOpen}
-      setIsOpen={setIsOpen}
       nileCruises={nileCruises}
       companies={companies}
       nationalities={nationalities}

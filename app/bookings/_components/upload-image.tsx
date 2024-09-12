@@ -59,7 +59,6 @@ export default function UploadImage({
             onChange={onChange}
             dataURLKey="data_url"
             allowNonImageType
-            onError={(e) => console.log(e)}
           >
             {({
               imageList,

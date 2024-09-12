@@ -1,13 +1,17 @@
-import type { Config } from "drizzle-kit";
+import { defineConfig } from "drizzle-kit";
 
 const CONNECTION_STRING =
   "postgres://postgres.sgddpuwyvwbqkygpjbgg:Ramyfares101@aws-0-eu-central-1.pooler.supabase.com:5432/postgres";
 
-export default {
-  schema: "./drizzle/*",
+export default defineConfig({
+  schema: "./drizzle/schema.ts",
   out: "./drizzle",
-  driver: "pg",
+  dialect: "postgresql",
   dbCredentials: {
-    connectionString: CONNECTION_STRING,
+    // @ts-ignore
+    url: CONNECTION_STRING,
   },
-} satisfies Config;
+  migrations: {
+    prefix: "supabase",
+  },
+});

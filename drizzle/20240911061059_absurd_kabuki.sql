@@ -1,0 +1,1 @@
+ALTER TABLE "booking_optional_tours" ADD COLUMN "done" boolean DEFAULT false NOT NULL;

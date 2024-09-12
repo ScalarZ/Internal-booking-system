@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/popover";
 
 import { Check, ChevronsUpDown, Edit, Plus, Trash } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, listItineraryCities } from "@/lib/utils";
 import { addDays, format } from "date-fns";
 import { formSchema } from "@/utils/zod-schema";
 import { useState } from "react";
@@ -127,13 +127,7 @@ export function ToursSection({
                               );
                               if (id !== field.value?.id && itineraries.length)
                                 await listCitiesHotels(
-                                  itineraries?.reduce<SelectCities[]>(
-                                    (acc, curr) => [
-                                      ...acc,
-                                      ...(curr.cities ?? []),
-                                    ],
-                                    [],
-                                  ) ?? [],
+                                  listItineraryCities(itineraries),
                                 );
                             }}
                           >

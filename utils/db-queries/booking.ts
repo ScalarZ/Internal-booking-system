@@ -3,14 +3,21 @@
 import { db } from "@/drizzle/db";
 import {
   SelectBookingItineraries,
+  SelectBookingOptionalTours,
   SelectBookingTours,
   SelectBookingWithItineraries,
   SelectBookings,
+  SelectHotels,
   SelectReservations,
+  SelectSurveys,
+  bookingHotels,
   bookingItineraries,
+  bookingOptionalTours,
   bookingTours,
   bookings,
   notifications,
+  reviews,
+  surveys,
 } from "@/drizzle/schema";
 import {
   and,
@@ -33,6 +40,13 @@ export async function getBookings() {
       bookingTour: {
         with: { itineraries: true },
       },
+      bookingHotels: {
+        with: {
+          hotel: true,
+        },
+      },
+      reviews: true,
+      surveys: true,
     },
   });
 }
@@ -93,6 +107,7 @@ export async function addBookings(
     },
     "id" | "bookingId"
   >,
+  hotels: SelectHotels[],
   lists: {
     reservationsList: Omit<
       SelectReservations,
@@ -123,6 +138,14 @@ export async function addBookings(
     .insert(bookingTours)
     .values({ bookingId: bookingRow[0].id, ...bookingTour })
     .returning();
+
+  if (hotels.length)
+    await db.insert(bookingHotels).values(
+      hotels.map((hotel) => ({
+        hotelId: hotel.id,
+        bookingId: bookingRow[0].id,
+      })),
+    );
 
   if (bookingTour.itineraries.length)
     await db.insert(bookingItineraries).values(
@@ -157,6 +180,7 @@ export async function updateBooking(
     },
     "bookingId"
   >,
+  hotels: SelectHotels[],
   lists: {
     reservationsList: Omit<
       SelectReservations,
@@ -167,7 +191,7 @@ export async function updateBooking(
     internationalFlightTicketsPaths: Ticket[][];
   },
 ) {
-  const res = await Promise.all([
+  const res = await Promise.allSettled([
     db
       .update(bookings)
       .set({
@@ -189,7 +213,16 @@ export async function updateBooking(
       .where(eq(bookingTours.id, bookingTour.id)),
     deleteBookingReservations(booking.id),
     deleteBookingTourItineraries(bookingTour.id),
+    deleteBookingHotels(booking.id),
   ]);
+
+  if (hotels.length)
+    await db.insert(bookingHotels).values(
+      hotels.map((hotel) => ({
+        hotelId: hotel.id,
+        bookingId: booking.id,
+      })),
+    );
 
   if (bookingTour.itineraries.length)
     await db.insert(bookingItineraries).values(
@@ -223,6 +256,30 @@ export async function deleteBookingTourItineraries(bookingTourId: string) {
   return await db
     .delete(bookingItineraries)
     .where(eq(bookingItineraries.tourId, bookingTourId));
+}
+
+export async function deleteBookingHotels(bookingId: number) {
+  return await db
+    .delete(bookingHotels)
+    .where(eq(bookingHotels.bookingId, bookingId));
+}
+
+export async function addBookingOptionalTour(
+  value: Omit<SelectBookingOptionalTours, "id" | "createdAt" | "done">,
+) {
+  return await db.insert(bookingOptionalTours).values(value).returning();
+}
+
+export async function addSurvey(
+  value: Omit<SelectSurveys, "id" | "createdAt">,
+) {
+  return await db.insert(surveys).values(value).returning();
+}
+
+export async function addReview(
+  value: Omit<SelectSurveys, "id" | "createdAt">,
+) {
+  return await db.insert(reviews).values(value).returning();
 }
 
 export async function getWeeklyItineraries(date: Date) {

@@ -19,17 +19,6 @@ export const hotels = pgTable("hotels", {
   cityId: uuid("city_id").references(() => cities.id, { onDelete: "cascade" }),
 });
 
-export const hotelsRelations = relations(hotels, ({ one }) => ({
-  country: one(countries, {
-    fields: [hotels.countryId],
-    references: [countries.id],
-  }),
-  city: one(cities, {
-    fields: [hotels.cityId],
-    references: [cities.id],
-  }),
-}));
-
 export const guides = pgTable("guides", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name"),
@@ -38,13 +27,6 @@ export const guides = pgTable("guides", {
   }),
 });
 
-export const guidesRelations = relations(guides, ({ one }) => ({
-  country: one(countries, {
-    fields: [guides.countryId],
-    references: [countries.id],
-  }),
-}));
-
 export const representatives = pgTable("representatives", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name"),
@@ -52,16 +34,6 @@ export const representatives = pgTable("representatives", {
     onDelete: "cascade",
   }),
 });
-
-export const representativesRelations = relations(
-  representatives,
-  ({ one }) => ({
-    country: one(countries, {
-      fields: [representatives.countryId],
-      references: [countries.id],
-    }),
-  }),
-);
 
 export const companies = pgTable("companies", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -74,10 +46,6 @@ export const countries = pgTable("countries", {
   name: text("name"),
 });
 
-export const countriesRelations = relations(countries, ({ many }) => ({
-  hotels: many(hotels),
-}));
-
 export const cities = pgTable("cities", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name"),
@@ -85,13 +53,6 @@ export const cities = pgTable("cities", {
     onDelete: "cascade",
   }),
 });
-
-export const citiesRelations = relations(cities, ({ one }) => ({
-  country: one(countries, {
-    fields: [cities.countryId],
-    references: [countries.id],
-  }),
-}));
 
 export const activities = pgTable("activities", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -104,17 +65,6 @@ export const activities = pgTable("activities", {
   }),
   isOptional: boolean("is_optional").default(false),
 });
-
-export const activitiesRelations = relations(activities, ({ one }) => ({
-  country: one(countries, {
-    fields: [activities.countryId],
-    references: [countries.id],
-  }),
-  city: one(cities, {
-    fields: [activities.cityId],
-    references: [cities.id],
-  }),
-}));
 
 export const nationalities = pgTable("nationalities", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -165,7 +115,6 @@ export const bookings = pgTable("bookings", {
   departureDate: timestamp("departure_date", {
     withTimezone: true,
   }).defaultNow(),
-  hotels: jsonb("hotels").array().$type<string[]>(),
   single: integer("single"),
   double: integer("double"),
   triple: integer("triple"),
@@ -199,12 +148,16 @@ export const bookingTours = pgTable("booking_tours", {
   countries: jsonb("countries")
     .array()
     .$type<(typeof countries.$inferSelect)[]>(),
-  bookingId: integer("booking_id").references(() => bookings.id),
+  bookingId: integer("booking_id").references(() => bookings.id, {
+    onDelete: "cascade",
+  }),
 });
 
 export const bookingItineraries = pgTable("booking_itineraries", {
   id: serial("id").primaryKey(),
-  tourId: uuid("tour_id").references(() => bookingTours.id),
+  tourId: uuid("tour_id").references(() => bookingTours.id, {
+    onDelete: "cascade",
+  }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   day: text("day"),
@@ -228,9 +181,21 @@ export const reservations = pgTable("reservations", {
   targetPrice: integer("target_price"),
   finalPrice: integer("final_price"),
   currency: text("currency"),
-  bookingId: integer("booking_id").references(() => bookings.id),
+  bookingId: integer("booking_id").references(() => bookings.id, {
+    onDelete: "cascade",
+  }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const bookingHotels = pgTable("booking_hotels", {
+  id: serial("id").primaryKey(),
+  bookingId: integer("booking_id").references(() => bookings.id, {
+    onDelete: "cascade",
+  }),
+  hotelId: uuid("hotel_id").references(() => hotels.id, {
+    onDelete: "cascade",
+  }),
 });
 
 export const notifications = pgTable("notifications", {
@@ -240,9 +205,109 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+export const bookingOptionalTours = pgTable("booking_optional_tours", {
+  id: serial("id").primaryKey(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  optionalActivities: jsonb("optionalActivities")
+    .array()
+    .$type<(SelectActivities & { date?: Date })[]>()
+    .default([])
+    .notNull(),
+  representatives: jsonb("representatives")
+    .array()
+    .$type<SelectRepresentatives[]>()
+    .default([])
+    .notNull(),
+  pax: integer("pax"),
+  bookingId: integer("booking_id").references(() => bookings.id, {
+    onDelete: "cascade",
+  }),
+  currency: text("currency"),
+  price: integer("price"),
+  files: jsonb("files").array().$type<{ url?: string; name?: string }[]>(),
+  done: boolean("done").default(false).notNull(),
+});
+
+export const surveys = pgTable("surveys", {
+  id: serial("id").primaryKey(),
+  bookingId: integer("booking_id").references(() => bookings.id, {
+    onDelete: "cascade",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  representatives: jsonb("representatives")
+    .array()
+    .$type<SelectRepresentatives[]>()
+    .notNull(),
+  files: jsonb("files")
+    .array()
+    .$type<{ url?: string; name?: string }[]>()
+    .notNull(),
+});
+
+export const reviews = pgTable("reviews", {
+  id: serial("id").primaryKey(),
+  bookingId: integer("booking_id").references(() => bookings.id, {
+    onDelete: "cascade",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  representatives: jsonb("representatives")
+    .array()
+    .$type<SelectRepresentatives[]>()
+    .notNull(),
+  files: jsonb("files")
+    .array()
+    .$type<{ url?: string; name?: string }[]>()
+    .notNull(),
+});
+
 export const bookingsRelations = relations(bookings, ({ many, one }) => ({
   reservations: many(reservations),
   bookingTour: one(bookingTours),
+  bookingHotels: many(bookingHotels),
+  bookingOptionalTours: many(bookingOptionalTours),
+  surveys: many(surveys),
+  reviews: many(reviews),
+}));
+
+export const guidesRelations = relations(guides, ({ one }) => ({
+  country: one(countries, {
+    fields: [guides.countryId],
+    references: [countries.id],
+  }),
+}));
+
+export const countriesRelations = relations(countries, ({ many }) => ({
+  hotels: many(hotels),
+}));
+
+export const citiesRelations = relations(cities, ({ one }) => ({
+  country: one(countries, {
+    fields: [cities.countryId],
+    references: [countries.id],
+  }),
+}));
+
+export const activitiesRelations = relations(activities, ({ one }) => ({
+  country: one(countries, {
+    fields: [activities.countryId],
+    references: [countries.id],
+  }),
+  city: one(cities, {
+    fields: [activities.cityId],
+    references: [cities.id],
+  }),
+}));
+
+export const hotelsRelations = relations(hotels, ({ one, many }) => ({
+  country: one(countries, {
+    fields: [hotels.countryId],
+    references: [countries.id],
+  }),
+  city: one(cities, {
+    fields: [hotels.cityId],
+    references: [cities.id],
+  }),
+  bookingHotels: many(bookingHotels),
 }));
 
 export const toursRelations = relations(tours, ({ many }) => ({
@@ -284,6 +349,51 @@ export const bookingItinerariesRelations = relations(
   }),
 );
 
+export const representativesRelations = relations(
+  representatives,
+  ({ one }) => ({
+    country: one(countries, {
+      fields: [representatives.countryId],
+      references: [countries.id],
+    }),
+  }),
+);
+
+export const bookingHotelsRelations = relations(bookingHotels, ({ one }) => ({
+  hotel: one(hotels, {
+    fields: [bookingHotels.hotelId],
+    references: [hotels.id],
+  }),
+  booking: one(bookings, {
+    fields: [bookingHotels.bookingId],
+    references: [bookings.id],
+  }),
+}));
+
+export const bookingOptionalToursRelations = relations(
+  bookingOptionalTours,
+  ({ one }) => ({
+    booking: one(bookings, {
+      fields: [bookingOptionalTours.bookingId],
+      references: [bookings.id],
+    }),
+  }),
+);
+
+export const surveysRelations = relations(surveys, ({ one }) => ({
+  booking: one(bookings, {
+    fields: [surveys.bookingId],
+    references: [bookings.id],
+  }),
+}));
+
+export const reviewsRelations = relations(reviews, ({ one }) => ({
+  booking: one(bookings, {
+    fields: [reviews.bookingId],
+    references: [bookings.id],
+  }),
+}));
+
 export type SelectCountries = typeof countries.$inferSelect;
 export type SelectCities = typeof cities.$inferSelect;
 export type SelectGuides = typeof guides.$inferSelect;
@@ -300,6 +410,13 @@ export type SelectNotifications = typeof notifications.$inferSelect;
 export type SelectItineraries = typeof itineraries.$inferSelect;
 export type SelectBookingTours = typeof bookingTours.$inferSelect;
 export type SelectBookingItineraries = typeof bookingItineraries.$inferSelect;
+export type SelectBookingHotels = typeof bookingHotels.$inferSelect;
+export type SelectSurveys = typeof surveys.$inferSelect;
+export type SelectReviews = typeof reviews.$inferSelect;
+
+export type SelectBookingOptionalTours =
+  typeof bookingOptionalTours.$inferSelect;
+
 //With relation types
 export type SelectGuidesWithCountries = SelectGuides & {
   country: SelectCountries | null;
@@ -310,11 +427,19 @@ export type SelectToursWithItineraries = SelectTours & {
 export type SelectBookingToursWithItineraries = SelectBookingTours & {
   itineraries: SelectBookingItineraries[];
 };
-
+export type SelectBookingHotel = SelectBookingHotels & {
+  hotel: SelectHotels[];
+};
 export type SelectBookingWithItineraries = SelectBookings & {
   bookingTour: SelectBookingToursWithItineraries;
 };
-export type SelectBookingWithReservations = SelectBookings & {
+
+export type Bookings = SelectBookings & {
+  bookingTour: SelectBookingTours & {
+    itineraries: SelectBookingItineraries[];
+  };
+  bookingHotels: (SelectBookingHotels & { hotel: SelectHotels })[];
   reservations: SelectReservations[];
-  bookingTour: SelectBookingToursWithItineraries;
+  surveys: SelectSurveys[];
+  reviews: SelectReviews[];
 };

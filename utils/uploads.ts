@@ -16,7 +16,7 @@ export async function uploadPassports({
         ? supabase.storage
             .from("tourists passport")
             .upload(
-              `${internalBookingId}/${image.file?.name}-${date}`,
+              `${internalBookingId}/${date}-${image.file?.name}`,
               image.file,
             )
         : undefined,
@@ -26,7 +26,7 @@ export async function uploadPassports({
     res
       ? {
           url: `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/tourists%20passport/${res.data?.path}`,
-          name: `${passports[i]?.image?.file?.name}-${date}`,
+          name: `${date}-${passports[i]?.image?.file?.name}`,
         }
       : {
           url: passports[i]?.url ?? "",
@@ -45,6 +45,7 @@ export async function uploadFlightTickets<T>({
   internalBookingId: string;
   bucket: "flight tickets" | "international flights tickets";
 }) {
+  const date = Date.now();
   const res = await Promise.all(
     tickets
       .map(({ files }) =>
@@ -53,7 +54,7 @@ export async function uploadFlightTickets<T>({
               supabase.storage
                 .from(bucket)
                 .upload(
-                  `${internalBookingId}/${image.file?.name}-${Date.now()}`,
+                  `${internalBookingId}/${date}-${image.file?.name}`,
                   image.file,
                 ),
             )
@@ -96,7 +97,7 @@ export async function updateFlightTickets<T>({
         ? supabase.storage
             .from(bucket)
             .upload(
-              `${internalBookingId}/${file.image?.name}-${date}`,
+              `${internalBookingId}/${date}-${file.image?.name}`,
               file.image,
             )
         : undefined,

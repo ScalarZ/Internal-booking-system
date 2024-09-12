@@ -1,12 +1,138 @@
 {
-  "version": "5",
-  "dialect": "pg",
+  "version": "7",
+  "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "5",
-      "when": 1711971281136,
-      "tag": "0000_rapid_patriot",
+      "version": "7",
+      "when": 1725747356632,
+      "tag": "20240907221556_complete_moon_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1725778740974,
+      "tag": "20240908065900_icy_epoch",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1725778784515,
+      "tag": "20240908065944_complete_charles_xavier",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1725780567734,
+      "tag": "20240908072927_dashing_microbe",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1725801201216,
+      "tag": "20240908131321_cheerful_newton_destine",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1725867626277,
+      "tag": "20240909074026_bitter_glorian",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1725867995405,
+      "tag": "20240909074635_acoustic_mindworm",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1725871489908,
+      "tag": "20240909084449_damp_texas_twister",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1725872028668,
+      "tag": "20240909085348_steady_susan_delgado",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1725872053780,
+      "tag": "20240909085413_silly_ricochet",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1725872104983,
+      "tag": "20240909085504_melodic_wild_pack",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1725872121308,
+      "tag": "20240909085521_grey_carlie_cooper",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1725872153132,
+      "tag": "20240909085553_aspiring_sabretooth",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1725872191406,
+      "tag": "20240909085631_cloudy_stick",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1725872200948,
+      "tag": "20240909085640_handy_sumo",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1725875169366,
+      "tag": "20240909094609_tricky_wolverine",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1726035059373,
+      "tag": "20240911061059_absurd_kabuki",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1726129540756,
+      "tag": "20240912082540_happy_talon",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1726137927106,
+      "tag": "20240912104527_useful_sir_ram",
       "breakpoints": true
     }
   ]

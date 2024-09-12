@@ -1,0 +1,1 @@
+ALTER TABLE "booking_hotels" ALTER COLUMN "hotel_id" SET DATA TYPE uuid;

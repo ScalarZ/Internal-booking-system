@@ -56,3 +56,8 @@ type ArrivalDeparturePair<T> = {
   files?: { image?: ImageType; name?: string; url?: string }[];
   urls: Ticket[];
 };
+
+interface UploadedFile {
+  id: string;
+  file: File;
+}

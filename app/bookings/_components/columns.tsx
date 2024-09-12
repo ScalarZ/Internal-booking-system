@@ -1,9 +1,9 @@
 "use client";
 
-import { SelectBookingWithReservations } from "@/drizzle/schema";
+import { Bookings } from "@/drizzle/schema";
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { Check, Edit, Trash, X } from "lucide-react";
+import { Check, Trash, X } from "lucide-react";
 
 export function columns({
   setInitialValues,
@@ -12,12 +12,10 @@ export function columns({
   type,
 }: {
   type?: "booking" | "reservation" | "aviation";
-  setInitialValues: (
-    initialValues: SelectBookingWithReservations | null,
-  ) => void;
+  setInitialValues: (initialValues: Bookings | null) => void;
   setIsEditModalOpen: (value: boolean) => void;
   setIsDeleteModalOpen: (value: boolean) => void;
-}): ColumnDef<SelectBookingWithReservations>[] {
+}): ColumnDef<Bookings>[] {
   return [
     {
       accessorKey: "id",
@@ -99,12 +97,12 @@ export function columns({
       header: "Hotels",
       cell: ({ row }) => (
         <ul className="flex gap-x-1 text-white">
-          {row.original.hotels?.map((name, i) => (
+          {row.original.bookingHotels?.map(({ hotel }, i) => (
             <li
               key={i}
               className="flex items-center gap-x-1 rounded-full bg-blue-500 px-2 py-1 text-xs font-semibold"
             >
-              {name}
+              {hotel.name}
             </li>
           ))}
         </ul>

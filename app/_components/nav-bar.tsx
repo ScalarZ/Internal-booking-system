@@ -21,7 +21,13 @@ export default async function Navbar({ user }: { user: User | null }) {
         },
       )}
     >
-      <Image src={Logo} alt="promotravel-logo" width={124} loading="eager" />
+      <Image
+        src={Logo}
+        alt="promotravel-logo"
+        width={124}
+        loading="eager"
+        priority
+      />
       <div className="flex items-center gap-x-4">
         {user ? (
           <div className="flex justify-center gap-x-4">

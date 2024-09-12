@@ -5,7 +5,9 @@ import React, { useState } from "react";
 import { DataTable } from "../../_components/data-table";
 import { columns } from "./columns";
 import EditModal from "../../_components/edit-modal";
-import DeleteModal from "../../_components/delete-modal";
+import { useDeleteModal } from "@/context/delete-modal-context";
+import DeleteModal from "@/app/_components/delete-modal";
+import { deleteCity } from "@/utils/db-queries/city";
 
 export default function Cities({
   cities,
@@ -17,7 +19,16 @@ export default function Cities({
   const [initialValues, setInitialValues] =
     useState<SelectCitiesWithCountries | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const { setIsDeleteModalOpen } = useDeleteModal();
+  async function handleDeleteCity() {
+    try {
+      await deleteCity({ id: initialValues?.id });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setInitialValues(null);
+    }
+  }
 
   return (
     <div className="py-8">
@@ -39,15 +50,14 @@ export default function Cities({
           setIsOpen={setIsEditModalOpen}
         />
       )}
-      {initialValues && (
-        <DeleteModal
-          type="city"
-          id={initialValues.id}
-          setInitialValues={setInitialValues}
-          isOpen={isDeleteModalOpen}
-          setIsOpen={setIsDeleteModalOpen}
-        />
-      )}
+      <DeleteModal title="Delete City" onDelete={handleDeleteCity}>
+        <div>
+          <p>Are you sure you want to delete this city?</p>
+          <p className="text-sm text-neutral-500">
+            Anything related to this city will be deleted
+          </p>
+        </div>
+      </DeleteModal>
     </div>
   );
 }

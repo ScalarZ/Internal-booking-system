@@ -7,7 +7,6 @@ import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
 import getQueryClient from "@/utils/get-query-provider";
 import { getNationalities } from "@/utils/db-queries/nationality";
 import { getNileCruises } from "@/utils/db-queries/nile-cruise";
-import CreateBooking from "./_components/create-booking";
 
 export default async function BookingPage() {
   const [countries, companies, tours, nationalities, nileCruises] =
@@ -27,12 +26,6 @@ export default async function BookingPage() {
   return (
     <HydrationBoundary state={dehydratedState}>
       <div className="relative p-4">
-        <CreateBooking
-          nileCruises={nileCruises}
-          companies={companies}
-          nationalities={nationalities}
-          tours={tours}
-        />
         <Bookings
           nileCruises={nileCruises}
           countries={countries}

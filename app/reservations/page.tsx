@@ -27,7 +27,6 @@ export default async function BookingPage() {
     return (
       <HydrationBoundary state={dehydratedState}>
         <div className="relative p-4">
-          <div className="mb-16"></div>
           <Bookings
             nileCruises={nileCruises}
             countries={countries}

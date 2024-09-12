@@ -60,10 +60,12 @@ export default function HotelsSection({
                     variant="outline"
                     role="combobox"
                     aria-expanded={hotelsOpen}
-                    className="w-full justify-between overflow-hidden"
+                    className="w-full justify-between overflow-hidden whitespace-nowrap"
                   >
                     {field.value?.length
-                      ? field.value?.map((hotel) => capitalize(`${hotel}, `))
+                      ? field.value?.map((hotel) =>
+                          capitalize(`${hotel.name}, `),
+                        )
                       : "Select hotels"}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
@@ -73,43 +75,31 @@ export default function HotelsSection({
                     <CommandInput placeholder="Search hotel..." />
                     <CommandEmpty>No hotel found.</CommandEmpty>
                     <CommandGroup>
-                      {citiesHotels?.map(({ id, name }) => (
-                        <CommandItem key={id}>
-                          <FormField
-                            control={form.control}
-                            name="hotels"
-                            render={({ field }) => {
-                              return (
-                                <FormItem
-                                  key={name}
-                                  className="flex flex-row items-start space-x-3 space-y-0"
-                                >
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(
-                                        name ?? "",
-                                      )}
-                                      onCheckedChange={(checked) => {
-                                        return checked
-                                          ? field.onChange([
-                                              ...field.value,
-                                              name,
-                                            ])
-                                          : field.onChange(
-                                              field.value?.filter(
-                                                (value) => value !== name,
-                                              ),
-                                            );
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormLabel className="font-normal">
-                                    {name}
-                                  </FormLabel>
-                                </FormItem>
-                              );
-                            }}
-                          />
+                      {citiesHotels?.map((props) => (
+                        <CommandItem key={props.id}>
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={
+                                  field.value?.findIndex(
+                                    (hotel) => hotel.name === props.name,
+                                  ) !== -1
+                                }
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...field.value, props])
+                                    : field.onChange(
+                                        field.value?.filter(
+                                          (hotel) => hotel.name !== props.name,
+                                        ),
+                                      );
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              {props.name}
+                            </FormLabel>
+                          </FormItem>
                         </CommandItem>
                       ))}
                     </CommandGroup>

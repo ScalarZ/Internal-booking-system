@@ -10,22 +10,17 @@ import {
 } from "@/components/ui/dialog";
 import { useState } from "react";
 import { Loader } from "lucide-react";
-import { SelectBookingWithReservations } from "@/drizzle/schema";
 import { deleteBooking } from "@/utils/db-queries/booking";
+import { useBooking } from "@/context/booking-context";
 
 export default function DeleteBookingModal({
-  isOpen,
-  setIsOpen,
   bookingId,
-  setInitialValues,
 }: {
-  isOpen: boolean;
-  setIsOpen: (value: boolean) => void;
   bookingId: number;
-  setInitialValues: (value: SelectBookingWithReservations | null) => void;
 }) {
   const [isLoading, setIsLoading] = useState(false);
 
+  const { isDeleteModalOpen, setIsDeleteModalOpen } = useBooking();
   async function handleDeleteBooking() {
     setIsLoading(true);
     try {
@@ -34,19 +29,11 @@ export default function DeleteBookingModal({
       console.error(err);
     } finally {
       setIsLoading(false);
-      setIsOpen(false);
-      setInitialValues(null);
     }
   }
 
   return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(value) => {
-        setIsOpen(value);
-        setInitialValues(null);
-      }}
-    >
+    <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Delete Booking</DialogTitle>

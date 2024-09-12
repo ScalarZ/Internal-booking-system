@@ -2,7 +2,6 @@
 
 import {
   ColumnDef,
-  Row,
   SortingState,
   flexRender,
   getCoreRowModel,
@@ -20,7 +19,8 @@ import {
 } from "@/components/ui/table";
 import { useState } from "react";
 import {
-  SelectBookingWithReservations,
+  Bookings,
+  SelectBookingOptionalTours,
   SelectReservations,
 } from "@/drizzle/schema";
 import { cn } from "@/lib/utils";
@@ -67,7 +67,9 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   type?: "booking" | "reservation" | "aviation";
-  onRowClick?: (row: SelectBookingWithReservations) => void;
+  onRowClick?: (
+    row: Bookings & { optionalTour?: SelectBookingOptionalTours },
+  ) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -116,54 +118,40 @@ export function DataTable<TData, TValue>({
               <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
-                onClick={() =>
-                  onRowClick?.(row.original as SelectBookingWithReservations)
-                }
+                onClick={() => onRowClick?.(row.original as Bookings)}
                 className={cn("bg-white", {
                   "bg-green-100":
                     (type === "reservation" &&
                       !!row.original &&
                       getReservationRowStatus(
-                        (
-                          row.original as unknown as SelectBookingWithReservations
-                        ).reservations,
+                        (row.original as unknown as Bookings).reservations,
                       ) === "success") ||
                     (type === "aviation" &&
                       !!row.original &&
                       getAviationRowStatus(
-                        (
-                          row.original as unknown as SelectBookingWithReservations
-                        ).domesticFlights,
+                        (row.original as unknown as Bookings).domesticFlights,
                       ) === "success"),
                   "bg-yellow-100":
                     (type === "reservation" &&
                       !!row.original &&
                       getReservationRowStatus(
-                        (
-                          row.original as unknown as SelectBookingWithReservations
-                        ).reservations,
+                        (row.original as unknown as Bookings).reservations,
                       ) === "warning") ||
                     (type === "aviation" &&
                       !!row.original &&
                       getAviationRowStatus(
-                        (
-                          row.original as unknown as SelectBookingWithReservations
-                        ).domesticFlights,
+                        (row.original as unknown as Bookings).domesticFlights,
                       ) === "warning"),
                   "bg-red-100":
                     (type === "reservation" &&
                       !!row.original &&
                       getReservationRowStatus(
-                        (
-                          row.original as unknown as SelectBookingWithReservations
-                        ).reservations,
+                        (row.original as unknown as Bookings).reservations,
                       ) === "danger") ||
                     (type === "aviation" &&
                       !!row.original &&
                       getAviationRowStatus(
-                        (
-                          row.original as unknown as SelectBookingWithReservations
-                        ).domesticFlights,
+                        (row.original as unknown as Bookings).domesticFlights,
                       ) === "danger"),
                 })}
               >

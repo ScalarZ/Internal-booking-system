@@ -2,6 +2,7 @@
 
 import { db } from "@/drizzle/db";
 import {
+  bookingOptionalTours,
   itineraries,
   SelectItineraries,
   SelectTours,
@@ -12,6 +13,26 @@ import { revalidatePath } from "next/cache";
 
 export async function getTours() {
   return db.query.tours.findMany({ with: { itineraries: true } });
+}
+
+export async function getToursWithBooking() {
+  return await db.query.bookingOptionalTours.findMany({
+    with: {
+      booking: {
+        with: {
+          reservations: true,
+          bookingTour: {
+            with: { itineraries: true },
+          },
+          bookingHotels: {
+            with: {
+              hotel: true,
+            },
+          },
+        },
+      },
+    },
+  });
 }
 
 export async function addTour({
@@ -65,4 +86,12 @@ export async function getTourCountries(tourId: string) {
     with: { itineraries: true },
     where: ({ id }) => eq(id, tourId),
   });
+}
+
+export async function updateDoneStatus(tour: { id: number; done: boolean }) {
+  await db
+    .update(bookingOptionalTours)
+    .set({ done: tour.done })
+    .where(eq(bookingOptionalTours.id, tour.id));
+  revalidatePath("/orders");
 }
