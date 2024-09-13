@@ -320,6 +320,18 @@ export default function TourModal({
     }
   }, []);
 
+  async function handleSelectCountries(country: SelectCountries) {
+    if (selectedCountries.some(({ id }) => id === country.id)) return;
+    setSelectedCountries((prev) => [...prev, country]);
+    await getCities([...selectedCountries.map(({ id }) => id), country.id]);
+  }
+
+  useEffect(() => {
+    if (modalMode === "edit") {
+      getCities([...selectedCountries.map(({ id }) => id)]);
+    }
+  }, [modalMode]);
+
   return (
     <Dialog
       open={isOpen}
@@ -338,12 +350,12 @@ export default function TourModal({
           </DialogTitle>
         </DialogHeader>
         <div className="mb-4">
-          <Label htmlFor="country">Name</Label>
+          <Label htmlFor="tour">Name</Label>
           <Input
             className="mt-2"
-            id="country"
-            name="country"
-            placeholder="Enter a country name"
+            id="tour"
+            name="tour"
+            placeholder="Enter a tour name"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
@@ -355,14 +367,7 @@ export default function TourModal({
         <div>
           <Select<SelectCountries>
             list={countriesList}
-            onClick={async (country: SelectCountries) => {
-              if (selectedCountries.some(({ id }) => id === country.id)) return;
-              setSelectedCountries((prev) => [...prev, country]);
-              await getCities([
-                ...selectedCountries.map(({ id }) => id),
-                country.id,
-              ]);
-            }}
+            onClick={handleSelectCountries}
             type="country"
           />
           {!selectedCountries?.length && errorMessage.countryError && (
@@ -561,6 +566,19 @@ export default function TourModal({
                         ))}
                       </ul>
                     </div>
+                    <div className="flex items-center gap-x-2 text-sm">
+                      <span className="font-medium">Optional Activities:</span>
+                      <ul className="flex gap-x-1 text-white">
+                        {optionalActivities?.map(({ id, name }) => (
+                          <li
+                            key={id}
+                            className="flex items-center gap-x-1 rounded-full bg-neutral-900 px-2 py-0.5 text-sm font-medium"
+                          >
+                            {name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                   <div className="flex gap-x-2">
                     <Edit
@@ -603,7 +621,13 @@ export default function TourModal({
           />
         )}
         <DialogFooter className="pt-4">
-          <Button type="button" variant={"outline"}>
+          <Button
+            type="button"
+            variant={"outline"}
+            onClick={() => {
+              setIsOpen(false);
+            }}
+          >
             Cancel
           </Button>
           <Button className="flex gap-x-1" onClick={handleAddTour}>

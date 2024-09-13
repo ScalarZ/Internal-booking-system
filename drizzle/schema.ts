@@ -86,7 +86,9 @@ export const tours = pgTable("tours", {
 
 export const itineraries = pgTable("itineraries", {
   id: serial("id").primaryKey(),
-  tourId: uuid("tour_id").references(() => tours.id),
+  tourId: uuid("tour_id").references(() => tours.id, {
+    onDelete: "cascade",
+  }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   day: text("day"),

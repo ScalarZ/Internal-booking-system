@@ -90,9 +90,12 @@ function Content({
         />
       </div>
       <DataTable
-        //@ts-ignore
+        // @ts-ignore
         columns={columns({
           type,
+          setBooking,
+          setIsEditModalOpen,
+          setIsDeleteModalOpen,
         })}
         data={data}
         onRowClick={(row: BookingsType) => {

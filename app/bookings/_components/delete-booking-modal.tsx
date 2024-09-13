@@ -29,6 +29,7 @@ export default function DeleteBookingModal({
       console.error(err);
     } finally {
       setIsLoading(false);
+      setIsDeleteModalOpen(false);
     }
   }
 
@@ -42,7 +43,7 @@ export default function DeleteBookingModal({
           <p>Are you sure you want to delete this booking?</p>
         </div>
         <DialogFooter className="pt-4">
-          <Button type="button" variant={"outline"}>
+          <Button type="button" variant={"outline"} onClick={() => setIsDeleteModalOpen(false)}>
             Cancel
           </Button>
           <Button

@@ -47,20 +47,28 @@ export default function BookingModal({
 }) {
   const {
     booking,
+    setBooking,
     isEditModalOpen,
     setIsEditModalOpen,
     isAddModalOpen,
     setIsAddModalOpen,
   } = useBooking();
 
+  function handleChange(value: boolean) {
+    if (modalMode === "edit") {
+      setIsEditModalOpen(value);
+      setBooking(undefined);
+    } else {
+      setIsAddModalOpen(value);
+    }
+  }
+
   const pathname = usePathname();
 
   return (
     <Dialog
       open={modalMode === "add" ? isAddModalOpen : isEditModalOpen}
-      onOpenChange={
-        modalMode === "add" ? setIsAddModalOpen : setIsEditModalOpen
-      }
+      onOpenChange={handleChange}
     >
       {pathname === "/bookings" && modalMode === "add" && (
         <div>

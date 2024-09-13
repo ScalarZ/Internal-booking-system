@@ -131,7 +131,7 @@ export default function BookingSection({
                               Math.random() * 36
                             )
                               .toString(36)
-                              .substring(2, 7)}`;
+                              .substring(2, 7)}`.toUpperCase();
                             form.setValue(
                               "internalBookingId",
                               name === field.value ? "" : id,

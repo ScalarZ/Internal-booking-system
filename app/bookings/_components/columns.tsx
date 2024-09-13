@@ -6,13 +6,13 @@ import { format } from "date-fns";
 import { Check, Trash, X } from "lucide-react";
 
 export function columns({
-  setInitialValues,
+  setBooking,
   setIsEditModalOpen,
   setIsDeleteModalOpen,
   type,
 }: {
   type?: "booking" | "reservation" | "aviation";
-  setInitialValues: (initialValues: Bookings | null) => void;
+  setBooking: (initialValues: Bookings | undefined) => void;
   setIsEditModalOpen: (value: boolean) => void;
   setIsDeleteModalOpen: (value: boolean) => void;
 }): ColumnDef<Bookings>[] {
@@ -213,7 +213,7 @@ export function columns({
                 className="cursor-pointer text-red-500"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setInitialValues(row.original);
+                  setBooking(row.original);
                   setIsDeleteModalOpen(true);
                   setIsEditModalOpen(false);
                 }}
