@@ -30,7 +30,7 @@ import { feedbackSchema } from "@/utils/zod-schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTitle } from "@radix-ui/react-dialog";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronsUpDown, XCircle } from "lucide-react";
+import { ChevronsUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";

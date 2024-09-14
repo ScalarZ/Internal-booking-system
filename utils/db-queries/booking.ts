@@ -48,6 +48,7 @@ export async function getBookings() {
       reviews: true,
       surveys: true,
     },
+    orderBy: ({ updatedAt }, { desc }) => desc(updatedAt),
   });
 }
 export async function getBooking(bookingId: number) {
@@ -118,7 +119,7 @@ export async function addBookings(
     internationalFlightTicketsPaths: Ticket[][];
   },
 ) {
-  const bookingRow = await db
+  const [bookingRow] = await db
     .insert(bookings)
     .values({
       ...booking,
@@ -134,16 +135,16 @@ export async function addBookings(
     })
     .returning();
 
-  const bookingTourRow = await db
+  const [bookingTourRow] = await db
     .insert(bookingTours)
-    .values({ bookingId: bookingRow[0].id, ...bookingTour })
+    .values({ bookingId: bookingRow.id, ...bookingTour })
     .returning();
 
   if (hotels.length)
     await db.insert(bookingHotels).values(
       hotels.map((hotel) => ({
         hotelId: hotel.id,
-        bookingId: bookingRow[0].id,
+        bookingId: bookingRow.id,
       })),
     );
 
@@ -151,15 +152,14 @@ export async function addBookings(
     await db.insert(bookingItineraries).values(
       bookingTour.itineraries.map(({ id, ...itinerary }) => ({
         ...itinerary,
-        tourId: bookingTourRow[0].id,
+        tourId: bookingTourRow.id,
       })),
     );
-
   if (lists.reservationsList?.length)
     await addReservations(
       lists.reservationsList?.map((reservation) => ({
         ...reservation,
-        bookingId: bookingRow[0].id,
+        bookingId: bookingRow.id,
       })),
     );
   // return await db.insert(notifications).values({
@@ -239,11 +239,11 @@ export async function updateBooking(
         bookingId: booking.id,
       })),
     );
-  if (lists.reservationsList.every(({ finalPrice }) => finalPrice))
-    await db.insert(notifications).values({
-      type: "reservation",
-      message: "Booking with id " + booking.id + " has received a final price",
-    });
+  // if (lists.reservationsList.every(({ finalPrice }) => finalPrice))
+  //   await db.insert(notifications).values({
+  //     type: "reservation",
+  //     message: "Booking with id " + booking.id + " has received a final price",
+  //   });
   revalidatePath("/bookings");
 }
 
@@ -273,13 +273,15 @@ export async function addBookingOptionalTour(
 export async function addSurvey(
   value: Omit<SelectSurveys, "id" | "createdAt">,
 ) {
-  return await db.insert(surveys).values(value).returning();
+  await db.insert(surveys).values(value).returning();
+  revalidatePath("/search-screen");
 }
 
 export async function addReview(
   value: Omit<SelectSurveys, "id" | "createdAt">,
 ) {
-  return await db.insert(reviews).values(value).returning();
+  await db.insert(reviews).values(value).returning();
+  revalidatePath("/search-screen");
 }
 
 export async function getWeeklyItineraries(date: Date) {

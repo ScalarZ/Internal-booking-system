@@ -51,8 +51,8 @@ type Ticket = { url?: string; name?: string; image?: ImageType };
 
 type ArrivalDeparturePair<T> = {
   id: string;
-  arrival: { arrivalDate?: Date; arrivalTime?: Date } & T;
-  departure: { departureDate?: Date; departureTime?: Date } & T;
+  arrival: { arrivalDate?: Date; arrivalTime?: string } & T;
+  departure: { departureDate?: Date; departureTime?: string } & T;
   files?: { image?: ImageType; name?: string; url?: string }[];
   urls: Ticket[];
 };

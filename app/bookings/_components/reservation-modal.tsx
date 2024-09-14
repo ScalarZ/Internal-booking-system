@@ -238,7 +238,7 @@ export default function ReservationModal({
                     <Button
                       variant={"outline"}
                       className={cn(
-                        "max-w-[300px] pl-3 text-left font-normal",
+                        "max-w-[300px] whitespace-pre-line pl-3 text-left  font-normal ",
                         !dateRange.from &&
                           !dateRange.to &&
                           "text-muted-foreground",

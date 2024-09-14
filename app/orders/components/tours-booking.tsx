@@ -10,7 +10,6 @@ import {
   SelectBookingToursWithItineraries,
   Bookings,
 } from "@/drizzle/schema";
-import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BookingProvider, useBooking } from "@/context/booking-context";
 import FilterBookings from "@/app/bookings/_components/filter-bookings";

@@ -30,7 +30,10 @@ export default function ItineraryCard({
   guides: SelectGuidesWithCountries[];
 }) {
   return (
-    <div className="flex w-full grow flex-col gap-y-1 border p-2" key={id}>
+    <div
+      className="flex w-full max-w-[293px] grow flex-col gap-y-1 overflow-auto border p-2"
+      key={id}
+    >
       <span className="font-medium">Day {i + 1}</span>
       <span className="text-sm">{day}</span>
       <div className="flex items-start gap-x-2 text-sm">

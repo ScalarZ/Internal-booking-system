@@ -119,7 +119,10 @@ const WeeklyCalendar = ({
                 {booking.internalBookingId}
               </div>
               {calculatePreviousDays(booking).map((_, i) => (
-                <div key={i} className="w-full grow border p-2"></div>
+                <div
+                  key={i}
+                  className="w-full max-w-[293px] grow overflow-auto border p-2"
+                ></div>
               ))}
               {booking.bookingTour?.itineraries.map((itinerary, i) => (
                 <ItineraryCard
@@ -130,7 +133,10 @@ const WeeklyCalendar = ({
                 />
               ))}
               {calculateNextDays(booking).map((_, i) => (
-                <div key={i} className="w-full grow border p-2"></div>
+                <div
+                  key={i}
+                  className="w-full max-w-[293px] grow overflow-auto border p-2"
+                ></div>
               ))}
             </div>
           );

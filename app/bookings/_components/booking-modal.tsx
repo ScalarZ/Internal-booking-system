@@ -26,8 +26,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { updateDoneStatus } from "@/utils/db-queries/tour";
-import { usePathname } from "next/navigation";
 import FeedbackViewModal from "./feedback-view-modal";
+import ForPage from "./for-page";
 
 export default function BookingModal({
   companies,
@@ -63,36 +63,35 @@ export default function BookingModal({
     }
   }
 
-  const pathname = usePathname();
-
   return (
     <Dialog
       open={modalMode === "add" ? isAddModalOpen : isEditModalOpen}
       onOpenChange={handleChange}
     >
-      {pathname === "/bookings" && modalMode === "add" && (
-        <div>
+      {modalMode === "add" && (
+        <ForPage page="/bookings" type="single">
           <Button onClick={() => setIsAddModalOpen(true)}>Add</Button>
-        </div>
+        </ForPage>
       )}
-
       <DialogContent className="max-h-screen min-w-[1360px] gap-y-4 overflow-y-auto">
         <DialogHeader className="flex-row items-center justify-between pt-1 capitalize">
           <DialogTitle>
             {modalMode === "add" ? "Add New" : "Edit"} Booking
           </DialogTitle>
-          {pathname === "/search-screen" && modalMode === "edit" && (
+          <ForPage type="single" page={"/search-screen"}>
             <div className="flex gap-x-2">
               <OptionalTourModal />
               <FeedbackModal type="survey" />
               <FeedbackModal type="review" />
             </div>
-          )}
-          {booking && pathname === "/bookings" && modalMode === "edit" && (
-            <div className="flex gap-x-2">
-              <FeedbackViewModal type="survey" feedbacks={booking.surveys} />
-              <FeedbackViewModal type="review" feedbacks={booking.reviews} />
-            </div>
+          </ForPage>
+          {!!booking && (
+            <ForPage type="multiple" page={["/bookings", "/search-screen"]}>
+              <div className="flex gap-x-2">
+                <FeedbackViewModal type="survey" feedbacks={booking.surveys} />
+                <FeedbackViewModal type="review" feedbacks={booking.reviews} />
+              </div>
+            </ForPage>
           )}
         </DialogHeader>
         {!!booking?.optionalTour && (

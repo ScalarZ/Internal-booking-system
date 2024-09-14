@@ -2,28 +2,13 @@
 
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-
-import {
-  Form,
-  FormControl,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-
+import { Form } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarIcon, Loader, Upload, X } from "lucide-react";
+import { Loader } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { cn, listItineraryCities } from "@/lib/utils";
+import { listItineraryCities } from "@/lib/utils";
 import { useCallback, useEffect, useState } from "react";
-import { Calendar } from "@/components/ui/calendar";
 import { addDays, format } from "date-fns";
 import {
   Bookings,
@@ -38,46 +23,24 @@ import {
 } from "@/drizzle/schema";
 import { addBookings, updateBooking } from "@/utils/db-queries/booking";
 import { getCitiesHotels } from "@/utils/db-queries/hotel";
-import { generateRandomId } from "@/utils/generate-random-id";
 import {
   updateFlightTickets,
   uploadFlightTickets,
   uploadPassports,
 } from "@/utils/uploads";
-import UploadImage from "../upload-image";
 import ItineraryModal from "../itinerary-modal";
 import Reservations from "../reservations";
 import BookingSection from "./booking-section";
 import { formSchema } from "@/utils/zod-schema";
 import { Reservation, Itinerary } from "@/types_";
 import { ToursSection } from "./tours-section";
-import HotelsSection from "./hotels-section";
-import { Switch } from "@/components/ui/switch";
 import AlertModal from "./alert";
 import { useBooking } from "@/context/booking-context";
-
-const flightDefaultValue = {
-  arrival: {
-    arrivalDate: undefined,
-    arrivalTime: undefined,
-    flightNumber: undefined,
-    from: undefined,
-    to: undefined,
-    issued: false,
-    included: true,
-  },
-  departure: {
-    departureDate: undefined,
-    departureTime: undefined,
-    flightNumber: undefined,
-    from: undefined,
-    to: undefined,
-    issued: false,
-    included: true,
-  },
-  files: [],
-  urls: [],
-};
+import ForPage from "../for-page";
+import { flightDefaultValue } from "@/utils/default-values";
+import InternationalFlights from "./international-flights";
+import DomesticFlights from "./domestic-flights";
+import HotelsSection from "./hotels-section";
 
 export default function From({
   tours,
@@ -94,7 +57,7 @@ export default function From({
   type?: "booking" | "reservation" | "aviation";
   modalMode: "edit" | "add";
 }) {
-  const { booking, setBooking, setIsEditModalOpen } = useBooking();
+  const { booking, closeModal } = useBooking();
   const [name, setName] = useState("");
   const [internalBookingId, setInternalBookingId] = useState(
     booking?.internalBookingId ?? "",
@@ -123,40 +86,7 @@ export default function From({
   );
   const [domesticFlights, setDomesticFlights] = useState<
     (ArrivalDeparturePair<DomesticFlight> & { src?: string })[]
-  >(
-    booking?.domesticFlights ?? [
-      {
-        id: "v1rlr7m0fb",
-        arrival: {
-          arrivalDate: undefined,
-          arrivalTime: undefined,
-          flightNumber: undefined,
-          from: undefined,
-          to: undefined,
-          issued: false,
-          included: true,
-        },
-        departure: {
-          departureDate: undefined,
-          departureTime: undefined,
-          flightNumber: undefined,
-          from: undefined,
-          to: undefined,
-          issued: false,
-          included: true,
-        },
-        files: [],
-        urls: [],
-        src: undefined,
-      },
-    ],
-  );
-  const [reservationsList, setReservationsList] = useState<Reservation[]>(
-    booking?.reservations?.map(({ city, ...props }) => ({
-      ...props,
-      city: typeof city === "string" ? JSON.parse(city) : city,
-    })) ?? [],
-  );
+  >(booking?.domesticFlights ?? [flightDefaultValue]);
   const [internationalFlights, setInternationalFlights] = useState<
     (ArrivalDeparturePair<InternationalFlight> & { src?: string })[]
   >(
@@ -182,7 +112,12 @@ export default function From({
       },
     ],
   );
-
+  const [reservationsList, setReservationsList] = useState<Reservation[]>(
+    booking?.reservations?.map(({ city, ...props }) => ({
+      ...props,
+      city: typeof city === "string" ? JSON.parse(city) : city,
+    })) ?? [],
+  );
   const [itineraryInitialValues, setItineraryInitialValues] =
     useState<Itinerary | null>(null);
 
@@ -227,10 +162,6 @@ export default function From({
           status: true,
         },
   });
-
-  function closeModal() {
-    setIsAlertModalOpen(false);
-  }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -311,7 +242,6 @@ export default function From({
         })),
       };
       const hotels = values.hotels;
-
       if (modalMode === "add")
         await addBookings(
           {
@@ -359,9 +289,8 @@ export default function From({
       console.error(error);
     } finally {
       setIsLoading(false);
-      form.reset();
       closeModal();
-      setBooking?.(undefined);
+      form.reset();
     }
   }
 
@@ -415,686 +344,76 @@ export default function From({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <BookingSection
-          form={form}
-          companies={companies}
-          name={name}
-          nationalities={nationalities}
-          passports={passports}
-          touristsNames={touristsNames}
-          setName={setName}
-          setPassports={setPassports}
-          setInternalBookingId={setInternalBookingId}
-          setTouristsNames={setTouristsNames}
-        />
-        <ToursSection
-          form={form}
-          itineraries={itineraries}
-          listCitiesHotels={listCitiesHotels}
-          tourCountries={tourCountries}
-          tours={tours}
-          setIsEditItineraryModalOpen={setIsEditItineraryModalOpen}
-          setIsItineraryModalOpen={setIsItineraryModalOpen}
-          setItineraries={setItineraries}
-          setItineraryInitialValues={setItineraryInitialValues}
-          setTourCities={setTourCities}
-          setTourCountries={setTourCountries}
-        />
-        <HotelsSection
-          form={form}
-          citiesHotels={citiesHotels}
-          nileCruises={nileCruises}
-        />
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold text-sky-900">Flights</h2>
-          <h3 className="pb-2 text-xl font-semibold">International Flights</h3>
-          <div className="flex flex-col gap-y-4">
-            {internationalFlights?.map((flight, i) => (
-              <div key={flight.id} className="flex gap-x-4">
-                <div className="flex flex-grow flex-col gap-y-4">
-                  <div className="flex gap-x-4">
-                    <FormItem className=" flex flex-col justify-start">
-                      <FormLabel>Arrival Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              type="button"
-                              variant={"outline"}
-                              className={cn(
-                                "w-[160px] pl-3 text-left font-normal",
-                                !flight.arrival.arrivalDate &&
-                                  "text-muted-foreground",
-                              )}
-                            >
-                              {flight.arrival.arrivalDate ? (
-                                `${format(flight.arrival.arrivalDate, "PPP")}`
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={flight.arrival.arrivalDate}
-                            onSelect={(value) => {
-                              setInternationalFlights((prev) => {
-                                prev[i].arrival.arrivalDate = value;
-                                return [...prev];
-                              });
-                            }}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </FormItem>
-                    <FormItem className="relative flex flex-col justify-start">
-                      <FormLabel>Arrival Time</FormLabel>
-                      <div className="absolute left-1 top-5 bg-white px-6 py-1 text-sm">
-                        {internationalFlights[i].arrival.arrivalTime
-                          ? format(
-                              internationalFlights[i].arrival.arrivalTime!,
-                              "HH:mm",
-                            )
-                          : "--:--"}
-                      </div>
-                      <Input
-                        type="time"
-                        onChange={(e) =>
-                          setInternationalFlights((prev) => {
-                            prev[i].arrival.arrivalTime =
-                              e.target.valueAsDate ?? undefined;
-                            return [...prev];
-                          })
-                        }
-                      />
-                    </FormItem>
-                    <FormItem className="flex flex-grow flex-col justify-start">
-                      <FormLabel>Number</FormLabel>
-                      <FormControl>
-                        <Input
-                          defaultValue={flight.arrival.flightNumber}
-                          onChange={(e) =>
-                            setInternationalFlights((prev) => {
-                              prev[i].arrival.flightNumber = e.target.value;
-                              return [...prev];
-                            })
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                    <FormItem className="flex flex-grow flex-col justify-start">
-                      <FormLabel>Destination</FormLabel>
-                      <FormControl>
-                        <Input
-                          defaultValue={flight.arrival.destinations}
-                          onChange={(e) =>
-                            setInternationalFlights((prev) => {
-                              prev[i].arrival.destinations = e.target.value;
-                              return [...prev];
-                            })
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                    <FormItem className="flex flex-grow flex-col justify-start">
-                      <FormLabel>Reference ticket</FormLabel>
-                      <FormControl>
-                        <Input
-                          defaultValue={flight.arrival.referenceTicket}
-                          onChange={(e) =>
-                            setInternationalFlights((prev) => {
-                              prev[i].arrival.referenceTicket = e.target.value;
-                              return [...prev];
-                            })
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  </div>
-                  <div className="flex gap-x-4">
-                    <FormItem className="flex flex-col justify-start">
-                      <FormLabel>Departure Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              type="button"
-                              variant={"outline"}
-                              className={cn(
-                                "w-[160px] pl-3 text-left font-normal",
-                                !flight.departure.departureDate &&
-                                  "text-muted-foreground",
-                              )}
-                            >
-                              {flight.departure.departureDate ? (
-                                `${format(flight.departure.departureDate, "PPP")}`
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={flight.departure.departureDate}
-                            onSelect={(value) => {
-                              setInternationalFlights((prev) => {
-                                prev[i].departure.departureDate = value;
-                                return [...prev];
-                              });
-                            }}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </FormItem>
-                    <FormItem className="relative flex flex-col justify-start">
-                      <FormLabel>Departure Time</FormLabel>
-                      <div className="absolute left-1 top-5 bg-white px-6 py-1 text-sm">
-                        {internationalFlights[i].departure.departureTime
-                          ? format(
-                              internationalFlights[i].departure.departureTime!,
-                              "HH:mm",
-                            )
-                          : "--:--"}
-                      </div>
-                      <Input
-                        type="time"
-                        onChange={(e) =>
-                          setInternationalFlights((prev) => {
-                            prev[i].departure.departureTime =
-                              e.target.valueAsDate ?? undefined;
-                            return [...prev];
-                          })
-                        }
-                      />
-                    </FormItem>
-                    <FormItem className="flex flex-grow flex-col justify-start">
-                      <FormLabel>Number</FormLabel>
-                      <FormControl>
-                        <Input
-                          defaultValue={flight.departure.flightNumber}
-                          onChange={(e) =>
-                            setInternationalFlights((prev) => {
-                              prev[i].departure.flightNumber = e.target.value;
-                              return [...prev];
-                            })
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                    <FormItem className="flex flex-grow flex-col justify-start">
-                      <FormLabel>Destination</FormLabel>
-                      <FormControl>
-                        <Input
-                          defaultValue={flight.departure.destinations}
-                          onChange={(e) =>
-                            setInternationalFlights((prev) => {
-                              prev[i].departure.destinations = e.target.value;
-                              return [...prev];
-                            })
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                    <FormItem className=" flex flex-grow flex-col justify-start">
-                      <FormLabel>Reference ticket</FormLabel>
-                      <FormControl>
-                        <Input
-                          defaultValue={flight.departure.referenceTicket}
-                          onChange={(e) =>
-                            setInternationalFlights((prev) => {
-                              prev[i].departure.referenceTicket =
-                                e.target.value;
-                              return [...prev];
-                            })
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  </div>
-                </div>
-                <FormItem className="group relative flex flex-col justify-start">
-                  <FormLabel
-                    htmlFor={flight.id}
-                    className="flex flex-col gap-y-2"
-                  >
-                    Ticket
-                    <UploadImage
-                      title="Upload International Flights Ticket"
-                      images={
-                        (modalMode === "edit" ? flight.urls : flight.files) ??
-                        []
-                      }
-                      setImages={(images) => {
-                        if (modalMode === "edit")
-                          setInternationalFlights((prev) => {
-                            prev[i].urls = images;
-                            return [...prev];
-                          });
-                        else
-                          setInternationalFlights((prev) => {
-                            prev[i].files = images;
-                            return [...prev];
-                          });
-                      }}
-                      button={
-                        <div
-                          className={cn(
-                            "flex h-10 cursor-pointer items-center justify-center rounded border hover:bg-sky-100",
-                            {
-                              "bg-sky-100":
-                                flight.files?.length || flight.urls?.length,
-                            },
-                          )}
-                        >
-                          <Upload strokeWidth={2} size={18} />
-                        </div>
-                      }
-                    />
-                  </FormLabel>
-                </FormItem>
-                <X
-                  size={18}
-                  className={cn("mt-8 cursor-pointer text-red-500", {
-                    hidden: internationalFlights?.length < 2,
-                  })}
-                  onClick={() => {
-                    if (internationalFlights?.length <= 1) return;
-                    setInternationalFlights((prev) =>
-                      prev.filter((f) => f.id !== flight.id),
-                    );
-                  }}
-                />
-              </div>
-            ))}
-            <Button
-              type="button"
-              variant="secondary"
-              className="mt-4 self-start"
-              onClick={() =>
-                setInternationalFlights((prev) => [
-                  ...prev,
-                  {
-                    id: generateRandomId(),
-                    ...flightDefaultValue,
-                  },
-                ])
-              }
-            >
-              Add Flight
-            </Button>
-          </div>
-          <h3 className="pb-2 text-xl font-semibold">Domestic Flights</h3>
-          <div className="flex flex-col gap-y-4">
-            {domesticFlights?.map((flight, i) => (
-              <div key={flight.id} className="flex gap-x-4">
-                <div className="flex flex-grow flex-col gap-y-4">
-                  <div className="flex gap-x-4">
-                    <FormItem className="flex flex-col justify-start">
-                      <FormLabel>Included</FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={flight.arrival.included}
-                          onCheckedChange={(value) =>
-                            setDomesticFlights((prev) => {
-                              prev[i].arrival.included = value;
-                              return [...prev];
-                            })
-                          }
-                        />
-                      </FormControl>
-                    </FormItem>
-                    <FormItem className="flex flex-col justify-start">
-                      <FormLabel>Arrival Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              type="button"
-                              variant={"outline"}
-                              className={cn(
-                                "w-[160px] pl-3 text-left font-normal",
-                                !flight.arrival.arrivalDate &&
-                                  "text-muted-foreground",
-                              )}
-                            >
-                              {flight.arrival.arrivalDate ? (
-                                `${format(flight.arrival.arrivalDate, "PPP")}`
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={flight.arrival.arrivalDate}
-                            onSelect={(value) => {
-                              setDomesticFlights((prev) => {
-                                prev[i].arrival.arrivalDate = value;
-                                return [...prev];
-                              });
-                            }}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </FormItem>
-                    <FormItem className="relative flex flex-col justify-start">
-                      <FormLabel>Arrival Time</FormLabel>
-                      <div className="absolute left-1 top-5 bg-white px-6 py-1 text-sm">
-                        {domesticFlights[i].arrival.arrivalTime
-                          ? format(
-                              domesticFlights[i].arrival.arrivalTime!,
-                              "HH:mm",
-                            )
-                          : "--:--"}
-                      </div>
-                      <Input
-                        type="time"
-                        onChange={(e) =>
-                          setDomesticFlights((prev) => {
-                            prev[i].arrival.arrivalTime =
-                              e.target.valueAsDate ?? undefined;
-                            return [...prev];
-                          })
-                        }
-                      />
-                    </FormItem>
-                    <FormItem className="flex flex-grow flex-col justify-start">
-                      <FormLabel>Number</FormLabel>
-                      <FormControl>
-                        <Input
-                          onChange={(e) =>
-                            setDomesticFlights((prev) => {
-                              prev[i].arrival.flightNumber = e.target.value;
-                              return [...prev];
-                            })
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                    <FormItem className="flex flex-grow flex-col justify-start">
-                      <FormLabel>From</FormLabel>
-                      <FormControl>
-                        <Input
-                          onChange={(e) =>
-                            setDomesticFlights((prev) => {
-                              prev[i].arrival.from = e.target.value;
-                              return [...prev];
-                            })
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                    <FormItem className="flex flex-grow flex-col justify-start">
-                      <FormLabel>To</FormLabel>
-                      <FormControl>
-                        <Input
-                          onChange={(e) =>
-                            setDomesticFlights((prev) => {
-                              prev[i].arrival.to = e.target.value;
-                              return [...prev];
-                            })
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                    <FormItem className="flex flex-col justify-start">
-                      <FormLabel>Issued</FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={flight.arrival.issued}
-                          onCheckedChange={(value) =>
-                            setDomesticFlights((prev) => {
-                              prev[i].arrival.issued = value;
-                              return [...prev];
-                            })
-                          }
-                        />
-                      </FormControl>
-                    </FormItem>
-                  </div>
-                  <div className="flex gap-x-4">
-                    <FormItem className="flex flex-col justify-start">
-                      <FormLabel>Included</FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={flight.departure.included}
-                          onCheckedChange={(value) =>
-                            setDomesticFlights((prev) => {
-                              prev[i].departure.included = value;
-                              return [...prev];
-                            })
-                          }
-                        />
-                      </FormControl>
-                    </FormItem>
-                    <FormItem className="flex flex-col justify-start">
-                      <FormLabel>Departure Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              type="button"
-                              variant={"outline"}
-                              className={cn(
-                                "w-[160px] pl-3 text-left font-normal",
-                                !flight.departure.departureDate &&
-                                  "text-muted-foreground",
-                              )}
-                            >
-                              {flight.departure.departureDate ? (
-                                `${format(flight.departure.departureDate, "PPP")}`
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={flight.departure.departureDate}
-                            onSelect={(value) => {
-                              setDomesticFlights((prev) => {
-                                prev[i].departure.departureDate = value;
-                                return [...prev];
-                              });
-                            }}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </FormItem>
-                    <FormItem className="relative flex flex-col justify-start">
-                      <FormLabel>Arrival Time</FormLabel>
-                      <div className="absolute left-1 top-5 bg-white px-6 py-1 text-sm">
-                        {domesticFlights[i].departure.departureTime
-                          ? format(
-                              domesticFlights[i].departure.departureTime!,
-                              "HH:mm",
-                            )
-                          : "--:--"}
-                      </div>
-                      <Input
-                        type="time"
-                        onChange={(e) =>
-                          setDomesticFlights((prev) => {
-                            prev[i].departure.departureTime =
-                              e.target.valueAsDate ?? undefined;
-                            return [...prev];
-                          })
-                        }
-                      />
-                    </FormItem>
-                    <FormItem className="flex flex-grow flex-col justify-start">
-                      <FormLabel>Number</FormLabel>
-                      <FormControl>
-                        <Input
-                          onChange={(e) =>
-                            setDomesticFlights((prev) => {
-                              prev[i].departure.flightNumber = e.target.value;
-                              return [...prev];
-                            })
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                    <FormItem className="flex flex-grow flex-col justify-start">
-                      <FormLabel>From</FormLabel>
-                      <FormControl>
-                        <Input
-                          onChange={(e) =>
-                            setDomesticFlights((prev) => {
-                              prev[i].departure.from = e.target.value;
-                              return [...prev];
-                            })
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                    <FormItem className="flex flex-grow flex-col justify-start">
-                      <FormLabel>To</FormLabel>
-                      <FormControl>
-                        <Input
-                          onChange={(e) =>
-                            setDomesticFlights((prev) => {
-                              prev[i].departure.to = e.target.value;
-                              return [...prev];
-                            })
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                    <FormItem className="flex flex-col justify-start">
-                      <FormLabel>Issued</FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={flight.departure.issued}
-                          onCheckedChange={(value) =>
-                            setDomesticFlights((prev) => {
-                              prev[i].departure.issued = value;
-                              return [...prev];
-                            })
-                          }
-                        />
-                      </FormControl>
-                    </FormItem>
-                  </div>
-                </div>
-                <FormItem className="group relative flex flex-col justify-start">
-                  <FormLabel
-                    htmlFor={flight.id}
-                    className="flex flex-col gap-y-2"
-                  >
-                    Ticket
-                    <UploadImage
-                      title="Upload Domestic Flights Ticket"
-                      images={
-                        (modalMode === "edit" ? flight.urls : flight.files) ??
-                        []
-                      }
-                      setImages={(images) => {
-                        if (modalMode === "edit")
-                          setDomesticFlights((prev) => {
-                            prev[i].urls = images;
-                            return [...prev];
-                          });
-                        else
-                          setDomesticFlights((prev) => {
-                            prev[i].files = images;
-                            return [...prev];
-                          });
-                      }}
-                      button={
-                        <div
-                          className={cn(
-                            "flex h-10 cursor-pointer items-center justify-center rounded border hover:bg-sky-100",
-                            {
-                              "bg-sky-100":
-                                flight.files?.length || flight.urls?.length,
-                            },
-                          )}
-                        >
-                          <Upload strokeWidth={2} size={18} />
-                        </div>
-                      }
-                    />
-                  </FormLabel>
-                </FormItem>
-                <X
-                  size={18}
-                  className={cn("mt-8 cursor-pointer text-red-500", {
-                    hidden: internationalFlights?.length < 2,
-                  })}
-                  onClick={() => {
-                    if (internationalFlights?.length <= 1) return;
-                    setDomesticFlights((prev) =>
-                      prev.filter((f) => f.id !== flight.id),
-                    );
-                  }}
-                />
-              </div>
-            ))}
-            <Button
-              type="button"
-              variant="secondary"
-              className="self-start"
-              onClick={() =>
-                setDomesticFlights((prev) => [
-                  ...prev,
-                  {
-                    id: generateRandomId(),
-                    ...flightDefaultValue,
-                  },
-                ])
-              }
-            >
-              Add Flight
-            </Button>
-          </div>
-        </section>
+        <ForPage readonly={true}>
+          <BookingSection
+            form={form}
+            companies={companies}
+            name={name}
+            nationalities={nationalities}
+            passports={passports}
+            touristsNames={touristsNames}
+            setName={setName}
+            setPassports={setPassports}
+            setInternalBookingId={setInternalBookingId}
+            setTouristsNames={setTouristsNames}
+          />
+          <ToursSection
+            form={form}
+            itineraries={itineraries}
+            listCitiesHotels={listCitiesHotels}
+            tourCountries={tourCountries}
+            tours={tours}
+            setIsEditItineraryModalOpen={setIsEditItineraryModalOpen}
+            setIsItineraryModalOpen={setIsItineraryModalOpen}
+            setItineraries={setItineraries}
+            setItineraryInitialValues={setItineraryInitialValues}
+            setTourCities={setTourCities}
+            setTourCountries={setTourCountries}
+          />
+          <HotelsSection
+            form={form}
+            citiesHotels={citiesHotels}
+            nileCruises={nileCruises}
+          />
+          <section className="space-y-4">
+            <h2 className="text-2xl font-semibold text-sky-900">Flights</h2>
+            <InternationalFlights
+              modalMode={modalMode}
+              internationalFlights={internationalFlights}
+              setInternationalFlights={setInternationalFlights}
+            />
+            <DomesticFlights
+              modalMode={modalMode}
+              domesticFlights={domesticFlights}
+              setDomesticFlights={setDomesticFlights}
+            />
+          </section>
+        </ForPage>
+
         <section>
           <div className="flex justify-between">
             <h2 className="text-2xl font-semibold text-sky-900">Hotels</h2>
-            <Button
-              variant="secondary"
-              disabled={
-                !itineraries?.length || !form.watch("arrivalDepartureDate.from")
-              }
-              onClick={
-                !reservationsList?.length
-                  ? generateReservations
-                  : () => setIsAlertModalOpen(true)
-              }
-              type="button"
-            >
-              Generate reservations
-            </Button>
+            <ForPage type="single" page="/bookings">
+              <Button
+                variant="secondary"
+                disabled={
+                  !itineraries?.length ||
+                  !form.watch("arrivalDepartureDate.from")
+                }
+                onClick={
+                  !reservationsList?.length
+                    ? generateReservations
+                    : () => setIsAlertModalOpen(true)
+                }
+                type="button"
+              >
+                Generate reservations
+              </Button>
+            </ForPage>
           </div>
           {!!reservationsList?.length &&
             !!form.watch("arrivalDepartureDate")?.from && (
               <Reservations
-                type={type}
                 reservationsList={reservationsList}
                 setReservationsList={setReservationsList}
                 tourCountries={tourCountries}

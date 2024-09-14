@@ -9,26 +9,26 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { generateRandomId } from "@/utils/generate-random-id";
 import { format } from "date-fns";
 import ReservationModal from "./reservation-modal";
 import { Input } from "@/components/ui/input";
+import ForPage from "./for-page";
+import { usePathname } from "next/navigation";
 
 type Reservation = Omit<SelectReservations, "id" | "createdAt" | "updatedAt">;
 
 export default function Reservations({
-  type,
   reservationsList,
   tourCountries,
   setReservationsList,
 }: {
-  type?: "booking" | "reservation" | "aviation";
   reservationsList: Reservation[];
   tourCountries: SelectCountries[];
   setReservationsList: (
     cb: (reservationsList: Reservation[]) => Reservation[],
   ) => void;
 }) {
+  const pathname = usePathname();
   const [editedReservation, setEditedReservation] = useState<
     Reservation & { index: number }
   >();
@@ -47,14 +47,15 @@ export default function Reservations({
             <TableHead>Meal</TableHead>
             <TableHead>Currency</TableHead>
             <TableHead>Target Price</TableHead>
-            {type === "reservation" && <TableHead>Final Price</TableHead>}
+            <TableHead>Final Price</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {reservationsList?.map((props, index) => (
             <TableRow
-              key={generateRandomId()}
+              key={index}
               onClick={() => {
+                if (pathname !== "/bookings") return;
                 setEditedReservation({
                   ...props,
                   hotels: [...props.hotels!],
@@ -74,7 +75,7 @@ export default function Reservations({
               <TableCell>{props.meal}</TableCell>
               <TableCell>{props.currency}</TableCell>
               <TableCell>{props.targetPrice}</TableCell>
-              {type === "reservation" ? (
+              {pathname === "/reservations" ? (
                 <TableCell>
                   <Input
                     placeholder="Final price..."
@@ -97,15 +98,16 @@ export default function Reservations({
           ))}
         </TableBody>
       </Table>
-      <Button
-        type="button"
-        variant="secondary"
-        className="mt-4"
-        onClick={() => setIsReservationOpen(true)}
-      >
-        Add reservation
-      </Button>
-
+      <ForPage type="single" page="/bookings">
+        <Button
+          type="button"
+          variant="secondary"
+          className="mt-4"
+          onClick={() => setIsReservationOpen(true)}
+        >
+          Add reservation
+        </Button>
+      </ForPage>
       {isReservationOpen && (
         <ReservationModal
           isOpen={isReservationOpen}

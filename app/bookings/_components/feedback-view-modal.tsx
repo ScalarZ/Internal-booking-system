@@ -31,12 +31,12 @@ export default function FeedbackViewModal({
         <DialogHeader>
           <DialogTitle className="capitalize">View {type}</DialogTitle>
         </DialogHeader>
-        <main>
+        <main className="flex flex-col gap-y-2">
           {feedbacks.length === 0 && (
             <p className="text-sm text-gray-500">No {type} found</p>
           )}
           {feedbacks.map(({ id, representatives, files }) => (
-            <section key={id} className="flex flex-col gap-y-2">
+            <section key={id} className="flex flex-col">
               <div>
                 <span className="mr-2 text-sm font-medium">
                   Representatives:

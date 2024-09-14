@@ -172,9 +172,7 @@ export const bookingItineraries = pgTable("booking_itineraries", {
 });
 
 export const reservations = pgTable("reservations", {
-  id: serial("id")
-    .primaryKey()
-    .references(() => bookings.id),
+  id: serial("id").primaryKey(),
   start: timestamp("start", { withTimezone: true }).defaultNow(),
   end: timestamp("end", { withTimezone: true }).defaultNow(),
   meal: text("meal"),

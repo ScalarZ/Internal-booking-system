@@ -35,6 +35,7 @@ import {
   SelectToursWithItineraries,
 } from "@/drizzle/schema";
 import { Itinerary } from "@/types_";
+import ForPage from "../for-page";
 
 export function ToursSection({
   form,
@@ -166,15 +167,17 @@ export function ToursSection({
         {!!tourCountries?.length && (
           <div className="col-span-full space-y-2">
             <div className="flex w-full justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setIsItineraryModalOpen(true)}
-                className="flex h-8 gap-x-1"
-              >
-                <Plus size={16} />
-                Add itinerary
-              </Button>
+              <ForPage type="single" page="/bookings">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setIsItineraryModalOpen(true)}
+                  className="flex h-8 gap-x-1"
+                >
+                  <Plus size={16} />
+                  Add itinerary
+                </Button>
+              </ForPage>
             </div>
             <Reorder.Group
               axis="x"

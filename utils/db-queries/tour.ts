@@ -32,6 +32,7 @@ export async function getToursWithBooking() {
         },
       },
     },
+    orderBy: ({ createdAt }, { desc }) => desc(createdAt),
   });
 }
 
