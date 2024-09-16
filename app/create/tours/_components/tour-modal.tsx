@@ -330,6 +330,7 @@ export default function TourModal({
     if (modalMode === "edit") {
       getCities([...selectedCountries.map(({ id }) => id)]);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modalMode]);
 
   return (

@@ -344,51 +344,49 @@ export default function From({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <ForPage readonly={true}>
-          <BookingSection
-            form={form}
-            companies={companies}
-            name={name}
-            nationalities={nationalities}
-            passports={passports}
-            touristsNames={touristsNames}
-            setName={setName}
-            setPassports={setPassports}
-            setInternalBookingId={setInternalBookingId}
-            setTouristsNames={setTouristsNames}
+        <BookingSection
+          form={form}
+          companies={companies}
+          name={name}
+          nationalities={nationalities}
+          passports={passports}
+          touristsNames={touristsNames}
+          setName={setName}
+          setPassports={setPassports}
+          setInternalBookingId={setInternalBookingId}
+          setTouristsNames={setTouristsNames}
+        />
+        <ToursSection
+          form={form}
+          itineraries={itineraries}
+          listCitiesHotels={listCitiesHotels}
+          tourCountries={tourCountries}
+          tours={tours}
+          setIsEditItineraryModalOpen={setIsEditItineraryModalOpen}
+          setIsItineraryModalOpen={setIsItineraryModalOpen}
+          setItineraries={setItineraries}
+          setItineraryInitialValues={setItineraryInitialValues}
+          setTourCities={setTourCities}
+          setTourCountries={setTourCountries}
+        />
+        <HotelsSection
+          form={form}
+          citiesHotels={citiesHotels}
+          nileCruises={nileCruises}
+        />
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold text-sky-900">Flights</h2>
+          <InternationalFlights
+            modalMode={modalMode}
+            internationalFlights={internationalFlights}
+            setInternationalFlights={setInternationalFlights}
           />
-          <ToursSection
-            form={form}
-            itineraries={itineraries}
-            listCitiesHotels={listCitiesHotels}
-            tourCountries={tourCountries}
-            tours={tours}
-            setIsEditItineraryModalOpen={setIsEditItineraryModalOpen}
-            setIsItineraryModalOpen={setIsItineraryModalOpen}
-            setItineraries={setItineraries}
-            setItineraryInitialValues={setItineraryInitialValues}
-            setTourCities={setTourCities}
-            setTourCountries={setTourCountries}
+          <DomesticFlights
+            modalMode={modalMode}
+            domesticFlights={domesticFlights}
+            setDomesticFlights={setDomesticFlights}
           />
-          <HotelsSection
-            form={form}
-            citiesHotels={citiesHotels}
-            nileCruises={nileCruises}
-          />
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold text-sky-900">Flights</h2>
-            <InternationalFlights
-              modalMode={modalMode}
-              internationalFlights={internationalFlights}
-              setInternationalFlights={setInternationalFlights}
-            />
-            <DomesticFlights
-              modalMode={modalMode}
-              domesticFlights={domesticFlights}
-              setDomesticFlights={setDomesticFlights}
-            />
-          </section>
-        </ForPage>
+        </section>
 
         <section>
           <div className="flex justify-between">
