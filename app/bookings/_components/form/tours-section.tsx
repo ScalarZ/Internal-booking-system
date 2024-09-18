@@ -63,7 +63,6 @@ export function ToursSection({
   setIsEditItineraryModalOpen: (isOpen: boolean) => void;
 }) {
   const [tourOpen, setTourOpen] = useState(false);
-
   return (
     <section>
       <h2 className="pb-2 text-2xl font-semibold text-sky-900">Tours</h2>

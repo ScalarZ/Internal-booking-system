@@ -74,6 +74,7 @@ export default function ReservationModal({
   const [citiesOpen, setCitiesOpen] = useState(false);
   // Lists
   const [cities, setCities] = useState<SelectCities[]>([]);
+
   const [cityHotels, setCityHotels] = useState<SelectHotels[]>([]);
   const [selectedHotels, setSelectedHotels] = useState<string[]>(
     editedReservation?.hotels ?? [],
@@ -155,11 +156,10 @@ export default function ReservationModal({
   }
 
   useEffect(() => {
+    listCities();
     if (editedReservation?.city) {
       listCityHotels(editedReservation.city);
-      return;
     }
-    listCities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -184,10 +184,7 @@ export default function ReservationModal({
             <TableRow>
               <TableCell className="px-2">
                 <Popover open={citiesOpen} onOpenChange={setCitiesOpen}>
-                  <PopoverTrigger
-                    asChild
-                    disabled={!cities?.length || !!editedReservation?.city}
-                  >
+                  <PopoverTrigger asChild disabled={!cities?.length}>
                     <Button
                       variant="outline"
                       role="combobox"
@@ -243,9 +240,6 @@ export default function ReservationModal({
                           !dateRange.to &&
                           "text-muted-foreground",
                       )}
-                      disabled={
-                        !!editedReservation?.start && !!editedReservation?.end
-                      }
                     >
                       {dateRange.from && dateRange.to ? (
                         `${format(dateRange.from, "PPP")} ⟹ ${format(dateRange.to, "PPP")}`

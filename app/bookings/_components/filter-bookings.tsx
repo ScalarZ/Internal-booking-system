@@ -27,9 +27,7 @@ export default function FilterBookings({
 }: {
   countries: SelectCountries[];
 }) {
-  const [filters, setFilters] = useState<BookingFilters>({
-    dateRange: undefined,
-  });
+  const [filters, setFilters] = useState<BookingFilters>({});
   const [id, setId] = useState<string | undefined>(undefined);
   async function handleFilterBookings(filters?: BookingFilters) {
     try {
@@ -44,19 +42,23 @@ export default function FilterBookings({
 
   useEffect(() => {
     if (debouncedValue === undefined) return;
-    handleFilterBookings({ ...filters, id: debouncedValue });
+    setFilters((prev) => ({ ...prev, id: debouncedValue }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedValue]);
+
+  useEffect(() => {
+    handleFilterBookings(filters);
+  }, [filters]);
 
   return (
     <div className="flex w-full gap-x-4">
       <Select
-        onValueChange={(value) =>
-          handleFilterBookings({
-            ...filters,
-            country: value !== "select-country" ? value : "",
-          })
-        }
+        onValueChange={(value) => {
+          setFilters((prev) => ({
+            ...prev,
+            country: value !== "select-country" ? value : undefined,
+          }));
+        }}
       >
         <SelectTrigger>
           <SelectValue placeholder="Select a country" />
@@ -104,22 +106,16 @@ export default function FilterBookings({
                   to: value?.to,
                 },
               }));
-              await handleFilterBookings({
-                ...filters,
-                dateRange: {
-                  from: value?.from,
-                  to: value?.to,
-                },
-              });
             }}
           />
         </PopoverContent>
       </Popover>
-
       <Input
         value={id}
         placeholder="Search by Internal booking ID..."
-        onChange={(e) => setId(e.target.value)}
+        onChange={(e) => {
+          setId(e.target.value);
+        }}
       />
     </div>
   );

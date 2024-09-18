@@ -87,12 +87,22 @@ export async function filterBookings(filters: BookingFilters) {
     );
 
   return db.query.bookings.findMany({
-    with: { reservations: true },
+    with: {
+      reservations: true,
+      bookingTour: {
+        with: { itineraries: true },
+      },
+      bookingHotels: {
+        with: {
+          hotel: true,
+        },
+      },
+      reviews: true,
+      surveys: true,
+    },
+    orderBy: ({ updatedAt }, { desc }) => desc(updatedAt),
     where() {
       return and(...whereList);
-    },
-    orderBy({ updatedAt }) {
-      return desc(updatedAt);
     },
   });
 }
@@ -298,7 +308,8 @@ export async function getWeeklyItineraries(date: Date) {
                     'activities', booking_itineraries.activities,
                     'optionalActivities', booking_itineraries.optional_activities,
                     'cities', booking_itineraries.cities,
-                    'guide', booking_itineraries.guide
+                    'guide', booking_itineraries.guide,
+                    'dayNumber', booking_itineraries.day_number
                 )
             ) AS itineraries
         FROM

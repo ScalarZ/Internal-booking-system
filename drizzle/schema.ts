@@ -163,6 +163,7 @@ export const bookingItineraries = pgTable("booking_itineraries", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   day: text("day"),
+  dayNumber: integer("day_number"),
   cities: jsonb("cities").array().$type<SelectCities[]>(),
   activities: jsonb("activities").array().$type<SelectActivities[]>(),
   optionalActivities: jsonb("optional_activities")

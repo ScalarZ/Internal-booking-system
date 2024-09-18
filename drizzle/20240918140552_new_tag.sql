@@ -1,0 +1,1 @@
+ALTER TABLE "booking_itineraries" ADD COLUMN "day_number" integer;

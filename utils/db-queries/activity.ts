@@ -11,6 +11,13 @@ export async function getActivities() {
   });
 }
 
+export async function getOptionalActivities() {
+  return await db.query.activities.findMany({
+    with: { country: true, city: true },
+    where: ({ isOptional }, { eq }) => eq(isOptional, true),
+  });
+}
+
 export async function addActivity(activity: Omit<SelectActivities, "id">) {
   "use server";
   await db.insert(activities).values(activity);

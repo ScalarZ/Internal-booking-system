@@ -119,6 +119,7 @@ export default function DomesticFlights({
                   <FormLabel>Number</FormLabel>
                   <FormControl>
                     <Input
+                      defaultValue={flight.arrival.flightNumber}
                       onChange={(e) =>
                         setDomesticFlights((prev) => {
                           prev[i].arrival.flightNumber = e.target.value;
@@ -133,6 +134,7 @@ export default function DomesticFlights({
                   <FormLabel>From</FormLabel>
                   <FormControl>
                     <Input
+                      defaultValue={flight.arrival.from}
                       onChange={(e) =>
                         setDomesticFlights((prev) => {
                           prev[i].arrival.from = e.target.value;
@@ -147,6 +149,7 @@ export default function DomesticFlights({
                   <FormLabel>To</FormLabel>
                   <FormControl>
                     <Input
+                      defaultValue={flight.arrival.to}
                       onChange={(e) =>
                         setDomesticFlights((prev) => {
                           prev[i].arrival.to = e.target.value;
@@ -248,6 +251,7 @@ export default function DomesticFlights({
                   <FormLabel>Number</FormLabel>
                   <FormControl>
                     <Input
+                      defaultValue={flight.departure.flightNumber}
                       onChange={(e) =>
                         setDomesticFlights((prev) => {
                           prev[i].departure.flightNumber = e.target.value;
@@ -262,6 +266,7 @@ export default function DomesticFlights({
                   <FormLabel>From</FormLabel>
                   <FormControl>
                     <Input
+                      defaultValue={flight.departure.from}
                       onChange={(e) =>
                         setDomesticFlights((prev) => {
                           prev[i].departure.from = e.target.value;
@@ -276,6 +281,7 @@ export default function DomesticFlights({
                   <FormLabel>To</FormLabel>
                   <FormControl>
                     <Input
+                      defaultValue={flight.departure.to}
                       onChange={(e) =>
                         setDomesticFlights((prev) => {
                           prev[i].departure.to = e.target.value;

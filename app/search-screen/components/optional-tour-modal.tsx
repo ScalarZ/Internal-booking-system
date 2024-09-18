@@ -34,7 +34,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import useUploadFiles from "@/hooks/use-upload-files";
-import { getActivities } from "@/utils/db-queries/activity";
+import {
+  getActivities,
+  getOptionalActivities,
+} from "@/utils/db-queries/activity";
 import { getRepresentatives } from "@/utils/db-queries/representatives";
 import { optionalTourSchema } from "@/utils/zod-schema";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -122,8 +125,8 @@ function FromContainer({
     });
 
   const { data: activities, isLoading: isLoadingActivities } = useQuery({
-    queryKey: ["activities"],
-    queryFn: async () => await getActivities(),
+    queryKey: ["optional-activities"],
+    queryFn: async () => await getOptionalActivities(),
   });
   async function onSubmit(values: OptionalTourModalSchema) {
     if (!booking) return;

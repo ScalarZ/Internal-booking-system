@@ -239,6 +239,7 @@ export default function From({
             addDays(values.arrivalDepartureDate.from ?? new Date(), i),
             "yyy-MM-dd",
           ),
+          dayNumber: i + 1,
         })),
       };
       const hotels = values.hotels;
@@ -307,29 +308,33 @@ export default function From({
     let tacker = -1;
     let startDate = form.watch("arrivalDepartureDate.from")!;
     if (!startDate || !itineraries?.length) return;
-    const reservations = itineraries.reduce<Reservation[]>((acc, curr) => {
-      if (
-        acc[tacker]?.city?.name ===
-        curr?.cities?.[curr?.cities?.length - 1].name
-      ) {
-        acc[tacker].end = addDays(startDate, 1);
-      } else {
-        acc.push({
-          start: startDate,
-          end: addDays(startDate, 1),
-          city: curr?.cities?.[curr?.cities?.length - 1] ?? null,
-          hotels: [],
-          meal: null,
-          targetPrice: null,
-          currency: "USD",
-          bookingId: booking?.id ?? -1,
-          finalPrice: null,
-        });
-        tacker++;
-      }
-      startDate = addDays(startDate, 1);
-      return [...acc];
-    }, []);
+    const reservations = itineraries.reduce<Reservation[]>(
+      (acc, curr, i, arr) => {
+        if (
+          acc[tacker]?.city?.name ===
+          curr?.cities?.[curr?.cities?.length - 1].name
+        ) {
+          acc[tacker].end =
+            i !== arr.length - 1 ? addDays(startDate, 1) : startDate;
+        } else {
+          acc.push({
+            start: startDate,
+            end: addDays(startDate, 1),
+            city: curr?.cities?.[curr?.cities?.length - 1] ?? null,
+            hotels: [],
+            meal: null,
+            targetPrice: null,
+            currency: "USD",
+            bookingId: booking?.id ?? -1,
+            finalPrice: null,
+          });
+          tacker++;
+        }
+        startDate = addDays(startDate, 1);
+        return [...acc];
+      },
+      [],
+    );
     setReservationsList(reservations);
   }, [form, booking?.id, itineraries]);
 
