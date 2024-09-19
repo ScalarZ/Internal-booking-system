@@ -41,22 +41,22 @@ import { flightDefaultValue } from "@/utils/default-values";
 import InternationalFlights from "./international-flights";
 import DomesticFlights from "./domestic-flights";
 import HotelsSection from "./hotels-section";
+import { usePathname } from "next/navigation";
 
 export default function From({
   tours,
   companies,
   nileCruises,
   nationalities,
-  type,
   modalMode,
 }: {
   companies: SelectCompanies[];
   tours: SelectToursWithItineraries[] | SelectBookingToursWithItineraries[];
   nationalities: SelectNationalities[];
   nileCruises: SelectNileCruises[];
-  type?: "booking" | "reservation" | "aviation";
   modalMode: "edit" | "add";
 }) {
+  const pathname = usePathname();
   const { booking, closeModal } = useBooking();
   const [name, setName] = useState("");
   const [internalBookingId, setInternalBookingId] = useState(
@@ -349,49 +349,62 @@ export default function From({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <BookingSection
-          form={form}
-          companies={companies}
-          name={name}
-          nationalities={nationalities}
-          passports={passports}
-          touristsNames={touristsNames}
-          setName={setName}
-          setPassports={setPassports}
-          setInternalBookingId={setInternalBookingId}
-          setTouristsNames={setTouristsNames}
-        />
-        <ToursSection
-          form={form}
-          itineraries={itineraries}
-          listCitiesHotels={listCitiesHotels}
-          tourCountries={tourCountries}
-          tours={tours}
-          setIsEditItineraryModalOpen={setIsEditItineraryModalOpen}
-          setIsItineraryModalOpen={setIsItineraryModalOpen}
-          setItineraries={setItineraries}
-          setItineraryInitialValues={setItineraryInitialValues}
-          setTourCities={setTourCities}
-          setTourCountries={setTourCountries}
-        />
-        <HotelsSection
-          form={form}
-          citiesHotels={citiesHotels}
-          nileCruises={nileCruises}
-        />
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold text-sky-900">Flights</h2>
-          <InternationalFlights
-            modalMode={modalMode}
-            internationalFlights={internationalFlights}
-            setInternationalFlights={setInternationalFlights}
+        <ForPage
+          {...(pathname === "/bookings"
+            ? { type: "single", page: "/bookings" }
+            : { readonly: true })}
+        >
+          <BookingSection
+            form={form}
+            companies={companies}
+            name={name}
+            nationalities={nationalities}
+            passports={passports}
+            touristsNames={touristsNames}
+            setName={setName}
+            setPassports={setPassports}
+            setInternalBookingId={setInternalBookingId}
+            setTouristsNames={setTouristsNames}
           />
-          <DomesticFlights
-            modalMode={modalMode}
-            domesticFlights={domesticFlights}
-            setDomesticFlights={setDomesticFlights}
+          <ToursSection
+            form={form}
+            itineraries={itineraries}
+            listCitiesHotels={listCitiesHotels}
+            tourCountries={tourCountries}
+            tours={tours}
+            setIsEditItineraryModalOpen={setIsEditItineraryModalOpen}
+            setIsItineraryModalOpen={setIsItineraryModalOpen}
+            setItineraries={setItineraries}
+            setItineraryInitialValues={setItineraryInitialValues}
+            setTourCities={setTourCities}
+            setTourCountries={setTourCountries}
           />
-        </section>
+          <HotelsSection
+            form={form}
+            citiesHotels={citiesHotels}
+            nileCruises={nileCruises}
+          />
+        </ForPage>
+
+        <ForPage
+          {...(["/bookings", "/aviations"].includes(pathname)
+            ? { type: "multiple", page: ["/bookings", "/aviations"] }
+            : { readonly: true })}
+        >
+          <section className="space-y-4">
+            <h2 className="text-2xl font-semibold text-sky-900">Flights</h2>
+            <InternationalFlights
+              modalMode={modalMode}
+              internationalFlights={internationalFlights}
+              setInternationalFlights={setInternationalFlights}
+            />
+            <DomesticFlights
+              modalMode={modalMode}
+              domesticFlights={domesticFlights}
+              setDomesticFlights={setDomesticFlights}
+            />
+          </section>
+        </ForPage>
 
         <section>
           <div className="flex justify-between">

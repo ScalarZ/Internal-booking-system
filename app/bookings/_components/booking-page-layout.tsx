@@ -1,27 +1,33 @@
-import { getToursWithBooking } from "@/utils/db-queries/tour";
+import { filterBookings, getBookings } from "@/utils/db-queries/booking";
 import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
 import getQueryClient from "@/utils/get-query-provider";
-import ToursBooking from "./components/tours-booking";
-import { getBookingParams } from "@/lib/utils";
+import { getBookingParams, getFilter } from "@/lib/utils";
+import Bookings from "./bookings";
 
-export default async function OrdersPage() {
+export async function BookingPageLayout({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | undefined };
+}) {
+  const filter = getFilter(searchParams);
   const [countries, companies, tours, nationalities, nileCruises] =
     await getBookingParams();
   const queryClient = getQueryClient();
   await queryClient.prefetchQuery({
-    queryKey: ["orders"],
-    queryFn: getToursWithBooking,
+    queryKey: ["bookings"],
+    queryFn: !filter ? getBookings : () => filterBookings(filter),
   });
   const dehydratedState = dehydrate(queryClient);
   return (
     <HydrationBoundary state={dehydratedState}>
       <div className="relative p-4">
-        <ToursBooking
+        <Bookings
           nileCruises={nileCruises}
           countries={countries}
           companies={companies}
           tours={tours}
           nationalities={nationalities}
+          filter={filter}
         />
       </div>
     </HydrationBoundary>

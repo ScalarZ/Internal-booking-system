@@ -9,9 +9,9 @@ export function columns({
   setBooking,
   setIsEditModalOpen,
   setIsDeleteModalOpen,
-  type,
+  pathname,
 }: {
-  type?: "booking" | "reservation" | "aviation";
+  pathname?: string;
   setBooking: (initialValues: Bookings | undefined) => void;
   setIsEditModalOpen: (value: boolean) => void;
   setIsDeleteModalOpen: (value: boolean) => void;
@@ -202,7 +202,7 @@ export function columns({
       header: "Updated at",
       cell: ({ row }) => format(row.original.updatedAt!, "dd/MM/yyyy"),
     },
-    type === "booking"
+    pathname === "/bookings"
       ? {
           accessorKey: "action",
           header: "Action",

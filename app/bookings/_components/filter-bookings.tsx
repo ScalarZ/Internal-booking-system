@@ -20,15 +20,35 @@ import { filterBookings } from "@/utils/db-queries/booking";
 import { queryClient } from "@/utils/provider";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import React, { useEffect, useMemo, useState } from "react";
 
 export default function FilterBookings({
   countries,
 }: {
   countries: SelectCountries[];
 }) {
-  const [filters, setFilters] = useState<BookingFilters>({});
-  const [id, setId] = useState<string | undefined>(undefined);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const params = useMemo(
+    () => new URLSearchParams(searchParams),
+    [searchParams],
+  );
+  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({
+    from:
+      params
+        .get("dateRange")
+        ?.split("|")
+        .map((date) => new Date(date))[0] ?? undefined,
+    to:
+      params
+        .get("dateRange")
+        ?.split("|")
+        .map((date) => new Date(date))[1] ?? undefined,
+  });
+  const [id, setId] = useState<string | undefined>(
+    params.get("id") ?? undefined,
+  );
   async function handleFilterBookings(filters?: BookingFilters) {
     try {
       const filteredBookings = await filterBookings({ ...filters });
@@ -38,27 +58,59 @@ export default function FilterBookings({
     }
   }
 
+  const addQuery = (name: string, value: string) => {
+    params.set(name, value);
+    router.replace(`?${params.toString()}`);
+  };
+
+  const removeQuery = (name: string) => {
+    params.delete(name);
+    router.replace(`?${params.toString()}`);
+  };
+
   const debouncedValue = useDebounce(id, 500);
 
   useEffect(() => {
-    if (debouncedValue === undefined) return;
-    setFilters((prev) => ({ ...prev, id: debouncedValue }));
+    if (!debouncedValue) {
+      removeQuery("id");
+      return;
+    }
+    addQuery("id", debouncedValue);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedValue]);
 
   useEffect(() => {
-    handleFilterBookings(filters);
-  }, [filters]);
+    const dateRange = params.get("dateRange");
+    const country = params.get("country") ?? undefined;
+    const id = params.get("id") ?? undefined;
+
+    if (!dateRange && !country && !id) return;
+
+    const from =
+      dateRange?.split("|").map((date) => new Date(date))[0] ?? undefined;
+    const to =
+      dateRange?.split("|").map((date) => new Date(date))[1] ?? undefined;
+
+    const filter = {
+      dateRange: {
+        from: from instanceof Date ? from : undefined,
+        to: to instanceof Date ? to : undefined,
+      },
+      country,
+      id,
+    };
+    handleFilterBookings(filter);
+  }, [params]);
 
   return (
     <div className="flex w-full gap-x-4">
       <Select
-        onValueChange={(value) => {
-          setFilters((prev) => ({
-            ...prev,
-            country: value !== "select-country" ? value : undefined,
-          }));
-        }}
+        defaultValue={params.get("country") ?? "select-country"}
+        onValueChange={(value) =>
+          value !== "select-country"
+            ? addQuery("country", value)
+            : removeQuery("country")
+        }
       >
         <SelectTrigger>
           <SelectValue placeholder="Select a country" />
@@ -78,13 +130,11 @@ export default function FilterBookings({
             variant={"outline"}
             className={cn(
               "max-w-max pl-3 text-left font-normal",
-              !filters.dateRange?.from &&
-                !filters.dateRange?.to &&
-                "text-muted-foreground",
+              !dateRange?.from && !dateRange?.to && "text-muted-foreground",
             )}
           >
-            {filters.dateRange?.from && filters.dateRange?.to ? (
-              `${format(filters.dateRange.from, "PPP")} ⟹ ${format(filters.dateRange.to, "PPP")}`
+            {dateRange?.from && dateRange?.to ? (
+              `${format(dateRange.from, "PPP")} ⟹ ${format(dateRange.to, "PPP")}`
             ) : (
               <span>Arrival ⟹ Departure</span>
             )}
@@ -95,17 +145,16 @@ export default function FilterBookings({
           <Calendar
             mode="range"
             selected={{
-              from: filters.dateRange?.from,
-              to: filters.dateRange?.to,
+              from: dateRange?.from,
+              to: dateRange?.to,
             }}
             onSelect={async (value) => {
-              setFilters((prev) => ({
-                ...prev,
-                dateRange: {
-                  from: value?.from,
-                  to: value?.to,
-                },
-              }));
+              setDateRange({ from: value?.from, to: value?.to });
+              if (!value?.from || !value?.to) return removeQuery("dateRange");
+              addQuery(
+                "dateRange",
+                `${value.from.toISOString()}|${value.to.toISOString()}`,
+              );
             }}
           />
         </PopoverContent>

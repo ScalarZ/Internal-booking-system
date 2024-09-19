@@ -61,3 +61,12 @@ interface UploadedFile {
   id: string;
   file: File;
 }
+
+interface Filters {
+  id?: string;
+  country?: string;
+  dateRange?: {
+    from?: Date;
+    to?: Date;
+  };
+}

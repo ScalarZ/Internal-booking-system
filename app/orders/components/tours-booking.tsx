@@ -16,6 +16,7 @@ import FilterBookings from "@/app/bookings/_components/filter-bookings";
 import BookingModal from "@/app/bookings/_components/booking-modal";
 import { getToursWithBooking } from "@/utils/db-queries/tour";
 import { Columns, columns } from "./columns";
+import { usePathname } from "next/navigation";
 
 export default function ToursBooking({
   companies,
@@ -23,14 +24,12 @@ export default function ToursBooking({
   tours,
   nationalities,
   nileCruises,
-  type,
 }: {
   countries: SelectCountries[];
   companies: SelectCompanies[];
   tours: SelectToursWithItineraries[] | SelectBookingToursWithItineraries[];
   nationalities: SelectNationalities[];
   nileCruises: SelectNileCruises[];
-  type?: "booking" | "reservation" | "aviation";
 }) {
   return (
     <BookingProvider>
@@ -40,7 +39,6 @@ export default function ToursBooking({
         tours={tours}
         nationalities={nationalities}
         nileCruises={nileCruises}
-        type={type}
       />
     </BookingProvider>
   );
@@ -52,15 +50,14 @@ function Content({
   tours,
   nationalities,
   nileCruises,
-  type,
 }: {
   countries: SelectCountries[];
   companies: SelectCompanies[];
   tours: SelectToursWithItineraries[] | SelectBookingToursWithItineraries[];
   nationalities: SelectNationalities[];
   nileCruises: SelectNileCruises[];
-  type?: "booking" | "reservation" | "aviation";
 }) {
+  const pathname = usePathname();
   const { booking, setBooking, isEditModalOpen, setIsEditModalOpen } =
     useBooking();
   const { data, error } = useQuery({
@@ -86,7 +83,7 @@ function Content({
           setBooking(row);
           setIsEditModalOpen(true);
         }}
-        type={type}
+        pathname={pathname}
       />
       {booking && isEditModalOpen && (
         <BookingModal
@@ -95,7 +92,6 @@ function Content({
           nationalities={nationalities}
           tours={tours}
           nileCruises={nileCruises}
-          type={type}
         />
       )}
     </div>

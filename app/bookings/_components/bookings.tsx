@@ -10,15 +10,15 @@ import {
   SelectToursWithItineraries,
   SelectBookingToursWithItineraries,
 } from "@/drizzle/schema";
-import React, { useEffect, useState } from "react";
 import { columns } from "./columns";
 import FilterBookings from "./filter-bookings";
 import DeleteBookingModal from "./delete-booking-modal";
 import { useQuery } from "@tanstack/react-query";
-import { getBookings } from "@/utils/db-queries/booking";
+import { filterBookings, getBookings } from "@/utils/db-queries/booking";
 import BookingModal from "./booking-modal";
 import { BookingProvider, useBooking } from "@/context/booking-context";
 import CreateBooking from "./create-booking";
+import { usePathname } from "next/navigation";
 
 export default function Bookings({
   companies,
@@ -26,14 +26,14 @@ export default function Bookings({
   tours,
   nationalities,
   nileCruises,
-  type,
+  filter,
 }: {
   countries: SelectCountries[];
   companies: SelectCompanies[];
   tours: SelectToursWithItineraries[] | SelectBookingToursWithItineraries[];
   nationalities: SelectNationalities[];
   nileCruises: SelectNileCruises[];
-  type?: "booking" | "reservation" | "aviation";
+  filter: any;
 }) {
   return (
     <BookingProvider>
@@ -43,7 +43,7 @@ export default function Bookings({
         tours={tours}
         nationalities={nationalities}
         nileCruises={nileCruises}
-        type={type}
+        filter={filter}
       />
     </BookingProvider>
   );
@@ -55,14 +55,14 @@ function Content({
   tours,
   nationalities,
   nileCruises,
-  type,
+  filter,
 }: {
   countries: SelectCountries[];
   companies: SelectCompanies[];
   tours: SelectToursWithItineraries[] | SelectBookingToursWithItineraries[];
   nationalities: SelectNationalities[];
   nileCruises: SelectNileCruises[];
-  type?: "booking" | "reservation" | "aviation";
+  filter: any;
 }) {
   const {
     booking,
@@ -73,9 +73,11 @@ function Content({
     setIsDeleteModalOpen,
   } = useBooking();
 
+  const pathname = usePathname();
+
   const { data, error } = useQuery({
     queryKey: ["bookings"],
-    queryFn: getBookings,
+    queryFn: !filter ? getBookings : () => filterBookings(filter),
   });
   if (error || !data) return <p>Error fetching bookings</p>;
   return (
@@ -92,7 +94,7 @@ function Content({
       <DataTable
         // @ts-ignore
         columns={columns({
-          type,
+          pathname,
           setBooking,
           setIsEditModalOpen,
           setIsDeleteModalOpen,
@@ -103,7 +105,7 @@ function Content({
           setIsDeleteModalOpen(false);
           setIsEditModalOpen(true);
         }}
-        type={type}
+        pathname={pathname}
       />
       {booking && isEditModalOpen && (
         <BookingModal
@@ -112,7 +114,6 @@ function Content({
           nationalities={nationalities}
           tours={tours}
           nileCruises={nileCruises}
-          type={type}
         />
       )}
       {booking && isDeleteModalOpen && (

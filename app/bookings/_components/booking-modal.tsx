@@ -34,14 +34,12 @@ export default function BookingModal({
   tours,
   nileCruises,
   nationalities,
-  type,
   modalMode,
 }: {
   companies: SelectCompanies[];
   tours: SelectToursWithItineraries[] | SelectBookingToursWithItineraries[];
   nileCruises: SelectNileCruises[];
   nationalities: SelectNationalities[];
-  type?: "booking" | "reservation" | "aviation";
   initialValues?: Bookings;
   modalMode: "edit" | "add";
 }) {
@@ -104,7 +102,6 @@ export default function BookingModal({
           nationalities={nationalities}
           tours={tours}
           nileCruises={nileCruises}
-          type={type}
           modalMode={modalMode}
         />
       </DialogContent>

@@ -66,7 +66,7 @@ function getAviationRowStatus(
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  type?: "booking" | "reservation" | "aviation";
+  pathname?: string;
   onRowClick?: (
     row: Bookings & { optionalTour?: SelectBookingOptionalTours },
   ) => void;
@@ -75,7 +75,7 @@ interface DataTableProps<TData, TValue> {
 export function DataTable<TData, TValue>({
   columns,
   data,
-  type,
+  pathname,
   onRowClick,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -121,34 +121,34 @@ export function DataTable<TData, TValue>({
                 onClick={() => onRowClick?.(row.original as Bookings)}
                 className={cn("bg-white", {
                   "bg-green-100":
-                    (type === "reservation" &&
+                    (pathname === "/reservations" &&
                       !!row.original &&
                       getReservationRowStatus(
                         (row.original as unknown as Bookings).reservations,
                       ) === "success") ||
-                    (type === "aviation" &&
+                    (pathname === "/aviations" &&
                       !!row.original &&
                       getAviationRowStatus(
                         (row.original as unknown as Bookings).domesticFlights,
                       ) === "success"),
                   "bg-yellow-100":
-                    (type === "reservation" &&
+                    (pathname === "/reservations" &&
                       !!row.original &&
                       getReservationRowStatus(
                         (row.original as unknown as Bookings).reservations,
                       ) === "warning") ||
-                    (type === "aviation" &&
+                    (pathname === "/aviations" &&
                       !!row.original &&
                       getAviationRowStatus(
                         (row.original as unknown as Bookings).domesticFlights,
                       ) === "warning"),
                   "bg-red-100":
-                    (type === "reservation" &&
+                    (pathname === "/reservations" &&
                       !!row.original &&
                       getReservationRowStatus(
                         (row.original as unknown as Bookings).reservations,
                       ) === "danger") ||
-                    (type === "aviation" &&
+                    (pathname === "/aviations" &&
                       !!row.original &&
                       getAviationRowStatus(
                         (row.original as unknown as Bookings).domesticFlights,
