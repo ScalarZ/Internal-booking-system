@@ -30,14 +30,12 @@ const WeeklyCalendar = ({
     data: bookings,
     error,
     isLoading,
-    refetch,
   } = useQuery({
     queryKey: [format(currentWeek, "yyyy-MM-dd")],
     queryFn: () => getWeeklyItineraries(currentWeek),
   });
   const handleNextWeek = () => {
     setCurrentWeek(addDays(currentWeek, 7));
-    refetch();
   };
 
   const handlePreviousWeek = () => {
@@ -130,6 +128,7 @@ const WeeklyCalendar = ({
                   {...itinerary}
                   i={i}
                   guides={guides}
+                  currentWeek={currentWeek}
                 />
               ))}
               {calculateNextDays(booking).map((_, i) => (

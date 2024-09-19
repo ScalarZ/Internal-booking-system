@@ -1,4 +1,7 @@
-import { SelectBookingItineraries } from "@/drizzle/schema";
+import {
+  SelectBookingItineraries,
+  SelectBookingWithItineraries,
+} from "@/drizzle/schema";
 import {
   Command,
   CommandEmpty,
@@ -16,6 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { updateBookingItineraryGuide } from "@/utils/db-queries/booking";
+import { queryClient } from "@/utils/provider";
+import { format } from "date-fns";
 
 export default function ItineraryCard({
   id,
@@ -25,10 +30,12 @@ export default function ItineraryCard({
   activities,
   optionalActivities,
   guide,
-  i,
   guides,
+  currentWeek,
+  tourId,
 }: SelectBookingItineraries & { i: number } & {
   guides: SelectGuidesWithCountries[];
+  currentWeek: Date;
 }) {
   return (
     <div
@@ -82,7 +89,13 @@ export default function ItineraryCard({
           </div>
         )}
       </div>
-      <GuideSelector guides={guides} itineraryId={id} defaultValue={guide} />
+      <GuideSelector
+        guides={guides}
+        itineraryId={id}
+        defaultValue={guide}
+        currentWeek={currentWeek}
+        tourId={tourId!}
+      />
     </div>
   );
 }
@@ -91,13 +104,53 @@ function GuideSelector({
   defaultValue,
   guides,
   itineraryId,
+  currentWeek,
+  tourId,
 }: {
   defaultValue: string | null;
   guides: SelectGuidesWithCountries[];
   itineraryId: number;
+  tourId: string;
+  currentWeek: Date;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [guide, setGuide] = useState<string>(defaultValue ?? "");
+  async function handleSelect(name: string) {
+    setGuide(name === guide ? "" : name ?? "");
+    setIsOpen(false);
+    await updateBookingItineraryGuide({
+      itineraryId,
+      guide: name,
+    });
+    queryClient.setQueryData(
+      [format(currentWeek, "yyyy-MM-dd")],
+      (prevData: SelectBookingWithItineraries[] | undefined) => {
+        if (!prevData) return;
+        return prevData.map((booking) => {
+          if (booking.bookingTour.id === tourId) {
+            return {
+              ...booking,
+              bookingTour: {
+                ...booking.bookingTour,
+                itineraries: booking.bookingTour.itineraries?.map(
+                  (itinerary) => {
+                    if (itinerary.id === itineraryId) {
+                      return {
+                        ...itinerary,
+                        guide: name,
+                      };
+                    }
+                    return itinerary;
+                  },
+                ),
+              },
+            };
+          }
+          return booking;
+        });
+      },
+    );
+  }
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
@@ -121,14 +174,7 @@ function GuideSelector({
               <CommandItem
                 key={id}
                 value={name ?? ""}
-                onSelect={async () => {
-                  setGuide(name === guide ? "" : name ?? "");
-                  setIsOpen(false);
-                  await updateBookingItineraryGuide({
-                    itineraryId,
-                    guide: name,
-                  });
-                }}
+                onSelect={() => handleSelect(name ?? "")}
               >
                 <Check
                   className={cn(

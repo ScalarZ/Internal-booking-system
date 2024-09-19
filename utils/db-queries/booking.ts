@@ -309,7 +309,8 @@ export async function getWeeklyItineraries(date: Date) {
                     'optionalActivities', booking_itineraries.optional_activities,
                     'cities', booking_itineraries.cities,
                     'guide', booking_itineraries.guide,
-                    'dayNumber', booking_itineraries.day_number
+                    'dayNumber', booking_itineraries.day_number,
+                    'tourId', booking_itineraries.tour_id
                 )
             ) AS itineraries
         FROM
