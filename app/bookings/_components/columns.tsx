@@ -1,6 +1,7 @@
 "use client";
 
 import { Bookings } from "@/drizzle/schema";
+import { cn, getAviationRowStatus, getReservationRowStatus } from "@/lib/utils";
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { Check, Trash, X } from "lucide-react";
@@ -165,7 +166,7 @@ export function columns({
       header: "Tips",
     },
     {
-      accessorKey: "InternalFlights",
+      accessorKey: "internalFlights",
       header: "Internal flights",
       cell: ({ row }) =>
         row.original.internalFlights ? (
@@ -175,11 +176,11 @@ export function columns({
         ),
     },
     {
-      accessorKey: "InternalFlightsNote",
-      header: "Internal flights note",
+      accessorKey: "flightsGeneralNote",
+      header: "Flights general note",
       cell: ({ row }) => (
         <p className="w-28 overflow-hidden text-ellipsis whitespace-nowrap">
-          {row.original.internalFlightsNote}
+          {row.original.flightsGeneralNote}
         </p>
       ),
     },
@@ -201,6 +202,38 @@ export function columns({
       accessorKey: "updatedAt",
       header: "Updated at",
       cell: ({ row }) => format(row.original.updatedAt!, "dd/MM/yyyy"),
+    },
+    {
+      accessorKey: "reservations",
+      header: "Reservations",
+      cell: ({ row }) => (
+        <div
+          className={cn("size-3 rounded-full", {
+            "bg-green-500":
+              getReservationRowStatus(row.original.reservations) === "success",
+            "bg-yellow-500":
+              getReservationRowStatus(row.original.reservations) === "warning",
+            "bg-red-500":
+              getReservationRowStatus(row.original.reservations) === "danger",
+          })}
+        />
+      ),
+    },
+    {
+      accessorKey: "domesticFlights",
+      header: "Aviations",
+      cell: ({ row }) => (
+        <div
+          className={cn("size-3 rounded-full", {
+            "bg-green-500":
+              getAviationRowStatus(row.original.domesticFlights) === "success",
+            "bg-yellow-500":
+              getAviationRowStatus(row.original.domesticFlights) === "warning",
+            "bg-red-500":
+              getAviationRowStatus(row.original.domesticFlights) === "danger",
+          })}
+        />
+      ),
     },
     pathname === "/bookings"
       ? {

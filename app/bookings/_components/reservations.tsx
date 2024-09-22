@@ -1,5 +1,5 @@
 import { SelectCountries, SelectReservations } from "@/drizzle/schema";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Table,
   TableBody,
@@ -33,6 +33,19 @@ export default function Reservations({
     Reservation & { index: number }
   >();
 
+  const sortedReservations = useMemo(
+    () =>
+      reservationsList.sort((a, b) => {
+        if (!a.start || !b.start) return -1;
+        if (a.start === b.start) {
+          if (!a.end || !b.end) return -1;
+          return a.end?.getTime() - b.end?.getTime();
+        }
+        return a.start?.getTime() - b.start?.getTime();
+      }),
+    [reservationsList],
+  );
+
   const [isReservationOpen, setIsReservationOpen] = useState(false);
 
   return (
@@ -51,7 +64,7 @@ export default function Reservations({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {reservationsList?.map((props, index) => (
+          {sortedReservations?.map((props, index) => (
             <TableRow
               key={index}
               onClick={() => {

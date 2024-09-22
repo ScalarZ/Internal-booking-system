@@ -1,0 +1,1 @@
+ALTER TABLE "bookings" ADD COLUMN "flights_general_note" text;

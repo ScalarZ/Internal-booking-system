@@ -55,7 +55,9 @@ type ArrivalDeparturePair<T> = {
   departure: { departureDate?: Date; departureTime?: string } & T;
   files?: { image?: ImageType; name?: string; url?: string }[];
   urls: Ticket[];
-};
+} & (T extends DomesticFlight
+  ? { fairEGP?: number; bookingReference?: string; issuedDate?: Date }
+  : {});
 
 interface UploadedFile {
   id: string;
@@ -70,3 +72,6 @@ interface Filters {
     to?: Date;
   };
 }
+
+type InternationalFlights = ArrivalDeparturePair<InternationalFlight>;
+type DomesticFlights = ArrivalDeparturePair<DomesticFlight>;

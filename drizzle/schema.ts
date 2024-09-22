@@ -9,6 +9,7 @@ import {
   timestamp,
   serial,
 } from "drizzle-orm/pg-core";
+import { optional } from "zod";
 
 export const hotels = pgTable("hotels", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -142,6 +143,7 @@ export const bookings = pgTable("bookings", {
   passports: jsonb("passports")
     .array()
     .$type<{ url?: string; name?: string }[]>(),
+  flightsGeneralNote: text("flights_general_note"),
 });
 
 export const bookingTours = pgTable("booking_tours", {
@@ -170,6 +172,7 @@ export const bookingItineraries = pgTable("booking_itineraries", {
     .array()
     .$type<SelectActivities[]>(),
   guide: text("guide"),
+  optionalGuide: text("optional_guide"),
 });
 
 export const reservations = pgTable("reservations", {
@@ -261,6 +264,15 @@ export const reviews = pgTable("reviews", {
     .notNull(),
 });
 
+export const buses = pgTable("buses", {
+  id: serial("id").primaryKey(),
+  name: text("name"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  countryId: uuid("country_id").references(() => countries.id, {
+    onDelete: "cascade",
+  }),
+});
+
 export const bookingsRelations = relations(bookings, ({ many, one }) => ({
   reservations: many(reservations),
   bookingTour: one(bookingTours),
@@ -315,7 +327,7 @@ export const toursRelations = relations(tours, ({ many }) => ({
   itineraries: many(itineraries),
 }));
 
-export const BookingToursRelations = relations(
+export const bookingToursRelations = relations(
   bookingTours,
   ({ many, one }) => ({
     itineraries: many(bookingItineraries),
@@ -433,6 +445,7 @@ export type SelectBookingHotel = SelectBookingHotels & {
 };
 export type SelectBookingWithItineraries = SelectBookings & {
   bookingTour: SelectBookingToursWithItineraries;
+  reservations: SelectReservations[];
 };
 
 export type Bookings = SelectBookings & {

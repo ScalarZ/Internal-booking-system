@@ -6,6 +6,7 @@ import "./globals.css";
 import Navbar from "./_components/nav-bar";
 import { DeleteModalProvider } from "@/context/delete-modal-context";
 import { createClient } from "@/utils/supabase/server";
+import { BookingProvider } from "@/context/booking-context";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,9 +30,11 @@ export default async function RootLayout({
         {<Navbar user={user} />}
         {user && <SideBar />}
         <Providers>
-          <DeleteModalProvider>
-            <div className={user ? "ml-56" : "pl-0"}>{children}</div>
-          </DeleteModalProvider>
+          <BookingProvider>
+            <DeleteModalProvider>
+              <div className={user ? "ml-56" : "pl-0"}>{children}</div>
+            </DeleteModalProvider>
+          </BookingProvider>
         </Providers>
       </body>
     </html>

@@ -39,20 +39,14 @@ export default function BookingModal({
 }) {
   const {
     booking,
-    setBooking,
     isEditModalOpen,
-    setIsEditModalOpen,
     isAddModalOpen,
     setIsAddModalOpen,
+    closeModal,
   } = useBooking();
 
   function handleChange(value: boolean) {
-    if (modalMode === "edit") {
-      setIsEditModalOpen(value);
-      setBooking(undefined);
-    } else {
-      setIsAddModalOpen(value);
-    }
+    if (!value) closeModal();
   }
 
   return (

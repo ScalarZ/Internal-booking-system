@@ -20,8 +20,6 @@ import { generateRandomId } from "@/utils/generate-random-id";
 import { flightDefaultValue } from "@/utils/default-values";
 import ForPage from "../for-page";
 
-type InternationalFlights = ArrivalDeparturePair<InternationalFlight>;
-
 export default function InternationalFlights({
   internationalFlights,
   modalMode,
@@ -104,6 +102,7 @@ export default function InternationalFlights({
                   <FormLabel>Number</FormLabel>
                   <FormControl>
                     <Input
+                      type="number"
                       defaultValue={flight.arrival.flightNumber}
                       onChange={(e) =>
                         setInternationalFlights((prev) => {
@@ -113,7 +112,6 @@ export default function InternationalFlights({
                       }
                     />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
                 <FormItem className="flex flex-grow flex-col justify-start">
                   <FormLabel>Destination</FormLabel>
@@ -128,7 +126,6 @@ export default function InternationalFlights({
                       }
                     />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
                 <FormItem className="flex flex-grow flex-col justify-start">
                   <FormLabel>Reference ticket</FormLabel>
@@ -143,7 +140,6 @@ export default function InternationalFlights({
                       }
                     />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               </div>
               <div className="flex gap-x-4">
@@ -208,6 +204,7 @@ export default function InternationalFlights({
                   <FormLabel>Number</FormLabel>
                   <FormControl>
                     <Input
+                      type="number"
                       defaultValue={flight.departure.flightNumber}
                       onChange={(e) =>
                         setInternationalFlights((prev) => {
@@ -217,7 +214,6 @@ export default function InternationalFlights({
                       }
                     />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
                 <FormItem className="flex flex-grow flex-col justify-start">
                   <FormLabel>Destination</FormLabel>
@@ -232,7 +228,6 @@ export default function InternationalFlights({
                       }
                     />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
                 <FormItem className=" flex flex-grow flex-col justify-start">
                   <FormLabel>Reference ticket</FormLabel>
@@ -247,7 +242,6 @@ export default function InternationalFlights({
                       }
                     />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               </div>
             </div>

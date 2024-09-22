@@ -1,4 +1,4 @@
-import { SelectCities } from "@/drizzle/schema";
+import { SelectCities, SelectReservations } from "@/drizzle/schema";
 import { Itinerary } from "@/types_";
 import { getCompanies } from "@/utils/db-queries/company";
 import { getCountries } from "@/utils/db-queries/country";
@@ -56,4 +56,42 @@ export async function getBookingParams() {
     getNationalities(),
     getNileCruises(),
   ]);
+}
+
+export function getReservationRowStatus(reservations?: SelectReservations[]) {
+  if (reservations?.every((reservation) => reservation.finalPrice))
+    return "success";
+  if (reservations?.some((reservation) => reservation.finalPrice))
+    return "warning";
+  return "danger";
+}
+
+export function getAviationRowStatus(
+  domesticFlights?: Omit<ArrivalDeparturePair<DomesticFlight>[], "file"> | null,
+) {
+  if (domesticFlights?.some(({ arrival, departure }) => !arrival || !departure))
+    return "danger";
+  if (
+    domesticFlights?.every(
+      ({ arrival, departure }) =>
+        Object.values(arrival).every((value) => !!value) &&
+        Object.values(departure).every((value) => !!value),
+    )
+  )
+    return "success";
+  if (
+    domesticFlights?.every(
+      ({
+        arrival: { issued: arrivalIssued, ...arrivalProps },
+        departure: { issued: departureIssued, ...departureProps },
+      }) =>
+        Object.values(arrivalProps).some(
+          (value) => !!value && !arrivalIssued,
+        ) ||
+        (Object.values(departureProps).some((value) => !!value) &&
+          !!departureIssued),
+    )
+  )
+    return "warning";
+  return "danger";
 }

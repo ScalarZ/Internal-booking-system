@@ -2,6 +2,7 @@
 
 import { db } from "@/drizzle/db";
 import {
+  Bookings,
   SelectBookingItineraries,
   SelectBookingOptionalTours,
   SelectBookingTours,
@@ -51,10 +52,22 @@ export async function getBookings() {
     orderBy: ({ updatedAt }, { desc }) => desc(updatedAt),
   });
 }
-export async function getBooking(bookingId: number) {
+export async function getBooking(bookingId: string) {
   return await db.query.bookings.findFirst({
-    with: { reservations: true },
-    where: ({ id }) => eq(id, bookingId),
+    with: {
+      reservations: true,
+      bookingTour: {
+        with: { itineraries: true },
+      },
+      bookingHotels: {
+        with: {
+          hotel: true,
+        },
+      },
+      reviews: true,
+      surveys: true,
+    },
+    where: ({ internalBookingId }) => eq(internalBookingId, bookingId),
   });
 }
 
@@ -113,7 +126,7 @@ export async function addBookings(
     SelectBookingTours & {
       itineraries: Omit<
         SelectBookingItineraries,
-        "guide" | "createdAt" | "updatedAt"
+        "guide" | "optionalGuide" | "createdAt" | "updatedAt"
       >[];
     },
     "id" | "bookingId"
@@ -185,7 +198,7 @@ export async function updateBooking(
     SelectBookingTours & {
       itineraries: Omit<
         SelectBookingItineraries,
-        "guide" | "createdAt" | "updatedAt"
+        "guide" | "optionalGuide" | "createdAt" | "updatedAt"
       >[];
     },
     "bookingId"
@@ -309,6 +322,7 @@ export async function getWeeklyItineraries(date: Date) {
                     'optionalActivities', booking_itineraries.optional_activities,
                     'cities', booking_itineraries.cities,
                     'guide', booking_itineraries.guide,
+                    'optionalGuide', booking_itineraries.optional_guide,
                     'dayNumber', booking_itineraries.day_number,
                     'tourId', booking_itineraries.tour_id
                 )
@@ -322,6 +336,22 @@ export async function getWeeklyItineraries(date: Date) {
             AND booking_itineraries.day < ${format(addDays(weekStart, 7), "yyyy-MM-dd")}
         GROUP BY
             booking_tours.booking_id, booking_tours.id
+    ),
+    reservation_data AS (
+      SELECT
+        reservations.booking_id,
+        json_agg(
+          json_build_object(
+            'id',
+            reservations.id,
+            'hotels',
+            reservations.hotels
+          )
+        ) AS bookingReservations
+      FROM
+        reservations
+      GROUP BY
+        reservations.booking_id
     )
     SELECT
         bookings.*,
@@ -329,23 +359,28 @@ export async function getWeeklyItineraries(date: Date) {
         json_build_object(
             'id', itinerary_data.tour_id,
             'itineraries', itinerary_data.itineraries
-        ) AS "bookingTour"
+        ) AS "bookingTour",
+         reservation_data.bookingReservations AS reservations
     FROM
         bookings
     JOIN
-        itinerary_data ON bookings.id = itinerary_data.booking_id;
-    `)) as SelectBookingWithItineraries[];
+        itinerary_data ON bookings.id = itinerary_data.booking_id
+    JOIN
+        reservation_data ON bookings.id = reservation_data.booking_id;
+    `)) as Bookings[];
 }
 
 export async function updateBookingItineraryGuide({
   itineraryId,
   guide,
+  optional = false,
 }: {
   itineraryId: number;
   guide: string | null;
+  optional?: boolean;
 }) {
   return await db
     .update(bookingItineraries)
-    .set({ guide })
+    .set(!optional ? { guide } : { optionalGuide: guide })
     .where(eq(bookingItineraries.id, itineraryId));
 }

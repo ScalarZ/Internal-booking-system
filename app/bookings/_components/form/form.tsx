@@ -11,7 +11,6 @@ import { listItineraryCities } from "@/lib/utils";
 import { useCallback, useEffect, useState } from "react";
 import { addDays, format } from "date-fns";
 import {
-  Bookings,
   SelectCities,
   SelectCompanies,
   SelectCountries,
@@ -42,6 +41,7 @@ import InternationalFlights from "./international-flights";
 import DomesticFlights from "./domestic-flights";
 import HotelsSection from "./hotels-section";
 import { usePathname } from "next/navigation";
+import { FlightsSection } from "./flights-section";
 
 export default function From({
   tours,
@@ -121,6 +121,8 @@ export default function From({
   const [itineraryInitialValues, setItineraryInitialValues] =
     useState<Itinerary | null>(null);
 
+  console.log(booking);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: booking
@@ -155,6 +157,7 @@ export default function From({
           nileCruises: booking.nileCruises ?? undefined,
           status: booking.status ?? undefined,
           tipsIncluded: booking.tipsIncluded ?? undefined,
+          flightsGeneralNote: booking.flightsGeneralNote ?? undefined,
         }
       : {
           hotels: [],
@@ -204,6 +207,7 @@ export default function From({
         roomNote: values.roomNote ?? null,
         referenceBookingId: values.referenceBookingId ?? null,
         nileCruises: values.nileCruises ?? null,
+        flightsGeneralNote: values.flightsGeneralNote ?? null,
         double: values.doubleRoom ?? 0,
         single: values.singleRoom ?? 0,
         triple: values.tripleRoom ?? 0,
@@ -385,66 +389,67 @@ export default function From({
             nileCruises={nileCruises}
           />
         </ForPage>
+        <FlightsSection
+          modalMode={modalMode}
+          form={form}
+          pathname={pathname}
+          domesticFlights={domesticFlights}
+          internationalFlights={internationalFlights}
+          setDomesticFlights={setDomesticFlights}
+          setInternationalFlights={setInternationalFlights}
+        />
 
         <ForPage
-          {...(["/bookings", "/aviations"].includes(pathname)
-            ? { type: "multiple", page: ["/bookings", "/aviations"] }
+          {...(["/bookings", "/reservations"].includes(pathname)
+            ? { type: "multiple", page: ["/bookings", "/reservations"] }
             : { readonly: true })}
         >
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold text-sky-900">Flights</h2>
-            <InternationalFlights
-              modalMode={modalMode}
-              internationalFlights={internationalFlights}
-              setInternationalFlights={setInternationalFlights}
-            />
-            <DomesticFlights
-              modalMode={modalMode}
-              domesticFlights={domesticFlights}
-              setDomesticFlights={setDomesticFlights}
-            />
+          <section>
+            <div className="flex justify-between">
+              <h2 className="text-2xl font-semibold text-sky-900">Hotels</h2>
+              <ForPage type="single" page="/bookings">
+                <Button
+                  variant="secondary"
+                  disabled={
+                    !itineraries?.length ||
+                    !form.watch("arrivalDepartureDate.from")
+                  }
+                  onClick={
+                    !reservationsList?.length
+                      ? generateReservations
+                      : () => setIsAlertModalOpen(true)
+                  }
+                  type="button"
+                >
+                  Generate reservations
+                </Button>
+              </ForPage>
+            </div>
+
+            {!!reservationsList?.length &&
+              !!form.watch("arrivalDepartureDate")?.from && (
+                <Reservations
+                  reservationsList={reservationsList}
+                  setReservationsList={setReservationsList}
+                  tourCountries={tourCountries}
+                />
+              )}
           </section>
         </ForPage>
-
-        <section>
-          <div className="flex justify-between">
-            <h2 className="text-2xl font-semibold text-sky-900">Hotels</h2>
-            <ForPage type="single" page="/bookings">
-              <Button
-                variant="secondary"
-                disabled={
-                  !itineraries?.length ||
-                  !form.watch("arrivalDepartureDate.from")
-                }
-                onClick={
-                  !reservationsList?.length
-                    ? generateReservations
-                    : () => setIsAlertModalOpen(true)
-                }
-                type="button"
-              >
-                Generate reservations
-              </Button>
-            </ForPage>
-          </div>
-          {!!reservationsList?.length &&
-            !!form.watch("arrivalDepartureDate")?.from && (
-              <Reservations
-                reservationsList={reservationsList}
-                setReservationsList={setReservationsList}
-                tourCountries={tourCountries}
-              />
-            )}
-        </section>
 
         <DialogFooter className="pt-4">
           <Button type="button" variant={"outline"} onClick={closeModal}>
             Cancel
           </Button>
-          <Button type="submit" className="flex gap-x-1">
-            {isLoading && <Loader size={14} className="animate-spin" />}
-            Submit
-          </Button>
+          <ForPage
+            type="multiple"
+            page={["/bookings", "/reservations", "/aviations"]}
+          >
+            <Button type="submit" className="flex gap-x-1">
+              {isLoading && <Loader size={14} className="animate-spin" />}
+              Submit
+            </Button>
+          </ForPage>
         </DialogFooter>
       </form>
       {isEditItineraryModalOpen && !!itineraryInitialValues && (

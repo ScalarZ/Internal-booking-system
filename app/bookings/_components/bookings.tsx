@@ -35,35 +35,6 @@ export default function Bookings({
   nileCruises: SelectNileCruises[];
   filter: any;
 }) {
-  return (
-    <BookingProvider>
-      <Content
-        companies={companies}
-        countries={countries}
-        tours={tours}
-        nationalities={nationalities}
-        nileCruises={nileCruises}
-        filter={filter}
-      />
-    </BookingProvider>
-  );
-}
-
-function Content({
-  companies,
-  countries,
-  tours,
-  nationalities,
-  nileCruises,
-  filter,
-}: {
-  countries: SelectCountries[];
-  companies: SelectCompanies[];
-  tours: SelectToursWithItineraries[] | SelectBookingToursWithItineraries[];
-  nationalities: SelectNationalities[];
-  nileCruises: SelectNileCruises[];
-  filter: any;
-}) {
   const {
     booking,
     setBooking,

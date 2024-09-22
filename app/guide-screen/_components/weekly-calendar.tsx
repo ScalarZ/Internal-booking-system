@@ -14,17 +14,34 @@ import {
 import { getWeeklyItineraries } from "@/utils/db-queries/booking";
 import {
   SelectBookingWithItineraries,
+  SelectCountries,
   SelectGuidesWithCountries,
 } from "@/drizzle/schema";
 import { useQuery } from "@tanstack/react-query";
 import ItineraryCard from "./itinerary-card";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import Filters from "./filters";
+import { useRouter, useSearchParams } from "next/navigation";
+import BookingModal from "@/app/bookings/_components/booking-modal";
+import { useBooking } from "@/context/booking-context";
 
 const WeeklyCalendar = ({
   guides,
+  countries,
 }: {
   guides: SelectGuidesWithCountries[];
+  countries: SelectCountries[];
 }) => {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const params = useMemo(
+    () => new URLSearchParams(searchParams),
+    [searchParams],
+  );
+  const country = params.get("country");
+
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const { setBooking, setIsEditModalOpen } = useBooking();
 
   const {
     data: bookings,
@@ -34,6 +51,8 @@ const WeeklyCalendar = ({
     queryKey: [format(currentWeek, "yyyy-MM-dd")],
     queryFn: () => getWeeklyItineraries(currentWeek),
   });
+
+  console.log(bookings);
   const handleNextWeek = () => {
     setCurrentWeek(addDays(currentWeek, 7));
   };
@@ -89,59 +108,90 @@ const WeeklyCalendar = ({
   }
 
   if (error) return <div>Error</div>;
-
   return (
-    <div className="flex flex-col justify-center">
-      <div className="flex items-center justify-center gap-x-6">
-        <button
-          className="rounded-md bg-green-500 p-3 text-white hover:bg-green-600"
-          onClick={handlePreviousWeek}
-        >
-          ←
-        </button>
-        <div className="flex w-full">{daysOfWeek}</div>
-        <button
-          className="rounded-md bg-green-500 p-3 text-white hover:bg-green-600"
-          onClick={handleNextWeek}
-        >
-          →
-        </button>
-      </div>
+    <>
+      <div className="flex flex-col justify-center gap-y-4">
+        <Filters countries={countries} />
+        <div className="flex items-center justify-center gap-x-6 px-3">
+          <ChevronLeft
+            size={30}
+            className="cursor-pointer text-sky-900"
+            onClick={handlePreviousWeek}
+          />
+          <div className="flex w-full">{daysOfWeek}</div>
+          <ChevronRight
+            className="cursor-pointer text-sky-900"
+            size={30}
+            onClick={handleNextWeek}
+          />
+        </div>
 
-      {isLoading && <div className="p-16 text-center">Loading...</div>}
-      <div className="flex grow flex-col px-16">
-        {bookings?.map((booking) => {
-          return (
-            <div key={booking.id} className="relative flex w-full grow">
-              <div className="absolute bottom-0 left-0 origin-top-right -translate-x-full rotate-90 bg-yellow-400 p-2">
-                {booking.internalBookingId}
-              </div>
-              {calculatePreviousDays(booking).map((_, i) => (
-                <div
-                  key={i}
-                  className="w-full max-w-[293px] grow overflow-auto border p-2"
-                ></div>
-              ))}
-              {booking.bookingTour?.itineraries.map((itinerary, i) => (
-                <ItineraryCard
-                  key={itinerary.id}
-                  {...itinerary}
-                  i={i}
-                  guides={guides}
-                  currentWeek={currentWeek}
-                />
-              ))}
-              {calculateNextDays(booking).map((_, i) => (
-                <div
-                  key={i}
-                  className="w-full max-w-[293px] grow overflow-auto border p-2"
-                ></div>
-              ))}
-            </div>
-          );
-        })}
+        {isLoading && <div className="p-16 text-center">Loading...</div>}
+        <div className="flex grow flex-col px-16">
+          {bookings
+            ?.filter(({ countries }) =>
+              countries
+                ?.map((country) => country.toLowerCase())
+                ?.includes((country ?? "Egypt").toLowerCase()),
+            )
+            ?.sort((a, b) =>
+              (a.internalBookingId ?? "")
+                .toLowerCase()
+                .localeCompare((b.internalBookingId ?? "").toLowerCase()),
+            )
+            ?.map((booking) => {
+              return (
+                <div key={booking.id} className="relative flex w-full grow">
+                  <div
+                    className="absolute left-0 top-0 max-w-[200px] origin-bottom-right -translate-x-full -translate-y-full -rotate-90 cursor-pointer bg-yellow-400 p-1 text-xs"
+                    onClick={() => {
+                      params.set("bookingId", booking.internalBookingId!);
+                      router.replace(`?${params.toString()}`);
+                    }}
+                  >
+                    {booking.internalBookingId}
+                    <span className="text-gray-700">
+                      {booking.reservations?.reduce((acc, curr) => {
+                        if (!curr.hotels.length) return acc;
+                        if (!acc.startsWith(": ")) acc += ": ";
+                        return acc + curr.hotels.join(", ");
+                      }, "")}
+                    </span>
+                  </div>
+                  {calculatePreviousDays(booking).map((_, i) => (
+                    <div
+                      key={i}
+                      className="w-full max-w-[293px] grow overflow-auto border p-2"
+                    ></div>
+                  ))}
+                  {booking.bookingTour?.itineraries.map((itinerary, i) => (
+                    <ItineraryCard
+                      key={itinerary.id}
+                      {...itinerary}
+                      i={i}
+                      guides={guides}
+                      currentWeek={currentWeek}
+                    />
+                  ))}
+                  {calculateNextDays(booking).map((_, i) => (
+                    <div
+                      key={i}
+                      className="w-full max-w-[293px] grow overflow-auto border p-2"
+                    ></div>
+                  ))}
+                </div>
+              );
+            })}
+        </div>
       </div>
-    </div>
+      <BookingModal
+        modalMode="edit"
+        nileCruises={[]}
+        companies={[]}
+        nationalities={[]}
+        tours={[]}
+      />
+    </>
   );
 };
 

@@ -57,7 +57,6 @@ export default function FilterBookings({
       console.error(error);
     }
   }
-
   const addQuery = (name: string, value: string) => {
     params.set(name, value);
     router.replace(`?${params.toString()}`);

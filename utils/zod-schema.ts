@@ -70,23 +70,7 @@ export const formSchema = z.object({
   language: z.string({ required_error: "Please select a language" }),
   generalNote: z.string().optional(),
   status: z.boolean().default(true),
-  internationalFlights: z
-    .object({
-      flightNumber: z.number().optional(),
-      arrivalDepartureDate: z
-        .object({
-          from: z
-            .date({ required_error: "Please select an arrival date" })
-            .optional(),
-          to: z
-            .date({ required_error: "Please select an departure date" })
-            .optional(),
-        })
-        .optional(),
-      destinations: z.string().optional(),
-      file: z.string().optional(),
-    })
-    .optional(),
+  flightsGeneralNote: z.string().optional(),
 });
 
 export const optionalTourSchema = z.object({

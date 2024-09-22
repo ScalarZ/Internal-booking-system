@@ -155,6 +155,41 @@
       "when": 1726668352831,
       "tag": "20240918140552_new_tag",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1726913081271,
+      "tag": "20240921100441_special_firestar",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1726913354807,
+      "tag": "20240921100914_broad_zzzax",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1726991305750,
+      "tag": "20240922074825_rare_lilandra",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1726992389298,
+      "tag": "20240922080629_fast_the_hunter",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1727010545011,
+      "tag": "20240922130905_chief_white_queen",
+      "breakpoints": true
     }
   ]
 }

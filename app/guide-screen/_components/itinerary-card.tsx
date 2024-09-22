@@ -30,6 +30,7 @@ export default function ItineraryCard({
   activities,
   optionalActivities,
   guide,
+  optionalGuide,
   guides,
   currentWeek,
   tourId,
@@ -89,13 +90,23 @@ export default function ItineraryCard({
           </div>
         )}
       </div>
-      <GuideSelector
-        guides={guides}
-        itineraryId={id}
-        defaultValue={guide}
-        currentWeek={currentWeek}
-        tourId={tourId!}
-      />
+      <div className="flex flex-col gap-y-1">
+        <GuideSelector
+          guides={guides}
+          itineraryId={id}
+          defaultValue={guide}
+          currentWeek={currentWeek}
+          tourId={tourId!}
+        />
+        <GuideSelector
+          guides={guides}
+          itineraryId={id}
+          defaultValue={optionalGuide}
+          currentWeek={currentWeek}
+          tourId={tourId!}
+          optional
+        />
+      </div>
     </div>
   );
 }
@@ -106,12 +117,14 @@ function GuideSelector({
   itineraryId,
   currentWeek,
   tourId,
+  optional = false,
 }: {
   defaultValue: string | null;
   guides: SelectGuidesWithCountries[];
   itineraryId: number;
   tourId: string;
   currentWeek: Date;
+  optional?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [guide, setGuide] = useState<string>(defaultValue ?? "");
@@ -121,6 +134,7 @@ function GuideSelector({
     await updateBookingItineraryGuide({
       itineraryId,
       guide: name,
+      optional,
     });
     queryClient.setQueryData(
       [format(currentWeek, "yyyy-MM-dd")],
@@ -137,7 +151,9 @@ function GuideSelector({
                     if (itinerary.id === itineraryId) {
                       return {
                         ...itinerary,
-                        guide: name,
+                        ...(optional
+                          ? { optionalGuide: name }
+                          : { guide: name }),
                       };
                     }
                     return itinerary;
@@ -161,14 +177,18 @@ function GuideSelector({
           className="w-full justify-between self-end overflow-hidden"
           type="button"
         >
-          {guide ? guide : "Select a guide"}
+          {guide
+            ? guide
+            : optional
+              ? "Select an optional guide"
+              : "Select a guide"}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className=" p-0">
         <Command>
-          <CommandInput placeholder="Search company..." />
-          <CommandEmpty>No company found.</CommandEmpty>
+          <CommandInput placeholder="Search guide..." />
+          <CommandEmpty>No guide found.</CommandEmpty>
           <CommandGroup>
             {guides?.map(({ id, name }) => (
               <CommandItem
