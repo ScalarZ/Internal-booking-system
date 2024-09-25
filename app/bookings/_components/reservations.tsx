@@ -95,6 +95,7 @@ export default function Reservations({
                     placeholder="Final price..."
                     defaultValue={props.finalPrice ?? undefined}
                     type="number"
+                    onClick={(e) => e.stopPropagation()}
                     onChange={(e) =>
                       setReservationsList((prev) => {
                         prev[index].finalPrice = isNaN(e.target.valueAsNumber)
