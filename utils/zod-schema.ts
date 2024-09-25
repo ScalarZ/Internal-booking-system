@@ -43,6 +43,8 @@ export const formSchema = z.object({
   ),
   company: z.string({ required_error: "Please select a company" }),
   currency: z.string({ required_error: "Please select a currency" }),
+  creditBalance: z.string().optional(),
+  paid: z.boolean().default(false),
   arrivalDepartureDate: z.object({
     from: z
       .date({ required_error: "Please select an arrival date" })
@@ -71,6 +73,10 @@ export const formSchema = z.object({
   generalNote: z.string().optional(),
   status: z.boolean().default(true),
   flightsGeneralNote: z.string().optional(),
+  roomingList: z.object({
+    file: z.custom<File>().optional(),
+    url: z.string().optional(),
+  }),
 });
 
 export const optionalTourSchema = z.object({

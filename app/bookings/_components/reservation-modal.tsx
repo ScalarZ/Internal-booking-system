@@ -107,6 +107,15 @@ export default function ReservationModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const [extras, setExtras] = useState({
+    single: editedReservation?.single ?? null,
+    double: editedReservation?.double ?? null,
+    triple: editedReservation?.triple ?? null,
+    free: editedReservation?.free ?? null,
+    refund: editedReservation?.refund ?? null,
+    child: editedReservation?.child ?? null,
+  });
+
   const listCities = useCallback(async () => {
     try {
       const cities = await getCountryCities(selectedCountry.id);
@@ -124,8 +133,14 @@ export default function ReservationModal({
     hotels: selectedHotels,
     start: dateRange.from ?? null,
     end: dateRange.to ?? null,
-    bookingId: null,
-    finalPrice: null,
+    bookingId: editedReservation?.bookingId ?? null,
+    finalPrice: editedReservation?.finalPrice ?? null,
+    child: extras.child,
+    free: extras.free,
+    refund: extras.refund,
+    single: extras.single,
+    double: extras.double,
+    triple: extras.triple,
   };
   function closeModal() {
     setIsOpen(false);
@@ -313,11 +328,23 @@ export default function ReservationModal({
                 </Popover>
               </TableCell>
               <TableCell className="px-2">
-                <Input
-                  placeholder="Meal..."
-                  value={meal}
-                  onChange={(e) => setMeal(e.target.value)}
-                />
+                <Select
+                  onValueChange={(value) => setMeal(value)}
+                  defaultValue={"HB"}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a meal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["HB", "BB", "All inclusive", "Full board"]?.map(
+                      (meal) => (
+                        <SelectItem key={meal} value={meal}>
+                          {meal}
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
               </TableCell>
               <TableCell className="px-2">
                 <Select
@@ -349,6 +376,25 @@ export default function ReservationModal({
             </TableRow>
           </TableBody>
         </Table>
+        <section className="space-y-2">
+          <h2 className="font-medium">Extras</h2>
+          <div className="grid grid-cols-6 gap-x-4">
+            {Object.keys(extras).map((key) => (
+              <Input
+                key={key}
+                type="number"
+                defaultValue={extras[key as keyof typeof extras] ?? undefined}
+                placeholder={`${key}...`}
+                onChange={(e) =>
+                  setExtras((prev) => ({
+                    ...prev,
+                    [key]: e.target.valueAsNumber,
+                  }))
+                }
+              />
+            ))}
+          </div>
+        </section>
         <DialogFooter className="flex w-full justify-between pt-4">
           <div className="flex gap-x-2">
             <Button

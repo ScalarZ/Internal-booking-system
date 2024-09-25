@@ -37,11 +37,12 @@ import AlertModal from "./alert";
 import { useBooking } from "@/context/booking-context";
 import ForPage from "../for-page";
 import { flightDefaultValue } from "@/utils/default-values";
-import InternationalFlights from "./international-flights";
-import DomesticFlights from "./domestic-flights";
 import HotelsSection from "./hotels-section";
 import { usePathname } from "next/navigation";
 import { FlightsSection } from "./flights-section";
+import Canceled from "./canceled";
+import { useSupabaseStorage } from "@/hooks/use-supabase-storage";
+import { SUPABASE_STORAGE_URL } from "@/app.confing";
 
 export default function From({
   tours,
@@ -58,6 +59,7 @@ export default function From({
 }) {
   const pathname = usePathname();
   const { booking, closeModal } = useBooking();
+  const { uploadFile } = useSupabaseStorage("tourists passport");
   const [name, setName] = useState("");
   const [internalBookingId, setInternalBookingId] = useState(
     booking?.internalBookingId ?? "",
@@ -121,49 +123,47 @@ export default function From({
   const [itineraryInitialValues, setItineraryInitialValues] =
     useState<Itinerary | null>(null);
 
-  console.log(booking);
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: booking
-      ? {
-          hotels: booking.bookingHotels.map(({ hotel }) => hotel) ?? [],
-          pax: booking.pax ?? undefined,
-          internalBookingId: booking.internalBookingId ?? undefined,
-          arrivalDepartureDate:
-            {
-              from: booking.arrivalDate ?? undefined,
-              to: booking.departureDate ?? undefined,
-            } ?? undefined,
-          company: booking.company ?? undefined,
-          currency: booking.currency ?? undefined,
-          internalFlights: booking.internalFlights ?? undefined,
-          internalFlightsNote: booking.internalFlightsNote ?? undefined,
-          generalNote: booking.generalNote ?? undefined,
-          singleRoom: booking.single ?? undefined,
-          doubleRoom: booking.double ?? undefined,
-          tripleRoom: booking.triple ?? undefined,
-          roomNote: booking.roomNote ?? undefined,
-          language: booking.language ?? undefined,
-          nationality: booking.nationality ?? undefined,
-          referenceBookingId: booking.referenceBookingId ?? undefined,
-          tips: booking.tips ?? undefined,
-          tour:
-            {
-              id: booking?.bookingTour?.id ?? undefined,
-              name: booking?.bookingTour?.name ?? undefined,
-            } ?? undefined,
-          visa: booking.visa ?? undefined,
-          nileCruises: booking.nileCruises ?? undefined,
-          status: booking.status ?? undefined,
-          tipsIncluded: booking.tipsIncluded ?? undefined,
-          flightsGeneralNote: booking.flightsGeneralNote ?? undefined,
-        }
-      : {
-          hotels: [],
-          nileCruises: [],
-          status: true,
-        },
+    defaultValues: {
+      hotels: booking?.bookingHotels.map(({ hotel }) => hotel) ?? [],
+      pax: booking?.pax ?? undefined,
+      internalBookingId: booking?.internalBookingId ?? undefined,
+      arrivalDepartureDate:
+        {
+          from: booking?.arrivalDate ?? undefined,
+          to: booking?.departureDate ?? undefined,
+        } ?? undefined,
+      company: booking?.company ?? undefined,
+      currency: booking?.currency ?? undefined,
+      internalFlights: booking?.internalFlights ?? undefined,
+      internalFlightsNote: booking?.internalFlightsNote ?? undefined,
+      generalNote: booking?.generalNote ?? undefined,
+      singleRoom: booking?.single ?? undefined,
+      doubleRoom: booking?.double ?? undefined,
+      tripleRoom: booking?.triple ?? undefined,
+      roomNote: booking?.roomNote ?? undefined,
+      language: booking?.language ?? undefined,
+      nationality: booking?.nationality ?? undefined,
+      referenceBookingId: booking?.referenceBookingId ?? undefined,
+      tips: booking?.tips ?? undefined,
+      tour:
+        {
+          id: booking?.bookingTour?.id ?? undefined,
+          name: booking?.bookingTour?.name ?? undefined,
+        } ?? undefined,
+      visa: booking?.visa ?? false,
+      nileCruises: booking?.nileCruises ?? undefined,
+      status: booking?.status ?? true,
+      tipsIncluded: booking?.tipsIncluded ?? undefined,
+      flightsGeneralNote: booking?.flightsGeneralNote ?? undefined,
+      creditBalance: booking?.creditBalance ?? undefined,
+      paid: booking?.paid ?? false,
+      roomingList: {
+        file: undefined,
+        url: booking?.roomingList ?? undefined,
+      },
+    },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -173,7 +173,6 @@ export default function From({
         passports,
         internalBookingId,
       });
-
       const domesticFlightsTicketPaths =
         modalMode === "add"
           ? await uploadFlightTickets({
@@ -199,6 +198,18 @@ export default function From({
               bucket: "international flights tickets",
             });
 
+      let roomingListPath = values.roomingList?.url;
+      const roomingListFile = values.roomingList?.file;
+      if (roomingListFile) {
+        const path = (
+          await uploadFile(
+            roomingListFile,
+            `${internalBookingId}/${Date.now()}-${roomingListFile.name}`,
+          )
+        ).path;
+        roomingListPath = `${SUPABASE_STORAGE_URL}/tourists%20passport/${path}`;
+      }
+
       const bookingProps = {
         arrivalDate: values.arrivalDepartureDate.from ?? null,
         departureDate: values.arrivalDepartureDate.to ?? null,
@@ -208,6 +219,9 @@ export default function From({
         referenceBookingId: values.referenceBookingId ?? null,
         nileCruises: values.nileCruises ?? null,
         flightsGeneralNote: values.flightsGeneralNote ?? null,
+        creditBalance: values.creditBalance ?? null,
+        roomingList: roomingListPath ?? null,
+        paid: values.paid,
         double: values.doubleRoom ?? 0,
         single: values.singleRoom ?? 0,
         triple: values.tripleRoom ?? 0,
@@ -322,15 +336,21 @@ export default function From({
             i !== arr.length - 1 ? addDays(startDate, 1) : startDate;
         } else {
           acc.push({
+            bookingId: booking?.id ?? -1,
             start: startDate,
             end: addDays(startDate, 1),
             city: curr?.cities?.[curr?.cities?.length - 1] ?? null,
             hotels: [],
+            currency: "USD",
             meal: null,
             targetPrice: null,
-            currency: "USD",
-            bookingId: booking?.id ?? -1,
             finalPrice: null,
+            single: null,
+            double: null,
+            triple: null,
+            free: null,
+            child: null,
+            refund: null,
           });
           tacker++;
         }
@@ -353,23 +373,23 @@ export default function From({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <BookingSection
+          form={form}
+          companies={companies}
+          name={name}
+          nationalities={nationalities}
+          passports={passports}
+          touristsNames={touristsNames}
+          setName={setName}
+          setPassports={setPassports}
+          setInternalBookingId={setInternalBookingId}
+          setTouristsNames={setTouristsNames}
+        />
         <ForPage
           {...(pathname === "/bookings"
             ? { type: "single", page: "/bookings" }
             : { readonly: true })}
         >
-          <BookingSection
-            form={form}
-            companies={companies}
-            name={name}
-            nationalities={nationalities}
-            passports={passports}
-            touristsNames={touristsNames}
-            setName={setName}
-            setPassports={setPassports}
-            setInternalBookingId={setInternalBookingId}
-            setTouristsNames={setTouristsNames}
-          />
           <ToursSection
             form={form}
             itineraries={itineraries}
@@ -398,16 +418,16 @@ export default function From({
           setDomesticFlights={setDomesticFlights}
           setInternationalFlights={setInternationalFlights}
         />
-
         <ForPage
           {...(["/bookings", "/reservations"].includes(pathname)
             ? { type: "multiple", page: ["/bookings", "/reservations"] }
             : { readonly: true })}
         >
+          {!form?.watch("status") && <Canceled form={form} />}
           <section>
             <div className="flex justify-between">
               <h2 className="text-2xl font-semibold text-sky-900">Hotels</h2>
-              <ForPage type="single" page="/bookings">
+              <ForPage type="multiple" page={["/bookings", "/reservations"]}>
                 <Button
                   variant="secondary"
                   disabled={
@@ -425,7 +445,6 @@ export default function From({
                 </Button>
               </ForPage>
             </div>
-
             {!!reservationsList?.length &&
               !!form.watch("arrivalDepartureDate")?.from && (
                 <Reservations

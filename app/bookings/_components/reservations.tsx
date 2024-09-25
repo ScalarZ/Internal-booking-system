@@ -68,7 +68,8 @@ export default function Reservations({
             <TableRow
               key={index}
               onClick={() => {
-                if (pathname !== "/bookings") return;
+                if (pathname !== "/bookings" && pathname !== "/reservations")
+                  return;
                 setEditedReservation({
                   ...props,
                   hotels: [...props.hotels!],
@@ -111,7 +112,7 @@ export default function Reservations({
           ))}
         </TableBody>
       </Table>
-      <ForPage type="single" page="/bookings">
+      <ForPage type="multiple" page={["/bookings", "/reservations"]}>
         <Button
           type="button"
           variant="secondary"

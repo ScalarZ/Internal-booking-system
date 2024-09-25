@@ -92,8 +92,8 @@ export default function FilterBookings({
 
     const filter = {
       dateRange: {
-        from: from instanceof Date ? from : undefined,
-        to: to instanceof Date ? to : undefined,
+        from: from && !isNaN(from.getTime()) ? from : undefined,
+        to: to && !isNaN(to.getTime()) ? to : undefined,
       },
       country,
       id,

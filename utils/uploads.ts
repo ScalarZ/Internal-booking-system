@@ -1,3 +1,4 @@
+import { SUPABASE_STORAGE_URL } from "@/app.confing";
 import { createClient } from "./supabase/client";
 
 const supabase = createClient();
@@ -18,6 +19,9 @@ export async function uploadPassports({
             .upload(
               `${internalBookingId}/${date}-${image.file?.name}`,
               image.file,
+              {
+                upsert: true,
+              },
             )
         : undefined,
     ),
@@ -25,7 +29,7 @@ export async function uploadPassports({
   const paths = res.map((res, i) =>
     res
       ? {
-          url: `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/tourists%20passport/${res.data?.path}`,
+          url: `${SUPABASE_STORAGE_URL}/tourists%20passport/${res.data?.path}`,
           name: `${date}-${passports[i]?.image?.file?.name}`,
         }
       : {
@@ -56,6 +60,9 @@ export async function uploadFlightTickets<T>({
                 .upload(
                   `${internalBookingId}/${date}-${image.file?.name}`,
                   image.file,
+                  {
+                    upsert: true,
+                  },
                 ),
             )
           : [],
@@ -69,7 +76,7 @@ export async function uploadFlightTickets<T>({
     const rowLength = row.files?.length ?? 0;
     flightsTickets.push(
       res.slice(index, index + rowLength).map(({ data }, i) => ({
-        url: `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/${bucket.replaceAll(" ", "%20")}/${data?.path}`,
+        url: `${SUPABASE_STORAGE_URL}/${bucket.replaceAll(" ", "%20")}/${data?.path}`,
         name: row.files?.[i]?.name,
       })),
     );
@@ -99,6 +106,9 @@ export async function updateFlightTickets<T>({
             .upload(
               `${internalBookingId}/${date}-${file.image?.name}`,
               file.image,
+              {
+                upsert: true,
+              },
             )
         : undefined,
     ),
@@ -111,7 +121,7 @@ export async function updateFlightTickets<T>({
       res2.slice(index, index + rowLength).map((res, i) =>
         res
           ? {
-              url: `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/${bucket.replaceAll(" ", "%20")}/${res.data?.path}`,
+              url: `${SUPABASE_STORAGE_URL}/${bucket.replaceAll(" ", "%20")}/${res.data?.path}`,
               name: row.urls?.[i]?.name,
             }
           : row.urls[i],

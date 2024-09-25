@@ -118,7 +118,6 @@ export default function DomesticFlights({
                     <FormLabel>Number</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
                         defaultValue={flight.arrival.flightNumber}
                         onChange={(e) =>
                           setDomesticFlights((prev) => {
@@ -248,7 +247,6 @@ export default function DomesticFlights({
                     <FormLabel>Number</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
                         defaultValue={flight.departure.flightNumber}
                         onChange={(e) =>
                           setDomesticFlights((prev) => {

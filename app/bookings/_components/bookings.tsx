@@ -16,7 +16,7 @@ import DeleteBookingModal from "./delete-booking-modal";
 import { useQuery } from "@tanstack/react-query";
 import { filterBookings, getBookings } from "@/utils/db-queries/booking";
 import BookingModal from "./booking-modal";
-import { BookingProvider, useBooking } from "@/context/booking-context";
+import { useBooking } from "@/context/booking-context";
 import CreateBooking from "./create-booking";
 import { usePathname } from "next/navigation";
 

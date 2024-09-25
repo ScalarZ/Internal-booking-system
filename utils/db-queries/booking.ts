@@ -6,7 +6,6 @@ import {
   SelectBookingItineraries,
   SelectBookingOptionalTours,
   SelectBookingTours,
-  SelectBookingWithItineraries,
   SelectBookings,
   SelectHotels,
   SelectReservations,
@@ -16,14 +15,12 @@ import {
   bookingOptionalTours,
   bookingTours,
   bookings,
-  notifications,
   reviews,
   surveys,
 } from "@/drizzle/schema";
 import {
   and,
   arrayContains,
-  desc,
   eq,
   gte,
   ilike,
@@ -91,10 +88,13 @@ export async function filterBookings(filters: BookingFilters) {
       ),
       lte(
         bookings.departureDate,
-        new Date(
-          filters.dateRange?.to.toLocaleString(undefined, {
-            timeZone: "Europe/Paris",
-          }),
+        addDays(
+          new Date(
+            filters.dateRange?.to.toLocaleString(undefined, {
+              timeZone: "Europe/Paris",
+            }),
+          ),
+          1,
         ),
       ),
     );
@@ -120,8 +120,9 @@ export async function filterBookings(filters: BookingFilters) {
   });
 }
 
+type ExcludedColumn = "createdAt" | "updatedAt";
 export async function addBookings(
-  booking: Omit<SelectBookings, "id" | "createdAt" | "updatedAt">,
+  booking: Omit<SelectBookings, "id" | ExcludedColumn>,
   bookingTour: Omit<
     SelectBookingTours & {
       itineraries: Omit<
@@ -185,15 +186,11 @@ export async function addBookings(
         bookingId: bookingRow.id,
       })),
     );
-  // return await db.insert(notifications).values({
-  //   type: "booking",
-  //   message: "new booking has been added with id " + row[0].id,
-  // });
   revalidatePath("/bookings");
 }
 
 export async function updateBooking(
-  booking: Omit<SelectBookings, "createdAt" | "updatedAt" | "passports">,
+  booking: Omit<SelectBookings, ExcludedColumn | "passports">,
   bookingTour: Omit<
     SelectBookingTours & {
       itineraries: Omit<

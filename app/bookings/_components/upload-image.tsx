@@ -12,6 +12,7 @@ import ImageUploading, {
   ImageType,
 } from "react-images-uploading";
 import { File, XCircle } from "lucide-react";
+import ForPage from "./for-page";
 
 export default function UploadImage({
   images,
@@ -68,15 +69,17 @@ export default function UploadImage({
               dragProps,
             }) => (
               <div className="upload__image-wrapper">
-                <div
-                  style={isDragging ? { color: "red" } : undefined}
-                  onClick={onImageUpload}
-                  {...dragProps}
-                  className="mb-4 flex h-24 w-full items-center justify-center gap-x-2 rounded border-2 border-dashed border-sky-900 border-opacity-30"
-                >
-                  <File />
-                  <p className="font-medium">Click or Drop here</p>
-                </div>
+                <ForPage type="single" page="/bookings">
+                  <div
+                    style={isDragging ? { color: "red" } : undefined}
+                    onClick={onImageUpload}
+                    {...dragProps}
+                    className="mb-4 flex h-24 w-full items-center justify-center gap-x-2 rounded border-2 border-dashed border-sky-900 border-opacity-30"
+                  >
+                    <File />
+                    <p className="font-medium">Click or Drop here</p>
+                  </div>
+                </ForPage>
                 <div className="grid max-h-[76vh] grid-cols-4 gap-4 overflow-y-auto p-2">
                   {imageList.map(({ image, name, url }, index) => (
                     <div
@@ -91,16 +94,22 @@ export default function UploadImage({
                         <File size={128} strokeWidth={1} />
                         <p className="text-center">{name}</p>
                       </a>
-
-                      <XCircle
-                        size={28}
-                        className="absolute -right-2 -top-2 cursor-pointer text-white"
-                        onClick={() => onImageRemove(index)}
-                        fill="red"
-                      />
+                      <ForPage type="single" page="/bookings">
+                        <XCircle
+                          size={28}
+                          className="absolute -right-2 -top-2 cursor-pointer text-white"
+                          onClick={() => onImageRemove(index)}
+                          fill="red"
+                        />
+                      </ForPage>
                     </div>
                   ))}
                 </div>
+                {!imageList.length && (
+                  <p className="w-full text-center font-medium text-gray-500">
+                    No Files
+                  </p>
+                )}
               </div>
             )}
           </ImageUploading>
@@ -116,14 +125,16 @@ export default function UploadImage({
           >
             Cancel
           </Button>
-          <Button
-            type="button"
-            onClick={() => {
-              setIsOpen(false);
-            }}
-          >
-            Save
-          </Button>
+          <ForPage type="single" page="/bookings">
+            <Button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+              }}
+            >
+              Save
+            </Button>
+          </ForPage>
         </DialogFooter>
       </DialogContent>
     </Dialog>

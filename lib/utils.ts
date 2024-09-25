@@ -7,6 +7,10 @@ import { getNileCruises } from "@/utils/db-queries/nile-cruise";
 import { getTours } from "@/utils/db-queries/tour";
 import { type ClassValue, clsx } from "clsx";
 import { format, parse } from "date-fns";
+import {
+  AppRouterInstance,
+  NavigateOptions,
+} from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
@@ -40,8 +44,8 @@ export function getFilter(searchParams: { [key: string]: string | undefined }) {
 
   return {
     dateRange: {
-      from: from instanceof Date ? from : undefined,
-      to: to instanceof Date ? to : undefined,
+      from: from && !isNaN(from.getTime()) ? from : undefined,
+      to: to && !isNaN(to.getTime()) ? to : undefined,
     },
     country,
     id,
@@ -94,4 +98,23 @@ export function getAviationRowStatus(
   )
     return "warning";
   return "danger";
+}
+
+export function addQuery(
+  router: AppRouterInstance,
+  params: URLSearchParams,
+  name: string,
+  value: string,
+) {
+  params.set(name, value);
+  router.replace(`?${params.toString()}`);
+}
+
+export function removeQuery(
+  params: URLSearchParams,
+  name: string,
+  router: AppRouterInstance,
+) {
+  params.delete(name);
+  router.replace(`?${params.toString()}`);
 }

@@ -1,14 +1,17 @@
+import { SUPABASE_STORAGE_URL } from "@/app.confing";
 import { createClient } from "@/utils/supabase/client";
 import { useCallback } from "react";
 
 export function useSupabaseStorage(bucket: string) {
   const uploadFile = useCallback(
-    async (file: File) => {
+    async (file: File, path?: string) => {
       const supabase = createClient();
       const date = Date.now();
       const { data, error } = await supabase.storage
         .from(bucket)
-        .upload(`${date}-${file.name}`, file);
+        .upload(path ?? `${date}-${file.name}`, file, {
+          upsert: true,
+        });
       if (error) {
         throw error;
       }
@@ -26,7 +29,7 @@ export function useSupabaseStorage(bucket: string) {
         .map((res, i) =>
           res.status === "fulfilled"
             ? {
-                url: `https://sgddpuwyvwbqkygpjbgg.supabase.co/storage/v1/object/public/${bucket}/${res.value?.path}`,
+                url: `${SUPABASE_STORAGE_URL}/${bucket}/${res.value?.path}`,
                 name: `${files[i].name}`,
               }
             : null,
@@ -34,7 +37,7 @@ export function useSupabaseStorage(bucket: string) {
         .filter(Boolean) as { url: string; name: string }[];
       return paths;
     },
-    [uploadFile],
+    [uploadFile, bucket],
   );
 
   const deleteFile = useCallback(

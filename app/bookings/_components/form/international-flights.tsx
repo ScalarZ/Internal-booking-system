@@ -102,7 +102,6 @@ export default function InternationalFlights({
                   <FormLabel>Number</FormLabel>
                   <FormControl>
                     <Input
-                      type="number"
                       defaultValue={flight.arrival.flightNumber}
                       onChange={(e) =>
                         setInternationalFlights((prev) => {
@@ -204,7 +203,6 @@ export default function InternationalFlights({
                   <FormLabel>Number</FormLabel>
                   <FormControl>
                     <Input
-                      type="number"
                       defaultValue={flight.departure.flightNumber}
                       onChange={(e) =>
                         setInternationalFlights((prev) => {

@@ -75,3 +75,20 @@ interface Filters {
 
 type InternationalFlights = ArrivalDeparturePair<InternationalFlight>;
 type DomesticFlights = ArrivalDeparturePair<DomesticFlight>;
+
+interface DateRange {
+  from: string;
+  to: string;
+}
+
+interface FilterParam {
+  name: string | null;
+  dateRange: DateRange | null;
+}
+
+interface FilterParams {
+  country: string;
+  city: FilterParam;
+  activity: FilterParam;
+  guide: FilterParam;
+}

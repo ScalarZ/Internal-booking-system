@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 
 import {
   addDays,
@@ -13,7 +13,10 @@ import {
 } from "date-fns";
 import { getWeeklyItineraries } from "@/utils/db-queries/booking";
 import {
+  Bookings,
+  SelectActivities,
   SelectBookingWithItineraries,
+  SelectCities,
   SelectCountries,
   SelectGuidesWithCountries,
 } from "@/drizzle/schema";
@@ -23,27 +26,57 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import Filters from "./filters";
 import { useRouter, useSearchParams } from "next/navigation";
 import BookingModal from "@/app/bookings/_components/booking-modal";
-import { useBooking } from "@/context/booking-context";
+import useFilterParams from "@/hooks/use-filter-params";
+
+const filterBookings = (
+  bookings: Bookings[],
+  filterParams: FilterParams,
+): Bookings[] => {
+  const { country, city, activity, guide } = filterParams;
+
+  const filterByDate = (dateRange: DateRange | null, day: string) =>
+    !dateRange ||
+    (new Date(dateRange.from) <= new Date(day) &&
+      new Date(dateRange.to) >= new Date(day));
+
+  const compareStringsEquality = (a: string | null, b: string | null) =>
+    a?.toLowerCase() === b?.toLowerCase();
+
+  return bookings.filter((booking) => {
+    const { countries, bookingTour } = booking;
+    return (
+      countries?.some((c) => c.toLowerCase() === country.toLowerCase()) &&
+      bookingTour.itineraries.some((itinerary) => {
+        const { day, cities, activities } = itinerary;
+        return (
+          (!city.name ||
+            cities?.some((c) => compareStringsEquality(c.name, city.name))) &&
+          (!city.dateRange || filterByDate(city.dateRange, day!)) &&
+          (!activity.name ||
+            activities?.some((a) =>
+              compareStringsEquality(a.name, activity.name),
+            )) &&
+          (!activity.dateRange || filterByDate(activity.dateRange, day!)) &&
+          (!guide.name ||
+            compareStringsEquality(itinerary.guide, guide.name)) &&
+          (!guide.dateRange || filterByDate(guide.dateRange, day!))
+        );
+      })
+    );
+  });
+};
 
 const WeeklyCalendar = ({
   guides,
-  countries,
+  ...props
 }: {
   guides: SelectGuidesWithCountries[];
   countries: SelectCountries[];
+  cities: SelectCities[];
+  activities: SelectActivities[];
 }) => {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const params = useMemo(
-    () => new URLSearchParams(searchParams),
-    [searchParams],
-  );
-  const country = params.get("country");
-
   const [currentWeek, setCurrentWeek] = useState(new Date());
-  const { setBooking, setIsEditModalOpen } = useBooking();
-
-  const {
+  let {
     data: bookings,
     error,
     isLoading,
@@ -52,14 +85,27 @@ const WeeklyCalendar = ({
     queryFn: () => getWeeklyItineraries(currentWeek),
   });
 
-  console.log(bookings);
-  const handleNextWeek = () => {
-    setCurrentWeek(addDays(currentWeek, 7));
-  };
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const params = useMemo(
+    () => new URLSearchParams(searchParams),
+    [searchParams],
+  );
+  const filterParams = useFilterParams();
 
-  const handlePreviousWeek = () => {
-    setCurrentWeek(subDays(currentWeek, 7));
-  };
+  const filteredBookings = useMemo(
+    () => (bookings ? filterBookings(bookings, filterParams) : []),
+    [bookings, filterParams],
+  );
+
+  const handleNextWeek = useCallback(
+    () => setCurrentWeek((prev) => addDays(prev, 7)),
+    [],
+  );
+  const handlePreviousWeek = useCallback(
+    () => setCurrentWeek((prev) => subDays(prev, 7)),
+    [],
+  );
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 0 });
   const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 0 });
@@ -81,37 +127,34 @@ const WeeklyCalendar = ({
     [weekStart],
   );
 
-  function calculatePreviousDays(booking: SelectBookingWithItineraries) {
+  const calculateDaysDifference = (
+    booking: SelectBookingWithItineraries,
+    weekBoundary: Date,
+    compareToStart: boolean,
+  ) => {
     const itineraries = booking.bookingTour.itineraries?.sort(
       (a, b) =>
         parse(a.day ?? "", "yyyy-MM-dd", new Date()).getTime() -
         parse(b.day ?? "", "yyyy-MM-dd", new Date()).getTime(),
     );
-    const startDate = parse(itineraries[0].day ?? "", "yyyy-MM-dd", new Date());
-    const daysDifference = differenceInCalendarDays(startDate, weekStart);
-    return [...Array(daysDifference)];
-  }
 
-  function calculateNextDays(booking: SelectBookingWithItineraries) {
-    const itineraries = booking.bookingTour.itineraries?.sort(
-      (a, b) =>
-        parse(a.day ?? "", "yyyy-MM-dd", new Date()).getTime() -
-        parse(b.day ?? "", "yyyy-MM-dd", new Date()).getTime(),
-    );
-    const startDate = parse(
-      itineraries?.at(-1)?.day ?? "",
+    const referenceDate = parse(
+      compareToStart
+        ? itineraries?.[0]?.day ?? ""
+        : itineraries?.at(-1)?.day ?? "",
       "yyyy-MM-dd",
       new Date(),
     );
-    const daysDifference = differenceInCalendarDays(weekEnd, startDate);
-    return [...Array(daysDifference)];
-  }
+
+    return Math.abs(differenceInCalendarDays(referenceDate, weekBoundary));
+  };
 
   if (error) return <div>Error</div>;
+
   return (
     <>
       <div className="flex flex-col justify-center gap-y-4">
-        <Filters countries={countries} />
+        <Filters {...props} guides={guides} />
         <div className="flex items-center justify-center gap-x-6 px-3">
           <ChevronLeft
             size={30}
@@ -125,15 +168,9 @@ const WeeklyCalendar = ({
             onClick={handleNextWeek}
           />
         </div>
-
         {isLoading && <div className="p-16 text-center">Loading...</div>}
         <div className="flex grow flex-col px-16">
-          {bookings
-            ?.filter(({ countries }) =>
-              countries
-                ?.map((country) => country.toLowerCase())
-                ?.includes((country ?? "Egypt").toLowerCase()),
-            )
+          {filteredBookings
             ?.sort((a, b) =>
               (a.internalBookingId ?? "")
                 .toLowerCase()
@@ -158,7 +195,9 @@ const WeeklyCalendar = ({
                       }, "")}
                     </span>
                   </div>
-                  {calculatePreviousDays(booking).map((_, i) => (
+                  {[
+                    ...Array(calculateDaysDifference(booking, weekStart, true)),
+                  ].map((_, i) => (
                     <div
                       key={i}
                       className="w-full max-w-[293px] grow overflow-auto border p-2"
@@ -173,7 +212,9 @@ const WeeklyCalendar = ({
                       currentWeek={currentWeek}
                     />
                   ))}
-                  {calculateNextDays(booking).map((_, i) => (
+                  {[
+                    ...Array(calculateDaysDifference(booking, weekEnd, false)),
+                  ].map((_, i) => (
                     <div
                       key={i}
                       className="w-full max-w-[293px] grow overflow-auto border p-2"

@@ -143,7 +143,10 @@ export const bookings = pgTable("bookings", {
   passports: jsonb("passports")
     .array()
     .$type<{ url?: string; name?: string }[]>(),
+  roomingList: text("rooming_list"),
   flightsGeneralNote: text("flights_general_note"),
+  creditBalance: text("credit_balance"),
+  paid: boolean("paid").default(false),
 });
 
 export const bookingTours = pgTable("booking_tours", {
@@ -188,6 +191,12 @@ export const reservations = pgTable("reservations", {
   bookingId: integer("booking_id").references(() => bookings.id, {
     onDelete: "cascade",
   }),
+  single: integer("single"),
+  double: integer("double"),
+  triple: integer("triple"),
+  free: integer("free"),
+  refund: integer("refund"),
+  child: integer("child"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
@@ -265,6 +274,15 @@ export const reviews = pgTable("reviews", {
 });
 
 export const buses = pgTable("buses", {
+  id: serial("id").primaryKey(),
+  name: text("name"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  countryId: uuid("country_id").references(() => countries.id, {
+    onDelete: "cascade",
+  }),
+});
+
+export const drivers = pgTable("drivers", {
   id: serial("id").primaryKey(),
   name: text("name"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
