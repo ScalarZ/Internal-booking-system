@@ -18,15 +18,7 @@ import {
   reviews,
   surveys,
 } from "@/drizzle/schema";
-import {
-  and,
-  arrayContains,
-  eq,
-  gte,
-  ilike,
-  lte,
-  sql,
-} from "drizzle-orm";
+import { and, arrayContains, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { addReservations, deleteBookingReservations } from "./reservation";
 import { addDays, format, startOfWeek } from "date-fns";
@@ -334,6 +326,22 @@ export async function getWeeklyItineraries(date: Date) {
         GROUP BY
             booking_tours.booking_id, booking_tours.id
     ),
+    check_itineraries_guide AS (
+      SELECT 
+          bt.booking_id,
+          CASE 
+            WHEN COUNT(bi.id) = 0 THEN 'red' 
+            WHEN COUNT(bi.id) = SUM(CASE WHEN bi.guide IS NOT NULL THEN 1 ELSE 0 END) THEN 'green'  
+            WHEN SUM(CASE WHEN bi.guide IS NOT NULL THEN 1 ELSE 0 END) = 0 THEN 'red'  
+            ELSE 'yellow' 
+          END AS guide_status
+      FROM   
+          booking_tours bt
+      LEFT JOIN 
+          booking_itineraries bi ON bt.id = bi.tour_id
+      GROUP BY 
+          bt.booking_id
+    ),
     reservation_data AS (
       SELECT
         reservations.booking_id,
@@ -354,17 +362,19 @@ export async function getWeeklyItineraries(date: Date) {
         bookings.*,
         bookings.internal_booking_id AS "internalBookingId",
         json_build_object(
-            'id', itinerary_data.tour_id,
-            'itineraries', itinerary_data.itineraries
-        ) AS "bookingTour",
-         reservation_data.bookingReservations AS reservations
+          'id', itinerary_data.tour_id,
+          'itineraries', itinerary_data.itineraries
+          ) AS "bookingTour",
+          reservation_data.bookingReservations AS reservations,
+          check_itineraries_guide.guide_status
     FROM
         bookings
     JOIN
         itinerary_data ON bookings.id = itinerary_data.booking_id
     JOIN
-        reservation_data ON bookings.id = reservation_data.booking_id;
-    `)) as Bookings[];
+        reservation_data ON bookings.id = reservation_data.booking_id
+    JOIN check_itineraries_guide ON bookings.id = check_itineraries_guide.booking_id;
+    `)) as (Bookings & { guide_status: "red" | "yellow" | "green" })[];
 }
 
 export async function updateBookingItineraryGuide({

@@ -24,14 +24,15 @@ import { useQuery } from "@tanstack/react-query";
 import ItineraryCard from "./itinerary-card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Filters from "./filters";
-import { useRouter, useSearchParams } from "next/navigation";
 import BookingModal from "@/app/bookings/_components/booking-modal";
 import useFilterParams from "@/hooks/use-filter-params";
+import { cn } from "@/lib/utils";
+import useURLQuery from "@/hooks/use-url-query";
 
 const filterBookings = (
-  bookings: Bookings[],
+  bookings: (Bookings & { guide_status: "red" | "yellow" | "green" })[],
   filterParams: FilterParams,
-): Bookings[] => {
+) => {
   const { country, city, activity, guide } = filterParams;
 
   const filterByDate = (dateRange: DateRange | null, day: string) =>
@@ -85,12 +86,8 @@ const WeeklyCalendar = ({
     queryFn: () => getWeeklyItineraries(currentWeek),
   });
 
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const params = useMemo(
-    () => new URLSearchParams(searchParams),
-    [searchParams],
-  );
+  const { addQuery } = useURLQuery();
+
   const filterParams = useFilterParams();
 
   const filteredBookings = useMemo(
@@ -178,13 +175,19 @@ const WeeklyCalendar = ({
             )
             ?.map((booking) => {
               return (
-                <div key={booking.id} className="relative flex w-full grow">
+                <div
+                  key={booking.id}
+                  className={cn("relative flex w-full grow", {
+                    "bg-green-200": booking.guide_status === "green",
+                    "bg-red-200": booking.guide_status === "red",
+                    "bg-yellow-200": booking.guide_status === "yellow",
+                  })}
+                >
                   <div
                     className="absolute left-0 top-0 max-w-[200px] origin-bottom-right -translate-x-full -translate-y-full -rotate-90 cursor-pointer bg-yellow-400 p-1 text-xs"
-                    onClick={() => {
-                      params.set("bookingId", booking.internalBookingId!);
-                      router.replace(`?${params.toString()}`);
-                    }}
+                    onClick={() =>
+                      addQuery("bookingId", booking.internalBookingId!)
+                    }
                   >
                     {booking.internalBookingId}
                     <span className="text-gray-700">

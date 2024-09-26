@@ -155,10 +155,10 @@ function DateFilter({
     <div className="flex flex-col gap-y-2">
       <Select
         defaultValue={value ?? "select-" + valueQueryName}
+        value={value ?? "select-" + valueQueryName}
         onValueChange={(v) => {
           if (v === "select-" + valueQueryName) setValue(null);
           else setValue(v);
-
           handleQueryChange(v !== "select-" + valueQueryName ? v : null, {
             from: dateRange?.from,
             to: dateRange?.to,
