@@ -11,7 +11,10 @@ import {
   differenceInCalendarDays,
   endOfWeek,
 } from "date-fns";
-import { getWeeklyItineraries } from "@/utils/db-queries/booking";
+import {
+  getFilteredWeeklyItineraries,
+  getWeeklyItineraries,
+} from "@/utils/db-queries/booking";
 import {
   Bookings,
   SelectActivities,
@@ -76,19 +79,18 @@ const WeeklyCalendar = ({
   cities: SelectCities[];
   activities: SelectActivities[];
 }) => {
+  const filterParams = useFilterParams();
   const [currentWeek, setCurrentWeek] = useState(new Date());
   let {
     data: bookings,
     error,
     isLoading,
   } = useQuery({
-    queryKey: [format(currentWeek, "yyyy-MM-dd")],
-    queryFn: () => getWeeklyItineraries(currentWeek),
+    queryKey: [format(currentWeek, "yyyy-MM-dd"), filterParams],
+    queryFn: () => getFilteredWeeklyItineraries(currentWeek, filterParams),
   });
 
   const { addQuery } = useURLQuery();
-
-  const filterParams = useFilterParams();
 
   const filteredBookings = useMemo(
     () => (bookings ? filterBookings(bookings, filterParams) : []),
@@ -146,7 +148,7 @@ const WeeklyCalendar = ({
     return Math.abs(differenceInCalendarDays(referenceDate, weekBoundary));
   };
 
-  if (error) return <div>Error</div>;
+  if (error) return <div>{JSON.stringify(error)}</div>;
 
   return (
     <>

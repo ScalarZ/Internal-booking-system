@@ -9,7 +9,6 @@ import {
   timestamp,
   serial,
 } from "drizzle-orm/pg-core";
-import { optional } from "zod";
 
 export const hotels = pgTable("hotels", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -309,9 +308,11 @@ export const guidesRelations = relations(guides, ({ one }) => ({
 
 export const countriesRelations = relations(countries, ({ many }) => ({
   hotels: many(hotels),
+  buses: many(buses),
+  drivers: many(drivers),
 }));
 
-export const citiesRelations = relations(cities, ({ one }) => ({
+export const citiesRelations = relations(cities, ({ one, many }) => ({
   country: one(countries, {
     fields: [cities.countryId],
     references: [countries.id],
@@ -425,6 +426,20 @@ export const reviewsRelations = relations(reviews, ({ one }) => ({
   }),
 }));
 
+export const busesRelations = relations(buses, ({ one }) => ({
+  country: one(countries, {
+    fields: [buses.countryId],
+    references: [countries.id],
+  }),
+}));
+
+export const driversRelations = relations(drivers, ({ one }) => ({
+  country: one(countries, {
+    fields: [drivers.countryId],
+    references: [countries.id],
+  }),
+}));
+
 export type SelectCountries = typeof countries.$inferSelect;
 export type SelectCities = typeof cities.$inferSelect;
 export type SelectGuides = typeof guides.$inferSelect;
@@ -444,7 +459,8 @@ export type SelectBookingItineraries = typeof bookingItineraries.$inferSelect;
 export type SelectBookingHotels = typeof bookingHotels.$inferSelect;
 export type SelectSurveys = typeof surveys.$inferSelect;
 export type SelectReviews = typeof reviews.$inferSelect;
-
+export type SelectBuses = typeof buses.$inferSelect;
+export type SelectDrivers = typeof drivers.$inferSelect;
 export type SelectBookingOptionalTours =
   typeof bookingOptionalTours.$inferSelect;
 

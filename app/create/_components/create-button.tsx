@@ -30,6 +30,8 @@ import { SelectCountries } from "@/drizzle/schema";
 import { addRepresentative } from "@/utils/db-queries/representatives";
 import { addCity } from "@/utils/db-queries/city";
 import { addGuide } from "@/utils/db-queries/guide";
+import { addBus } from "@/utils/db-queries/buses";
+import { addDriver } from "@/utils/db-queries/drivers";
 import { errorDefaultValue } from "./default-values";
 
 export default function CreateButton({
@@ -37,7 +39,7 @@ export default function CreateButton({
   type,
 }: {
   countriesList: SelectCountries[];
-  type: "city" | "guide" | "representative";
+  type: "city" | "guide" | "representative" | "bus" | "driver";
 }) {
   const [name, setName] = useState("");
   const [countryId, setCountryId] = useState("");
@@ -86,6 +88,12 @@ export default function CreateButton({
           break;
         case "representative":
           await addRepresentative({ name, countryId });
+          break;
+        case "bus":
+          await addBus({ name, countryId });
+          break;
+        case "driver":
+          await addDriver({ name, countryId });
           break;
       }
     } catch (err) {

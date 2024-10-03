@@ -2,10 +2,10 @@
 
 import { createClient } from "./supabase/server";
 
-const supabase = createClient();
-
 export async function getUser() {
   "use server";
+  const supabase = createClient();
+
   const {
     data: { user },
     error,

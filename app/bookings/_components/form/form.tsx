@@ -36,7 +36,10 @@ import { ToursSection } from "./tours-section";
 import AlertModal from "./alert";
 import { useBooking } from "@/context/booking-context";
 import ForPage from "../for-page";
-import { flightDefaultValue } from "@/utils/default-values";
+import {
+  domesticFlightDefaultValue,
+  internationalFlightDefaultValue,
+} from "@/utils/default-values";
 import HotelsSection from "./hotels-section";
 import { usePathname } from "next/navigation";
 import { FlightsSection } from "./flights-section";
@@ -88,32 +91,10 @@ export default function From({
   );
   const [domesticFlights, setDomesticFlights] = useState<
     (ArrivalDeparturePair<DomesticFlight> & { src?: string })[]
-  >(booking?.domesticFlights ?? [flightDefaultValue]);
+  >(booking?.domesticFlights ?? [domesticFlightDefaultValue]);
   const [internationalFlights, setInternationalFlights] = useState<
     (ArrivalDeparturePair<InternationalFlight> & { src?: string })[]
-  >(
-    booking?.internationalFlights ?? [
-      {
-        id: "v1rlr7m0fa",
-        arrival: {
-          arrivalDate: undefined,
-          arrivalTime: undefined,
-          destinations: undefined,
-          flightNumber: undefined,
-          referenceTicket: undefined,
-        },
-        departure: {
-          departureDate: undefined,
-          departureTime: undefined,
-          destinations: undefined,
-          flightNumber: undefined,
-          referenceTicket: undefined,
-        },
-        files: [],
-        urls: [],
-      },
-    ],
-  );
+  >(booking?.internationalFlights ?? [internationalFlightDefaultValue]);
   const [reservationsList, setReservationsList] = useState<Reservation[]>(
     booking?.reservations?.map(({ city, ...props }) => ({
       ...props,

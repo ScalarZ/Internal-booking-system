@@ -377,6 +377,98 @@ export async function getWeeklyItineraries(date: Date) {
     `)) as (Bookings & { guide_status: "red" | "yellow" | "green" })[];
 }
 
+export async function getFilteredWeeklyItineraries(date: Date, filters: any) {
+  const weekStart = startOfWeek(date, { weekStartsOn: 0 });
+  return (await db.execute(sql`
+    WITH itinerary_data AS (
+        SELECT
+            booking_tours.booking_id,
+            booking_tours.id AS tour_id,
+            json_agg(
+                json_build_object(
+                    'id', booking_itineraries.id,
+                    'day', booking_itineraries.day,
+                    'activities', booking_itineraries.activities,
+                    'optionalActivities', booking_itineraries.optional_activities,
+                    'cities', booking_itineraries.cities,
+                    'guide', booking_itineraries.guide,
+                    'optionalGuide', booking_itineraries.optional_guide,
+                    'dayNumber', booking_itineraries.day_number,
+                    'tourId', booking_itineraries.tour_id
+                )
+            ) AS itineraries
+        FROM
+            booking_tours
+        JOIN
+            booking_itineraries ON booking_itineraries.tour_id = booking_tours.id
+        WHERE
+            booking_itineraries.day >= ${format(weekStart, "yyyy-MM-dd")}
+            AND booking_itineraries.day < ${format(addDays(weekStart, 7), "yyyy-MM-dd")}
+            ${
+              filters.city.name && filters.city.dateRange
+                ? sql`AND EXISTS (
+                        SELECT 1
+                        FROM unnest(booking_itineraries.cities) AS city
+                        WHERE city->>'name' = ${filters.city.name}
+                      )
+                      AND booking_itineraries.day >= ${filters.city.dateRange.from} 
+                      AND booking_itineraries.day < ${filters.city.dateRange.to}`
+                : sql``
+            }
+        GROUP BY
+            booking_tours.booking_id, booking_tours.id
+    ),
+    check_itineraries_guide AS (
+      SELECT 
+          bt.booking_id,
+          CASE 
+            WHEN COUNT(bi.id) = 0 THEN 'red' 
+            WHEN COUNT(bi.id) = SUM(CASE WHEN bi.guide IS NOT NULL THEN 1 ELSE 0 END) THEN 'green'  
+            WHEN SUM(CASE WHEN bi.guide IS NOT NULL THEN 1 ELSE 0 END) = 0 THEN 'red'  
+            ELSE 'yellow' 
+          END AS guide_status
+      FROM   
+          booking_tours bt
+      LEFT JOIN 
+          booking_itineraries bi ON bt.id = bi.tour_id
+      GROUP BY 
+          bt.booking_id
+    ),
+    reservation_data AS (
+      SELECT
+        reservations.booking_id,
+        json_agg(
+          json_build_object(
+            'id',
+            reservations.id,
+            'hotels',
+            reservations.hotels
+          )
+        ) AS bookingReservations
+      FROM
+        reservations
+      GROUP BY
+        reservations.booking_id
+    )
+    SELECT
+        bookings.*,
+        bookings.internal_booking_id AS "internalBookingId",
+        json_build_object(
+          'id', itinerary_data.tour_id,
+          'itineraries', itinerary_data.itineraries
+          ) AS "bookingTour",
+          reservation_data.bookingReservations AS reservations,
+          check_itineraries_guide.guide_status
+    FROM
+        bookings
+    JOIN
+        itinerary_data ON bookings.id = itinerary_data.booking_id
+    JOIN
+        reservation_data ON bookings.id = reservation_data.booking_id
+    JOIN check_itineraries_guide ON bookings.id = check_itineraries_guide.booking_id;
+    `)) as (Bookings & { guide_status: "red" | "yellow" | "green" })[];
+}
+
 export async function updateBookingItineraryGuide({
   itineraryId,
   guide,
@@ -390,4 +482,146 @@ export async function updateBookingItineraryGuide({
     .update(bookingItineraries)
     .set(!optional ? { guide } : { optionalGuide: guide })
     .where(eq(bookingItineraries.id, itineraryId));
+}
+
+export async function getTrafficSheetDepartures(date: string, city?: string) {
+  return (await db.execute(sql`
+   WITH departure_bookings AS (
+     SELECT
+       r.*,
+       b.*,
+       (
+         SELECT domestic_flights
+         FROM unnest(b.domestic_flights) AS domestic_flights
+         WHERE (domestic_flights ->> 'departure')::jsonb ->> 'departureDate' = ${date}
+         LIMIT 1
+       )::jsonb AS domestic_flight
+     FROM bookings b
+     INNER JOIN reservations r ON r.booking_id = b.id
+     WHERE EXISTS (
+       SELECT 1
+       FROM unnest(b.domestic_flights) AS domestic_flights
+       WHERE (domestic_flights ->> 'departure')::jsonb ->> 'departureDate' = ${date}
+       ${city ? sql`AND (domestic_flights ->> 'departure')::jsonb ->> 'from' = ${city}` : sql``}
+     )
+   )
+   SELECT
+     db.booking_id AS id,
+     db.internal_booking_id AS "internalBookingId",
+     db.pax,
+     (db.domestic_flight::jsonb->>'id')::text AS "domesticId", 
+     jsonb_set(
+       (db.domestic_flight::jsonb ->> 'departure')::jsonb,
+       '{from}',
+       to_jsonb(
+         concat(
+           (db.domestic_flight::jsonb ->> 'departure')::jsonb ->> 'from',
+           '-',
+           db.hotels[1]
+         )
+       )
+     ) AS departure
+   FROM departure_bookings db
+   WHERE ((db.domestic_flight::jsonb ->> 'departure')::jsonb ->> 'departureDate')::date = "end";
+`)) as (Bookings & { departure: DepartureInfo; domesticId: string })[];
+}
+
+export async function updateTrafficSheetBookingRepresentative(
+  bookingId: number,
+  domesticId: string,
+  representative: string,
+) {
+  return await db.execute(sql`
+    UPDATE bookings
+    SET domestic_flights = (
+      SELECT array_agg(
+        CASE
+          WHEN (flight ->> 'id')::text = ${domesticId} THEN 
+            jsonb_set(
+              flight::jsonb, 
+              '{departure,representative}', 
+              to_jsonb(${representative}::text)
+            )
+          ELSE flight
+        END
+      ) 
+      FROM unnest(domestic_flights) AS flight
+    )
+    WHERE id = ${bookingId}
+  `);
+}
+
+export async function updateTrafficSheetBookingBus(
+  bookingId: number,
+  domesticId: string,
+  bus: string,
+) {
+  return await db.execute(sql`
+    UPDATE bookings
+    SET domestic_flights = (
+      SELECT array_agg(
+        CASE
+          WHEN (flight ->> 'id')::text = ${domesticId} THEN 
+            jsonb_set(
+              flight::jsonb, 
+              '{departure,bus}', 
+              to_jsonb(${bus}::text)
+            )
+          ELSE flight
+        END
+      ) 
+      FROM unnest(domestic_flights) AS flight
+    )
+    WHERE id = ${bookingId}
+  `);
+}
+
+export async function updateTrafficSheetBookingDriver(
+  bookingId: number,
+  domesticId: string,
+  driver: string,
+) {
+  return await db.execute(sql`
+    UPDATE bookings
+    SET domestic_flights = (
+      SELECT array_agg(
+        CASE
+          WHEN (flight ->> 'id')::text = ${domesticId} THEN 
+            jsonb_set(
+              flight::jsonb, 
+              '{departure,driver}', 
+              to_jsonb(${driver}::text)
+            )
+          ELSE flight
+        END
+      ) 
+      FROM unnest(domestic_flights) AS flight
+    )
+    WHERE id = ${bookingId}
+  `);
+}
+
+export async function updateTrafficSheetBookingNote(
+  bookingId: number,
+  domesticId: string,
+  note: string,
+) {
+  return await db.execute(sql`
+    UPDATE bookings
+    SET domestic_flights = (
+      SELECT array_agg(
+        CASE
+          WHEN (flight ->> 'id')::text = ${domesticId} THEN 
+            jsonb_set(
+              flight::jsonb, 
+              '{departure,note}', 
+              to_jsonb(${note}::text)
+            )
+          ELSE flight
+        END
+      ) 
+      FROM unnest(domestic_flights) AS flight
+    )
+    WHERE id = ${bookingId}
+  `);
 }

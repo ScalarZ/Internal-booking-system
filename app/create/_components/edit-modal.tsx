@@ -7,7 +7,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@radix-ui/react-label";
 import { Input } from "@/components/ui/input";
@@ -30,6 +29,8 @@ import { SelectCountries } from "@/drizzle/schema";
 import { updateCity } from "@/utils/db-queries/city";
 import { updateGuide } from "@/utils/db-queries/guide";
 import { updateRepresentative } from "@/utils/db-queries/representatives";
+import { updateBus } from "@/utils/db-queries/buses";
+import { updateDriver } from "@/utils/db-queries/drivers";
 import { errorDefaultValue } from "./default-values";
 
 export default function EditModal({
@@ -41,7 +42,7 @@ export default function EditModal({
   setInitialValues,
 }: {
   countriesList: SelectCountries[];
-  type: "city" | "guide" | "representative";
+  type: "city" | "guide" | "representative" | "bus" | "driver";
   isOpen: boolean;
   initialValues: SelectGuidesWithCountries | SelectGuidesWithCountries;
   setIsOpen: (value: boolean) => void;
@@ -96,6 +97,12 @@ export default function EditModal({
           break;
         case "representative":
           await updateRepresentative({ name, countryId, id: initialValues.id });
+          break;
+        case "bus":
+          await updateBus({ name, countryId, id: initialValues.id });
+          break;
+        case "driver":
+          await updateDriver({ name, countryId, id: initialValues.id });
           break;
       }
     } catch (err) {

@@ -79,10 +79,10 @@ export default function Reservations({
               }}
             >
               <TableCell>
-                {!props.start ? "Start Date" : format(props.start, "dd/MM/yyy")}
+                {!props.start ? "Start Date" : format(props.start, "yyyy-MM-dd")}
               </TableCell>
               <TableCell>
-                {!props.end ? "End Date" : format(props.end, "dd/MM/yyy")}
+                {!props.end ? "End Date" : format(props.end, "yyyy-MM-dd")}
               </TableCell>
               <TableCell>{props.city?.name}</TableCell>
               <TableCell>{props.hotels?.map((name) => `${name}, `)}</TableCell>

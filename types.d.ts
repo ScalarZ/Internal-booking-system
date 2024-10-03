@@ -48,15 +48,24 @@ type DomesticFlight = {
 };
 
 type Ticket = { url?: string; name?: string; image?: ImageType };
+type DepartureInfo = {
+  id?: string;
+  departureDate?: string;
+  departureTime?: string;
+  representative?: string;
+  bus?: string;
+  driver?: string;
+  note?: string;
+};
 
 type ArrivalDeparturePair<T> = {
   id: string;
-  arrival: { arrivalDate?: Date; arrivalTime?: string } & T;
-  departure: { departureDate?: Date; departureTime?: string } & T;
+  arrival: { arrivalDate?: string; arrivalTime?: string } & T;
+  departure: DepartureInfo & T;
   files?: { image?: ImageType; name?: string; url?: string }[];
   urls: Ticket[];
 } & (T extends DomesticFlight
-  ? { fairEGP?: number; bookingReference?: string; issuedDate?: Date }
+  ? { fairEGP?: number; bookingReference?: string; issuedDate?: string }
   : {});
 
 interface UploadedFile {

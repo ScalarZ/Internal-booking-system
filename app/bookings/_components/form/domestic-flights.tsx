@@ -17,7 +17,7 @@ import { format } from "date-fns";
 import { CalendarIcon, Upload, X } from "lucide-react";
 import UploadImage from "../upload-image";
 import { generateRandomId } from "@/utils/generate-random-id";
-import { flightDefaultValue } from "@/utils/default-values";
+import { domesticFlightDefaultValue } from "@/utils/default-values";
 import { Switch } from "@/components/ui/switch";
 import ForPage from "../for-page";
 
@@ -83,10 +83,18 @@ export default function DomesticFlights({
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
-                          selected={flight.arrival.arrivalDate}
+                          selected={
+                            flight.arrival.arrivalDate
+                              ? new Date(flight.arrival.arrivalDate)
+                              : undefined
+                          }
                           onSelect={(value) => {
+                            if (!value) return;
                             setDomesticFlights((prev) => {
-                              prev[i].arrival.arrivalDate = value;
+                              prev[i].arrival.arrivalDate = format(
+                                value,
+                                "yyyy-MM-dd",
+                              );
                               return [...prev];
                             });
                           }}
@@ -212,10 +220,18 @@ export default function DomesticFlights({
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
-                          selected={flight.departure.departureDate}
+                          selected={
+                            flight.departure.departureDate
+                              ? new Date(flight.departure.departureDate)
+                              : undefined
+                          }
                           onSelect={(value) => {
+                            if (!value) return;
                             setDomesticFlights((prev) => {
-                              prev[i].departure.departureDate = value;
+                              prev[i].departure.departureDate = format(
+                                value,
+                                "yyyy-MM-dd",
+                              );
                               return [...prev];
                             });
                           }}
@@ -408,10 +424,15 @@ export default function DomesticFlights({
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={flight.issuedDate}
+                      selected={
+                        flight.issuedDate
+                          ? new Date(flight.issuedDate)
+                          : undefined
+                      }
                       onSelect={(value) => {
+                        if (!value) return;
                         setDomesticFlights((prev) => {
-                          prev[i].issuedDate = value;
+                          prev[i].issuedDate = format(value, "yyyy-MM-dd");
                           return [...prev];
                         });
                       }}
@@ -431,7 +452,7 @@ export default function DomesticFlights({
               setDomesticFlights((prev) => [
                 ...prev,
                 {
-                  ...flightDefaultValue,
+                  ...domesticFlightDefaultValue,
                   id: generateRandomId(),
                 },
               ])

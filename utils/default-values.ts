@@ -1,4 +1,4 @@
-export const flightDefaultValue = {
+export const domesticFlightDefaultValue = {
   id: "v1rlr7m0fb",
   arrival: {
     arrivalDate: undefined,
@@ -17,6 +17,26 @@ export const flightDefaultValue = {
     to: undefined,
     issued: false,
     included: true,
+  },
+  files: [],
+  urls: [],
+};
+
+export const internationalFlightDefaultValue = {
+  id: "v1rlr7m0fa",
+  arrival: {
+    arrivalDate: undefined,
+    arrivalTime: undefined,
+    destinations: undefined,
+    flightNumber: undefined,
+    referenceTicket: undefined,
+  },
+  departure: {
+    departureDate: undefined,
+    departureTime: undefined,
+    destinations: undefined,
+    flightNumber: undefined,
+    referenceTicket: undefined,
   },
   files: [],
   urls: [],

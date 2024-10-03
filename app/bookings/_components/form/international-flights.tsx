@@ -17,7 +17,7 @@ import { format } from "date-fns";
 import { CalendarIcon, Upload, X } from "lucide-react";
 import UploadImage from "../upload-image";
 import { generateRandomId } from "@/utils/generate-random-id";
-import { flightDefaultValue } from "@/utils/default-values";
+import { internationalFlightDefaultValue } from "@/utils/default-values";
 import ForPage from "../for-page";
 
 export default function InternationalFlights({
@@ -67,10 +67,18 @@ export default function InternationalFlights({
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={flight.arrival.arrivalDate}
+                        selected={
+                          flight.arrival.arrivalDate
+                            ? new Date(flight.arrival.arrivalDate)
+                            : undefined
+                        }
                         onSelect={(value) => {
+                          if (!value) return;
                           setInternationalFlights((prev) => {
-                            prev[i].arrival.arrivalDate = value;
+                            prev[i].arrival.arrivalDate = format(
+                              value,
+                              "yyyy-MM-dd",
+                            );
                             return [...prev];
                           });
                         }}
@@ -168,10 +176,18 @@ export default function InternationalFlights({
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={flight.departure.departureDate}
+                        selected={
+                          flight.departure.departureDate
+                            ? new Date(flight.departure.departureDate)
+                            : undefined
+                        }
                         onSelect={(value) => {
+                          if (!value) return;
                           setInternationalFlights((prev) => {
-                            prev[i].departure.departureDate = value;
+                            prev[i].departure.departureDate = format(
+                              value,
+                              "yyyy-MM-dd",
+                            );
                             return [...prev];
                           });
                         }}
@@ -302,7 +318,7 @@ export default function InternationalFlights({
               setInternationalFlights((prev) => [
                 ...prev,
                 {
-                  ...flightDefaultValue,
+                  ...internationalFlightDefaultValue,
                   id: generateRandomId(),
                 },
               ])

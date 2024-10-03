@@ -15,6 +15,8 @@ const list = [
   { name: "Companies", link: "/create/companies" },
   { name: "Hotels", link: "/create/hotels" },
   { name: "Representatives", link: "/create/representatives" },
+  { name: "Buses", link: "/create/buses" },
+  { name: "Drivers", link: "/create/drivers" },
 ];
 
 export default function Tabs() {

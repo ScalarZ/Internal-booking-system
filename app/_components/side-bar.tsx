@@ -7,6 +7,7 @@ import {
   ListOrdered,
   Plane,
   Plus,
+  Sheet,
   TextSearch,
 } from "lucide-react";
 import Link from "next/link";
@@ -28,6 +29,7 @@ const list = [
     icon: <TextSearch size={18} />,
   },
   { name: "Orders", link: "/orders", icon: <ListOrdered size={18} /> },
+  { name: "Traffic Sheet", link: "/traffic-sheet", icon: <Sheet size={18} /> },
 ];
 export default function SideBar() {
   const pathname = usePathname();

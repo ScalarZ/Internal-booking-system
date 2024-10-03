@@ -11,6 +11,7 @@ import {
   AppRouterInstance,
   NavigateOptions,
 } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { cache } from "react";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
@@ -52,7 +53,7 @@ export function getFilter(searchParams: { [key: string]: string | undefined }) {
   };
 }
 
-export async function getBookingParams() {
+export const getBookingParams = cache(async () => {
   return await Promise.all([
     getCountries(),
     getCompanies(),
@@ -60,7 +61,7 @@ export async function getBookingParams() {
     getNationalities(),
     getNileCruises(),
   ]);
-}
+});
 
 export function getReservationRowStatus(reservations?: SelectReservations[]) {
   if (reservations?.every((reservation) => reservation.finalPrice))
