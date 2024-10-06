@@ -1,31 +1,36 @@
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  FormControl,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { FormControl, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
 import { cn, formatDateString } from "@/lib/utils";
 import { format } from "date-fns";
-import { CalendarIcon, Upload, X } from "lucide-react";
+import { CalendarIcon, Upload, X, ChevronsUpDown, Check } from "lucide-react";
 import UploadImage from "../upload-image";
 import { generateRandomId } from "@/utils/generate-random-id";
 import { domesticFlightDefaultValue } from "@/utils/default-values";
 import { Switch } from "@/components/ui/switch";
 import ForPage from "../for-page";
+import { SelectCities } from "@/drizzle/schema";
 
 export default function DomesticFlights({
   domesticFlights,
   modalMode,
   setDomesticFlights,
+  cities,
 }: {
+  cities: SelectCities[];
   domesticFlights: (DomesticFlights & {
     src?: string;
   })[];
@@ -138,31 +143,99 @@ export default function DomesticFlights({
                   </FormItem>
                   <FormItem className="flex flex-grow flex-col justify-start">
                     <FormLabel>From</FormLabel>
-                    <FormControl>
-                      <Input
-                        defaultValue={flight.arrival.from}
-                        onChange={(e) =>
-                          setDomesticFlights((prev) => {
-                            prev[i].arrival.from = e.target.value;
-                            return [...prev];
-                          })
-                        }
-                      />
-                    </FormControl>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between"
+                            disabled={!cities?.length}
+                          >
+                            {flight.arrival.from || "Select from city"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search city..." />
+                          <CommandEmpty>No city found.</CommandEmpty>
+                          <CommandGroup>
+                            {cities?.map((city) => (
+                              <CommandItem
+                                key={city.id}
+                                onSelect={() => {
+                                  setDomesticFlights((prev) => {
+                                    prev[i].arrival.from =
+                                      city.name ?? undefined;
+                                    return [...prev];
+                                  });
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    flight.arrival.from === city.name
+                                      ? "opacity-100"
+                                      : "opacity-0",
+                                  )}
+                                />
+                                {city.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </FormItem>
                   <FormItem className="flex flex-grow flex-col justify-start">
                     <FormLabel>To</FormLabel>
-                    <FormControl>
-                      <Input
-                        defaultValue={flight.arrival.to}
-                        onChange={(e) =>
-                          setDomesticFlights((prev) => {
-                            prev[i].arrival.to = e.target.value;
-                            return [...prev];
-                          })
-                        }
-                      />
-                    </FormControl>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between"
+                            disabled={!cities?.length}
+                          >
+                            {flight.arrival.to || "Select to city"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search city..." />
+                          <CommandEmpty>No city found.</CommandEmpty>
+                          <CommandGroup>
+                            {cities?.map((city) => (
+                              <CommandItem
+                                key={city.id}
+                                value={city.name ?? undefined}
+                                onSelect={() => {
+                                  setDomesticFlights((prev) => {
+                                    prev[i].arrival.to = city.name ?? undefined;
+                                    return [...prev];
+                                  });
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    flight.arrival.to === city.name
+                                      ? "opacity-100"
+                                      : "opacity-0",
+                                  )}
+                                />
+                                {city.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </FormItem>
                   <FormItem className="flex flex-col justify-start">
                     <FormLabel>Issued</FormLabel>
@@ -275,31 +348,107 @@ export default function DomesticFlights({
                   </FormItem>
                   <FormItem className="flex flex-grow flex-col justify-start">
                     <FormLabel>From</FormLabel>
-                    <FormControl>
-                      <Input
-                        defaultValue={flight.departure.from}
-                        onChange={(e) =>
-                          setDomesticFlights((prev) => {
-                            prev[i].departure.from = e.target.value;
-                            return [...prev];
-                          })
-                        }
-                      />
-                    </FormControl>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !flight.departure.from && "text-muted-foreground",
+                            )}
+                            disabled={!cities?.length}
+                          >
+                            {flight.departure.from || "Select from city"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search departure city..." />
+                          <CommandEmpty>No city found.</CommandEmpty>
+                          <CommandGroup>
+                            {cities?.map((city) => (
+                              <CommandItem
+                                key={city.id}
+                                value={city.name ?? undefined}
+                                onSelect={() => {
+                                  setDomesticFlights((prev) => {
+                                    prev[i].departure.from =
+                                      city.name ?? undefined;
+                                    return [...prev];
+                                  });
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    flight.departure.from === city.name
+                                      ? "opacity-100"
+                                      : "opacity-0",
+                                  )}
+                                />
+                                {city.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </FormItem>
                   <FormItem className="flex flex-grow flex-col justify-start">
                     <FormLabel>To</FormLabel>
-                    <FormControl>
-                      <Input
-                        defaultValue={flight.departure.to}
-                        onChange={(e) =>
-                          setDomesticFlights((prev) => {
-                            prev[i].departure.to = e.target.value;
-                            return [...prev];
-                          })
-                        }
-                      />
-                    </FormControl>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !flight.departure.to && "text-muted-foreground",
+                            )}
+                            disabled={!cities?.length}
+                          >
+                            {flight.departure.to || "Select to city"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search arrival city..." />
+                          <CommandEmpty>No city found.</CommandEmpty>
+                          <CommandGroup>
+                            {cities?.map((city) => (
+                              <CommandItem
+                                key={city.id}
+                                value={city.name ?? undefined}
+                                onSelect={() => {
+                                  setDomesticFlights((prev) => {
+                                    prev[i].departure.to =
+                                      city.name ?? undefined;
+                                    return [...prev];
+                                  });
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    flight.departure.to === city.name
+                                      ? "opacity-100"
+                                      : "opacity-0",
+                                  )}
+                                />
+                                {city.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </FormItem>
                   <FormItem className="flex flex-col justify-start">
                     <FormLabel>Issued</FormLabel>

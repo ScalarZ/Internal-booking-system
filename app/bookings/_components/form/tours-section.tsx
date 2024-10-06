@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/popover";
 
 import { Check, ChevronsUpDown, Edit, Plus, Trash } from "lucide-react";
-import { cn, listItineraryCities } from "@/lib/utils";
+import { cn, getUniqueObjectsById, listItineraryCities } from "@/lib/utils";
 import { addDays, format } from "date-fns";
 import { formSchema } from "@/utils/zod-schema";
 import { useState } from "react";
@@ -45,7 +45,6 @@ export function ToursSection({
   setTourCountries,
   setTourCities,
   setItineraries,
-  listCitiesHotels,
   setIsItineraryModalOpen,
   setItineraryInitialValues,
   setIsEditItineraryModalOpen,
@@ -57,7 +56,6 @@ export function ToursSection({
   setTourCountries: (tours: SelectCountries[]) => void;
   setTourCities: (tours: SelectCities[]) => void;
   setItineraries: (cb: (itineraries: Itinerary[]) => Itinerary[]) => void;
-  listCitiesHotels: (tourCities: SelectCities[]) => Promise<void>;
   setIsItineraryModalOpen: (isOpen: boolean) => void;
   setItineraryInitialValues: (itinerary: Itinerary) => void;
   setIsEditItineraryModalOpen: (isOpen: boolean) => void;
@@ -112,13 +110,15 @@ export function ToursSection({
                               setTourCities(
                                 id === field.value?.id
                                   ? []
-                                  : itineraries?.reduce<SelectCities[]>(
-                                      (acc, curr) => [
-                                        ...acc,
-                                        ...(curr.cities ?? []),
-                                      ],
-                                      [],
-                                    ) ?? [],
+                                  : getUniqueObjectsById(
+                                      itineraries?.reduce<SelectCities[]>(
+                                        (acc, curr) => [
+                                          ...acc,
+                                          ...(curr.cities ?? []),
+                                        ],
+                                        [],
+                                      ) ?? [],
+                                    ),
                               );
                               setItineraries(
                                 id === field.value?.id
@@ -126,8 +126,10 @@ export function ToursSection({
                                   : () => itineraries ?? [],
                               );
                               if (id !== field.value?.id && itineraries.length)
-                                await listCitiesHotels(
-                                  listItineraryCities(itineraries),
+                                setTourCities(
+                                  getUniqueObjectsById(
+                                    listItineraryCities(itineraries),
+                                  ),
                                 );
                             }}
                           >

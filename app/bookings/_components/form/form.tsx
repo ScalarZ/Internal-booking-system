@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { listItineraryCities } from "@/lib/utils";
+import { getUniqueObjectsById, listItineraryCities } from "@/lib/utils";
 import { useCallback, useEffect, useState } from "react";
 import { addDays, format } from "date-fns";
 import {
@@ -46,6 +46,7 @@ import { FlightsSection } from "./flights-section";
 import Canceled from "./canceled";
 import { useSupabaseStorage } from "@/hooks/use-supabase-storage";
 import { SUPABASE_STORAGE_URL } from "@/app.confing";
+import { useQuery } from "@tanstack/react-query";
 
 export default function From({
   tours,
@@ -84,8 +85,13 @@ export default function From({
   const [tourCountries, setTourCountries] = useState<SelectCountries[]>(
     booking?.bookingTour?.countries ?? [],
   );
-  const [tourCities, setTourCities] = useState<SelectCities[]>([]);
-  const [citiesHotels, setCitiesHotels] = useState<SelectHotels[]>([]);
+  const [tourCities, setTourCities] = useState<SelectCities[]>(
+    booking && booking.bookingTour.itineraries
+      ? getUniqueObjectsById(
+          listItineraryCities(booking.bookingTour.itineraries),
+        )
+      : [],
+  );
   const [itineraries, setItineraries] = useState<Itinerary[]>(
     booking?.bookingTour?.itineraries ?? [],
   );
@@ -103,6 +109,20 @@ export default function From({
   );
   const [itineraryInitialValues, setItineraryInitialValues] =
     useState<Itinerary | null>(null);
+
+  const { data: citiesHotels } = useQuery({
+    queryKey: ["citiesHotels", tourCities],
+    queryFn: () =>
+      getCitiesHotels(
+        booking && booking.bookingTour.itineraries && !tourCities.length
+          ? listItineraryCities(booking.bookingTour.itineraries).map(
+              ({ id }) => id,
+            )
+          : tourCities?.map(({ id }) => id),
+      ),
+    enabled:
+      !!tourCities.length || !!(booking && booking.bookingTour.itineraries),
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -224,7 +244,11 @@ export default function From({
         countries: tourCountries?.map(({ name }) => `${name}`),
       };
       const bookingsLists = {
-        reservationsList,
+        reservationsList: reservationsList.map((res) => ({
+          ...res,
+          start: res.start ? new Date(format(res.start, "yyyy-MM-dd")) : null,
+          end: res.end ? new Date(format(res.end, "yyyy-MM-dd")) : null,
+        })),
         passportPaths,
         domesticFlightsTicketPaths,
         internationalFlightTicketsPaths,
@@ -294,15 +318,6 @@ export default function From({
     }
   }
 
-  const listCitiesHotels = useCallback(async (tourCities: SelectCities[]) => {
-    try {
-      const hotels = await getCitiesHotels(tourCities?.map(({ id }) => id));
-      setCitiesHotels(hotels);
-    } catch (error) {
-      console.error(error);
-    }
-  }, []);
-
   const generateReservations = useCallback(() => {
     let tacker = -1;
     let startDate = form.watch("arrivalDepartureDate.from")!;
@@ -345,9 +360,7 @@ export default function From({
 
   useEffect(() => {
     if (!booking || !booking.bookingTour?.itineraries.length) return;
-    listCitiesHotels(
-      listItineraryCities(booking.bookingTour.itineraries ?? []),
-    );
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -374,7 +387,6 @@ export default function From({
           <ToursSection
             form={form}
             itineraries={itineraries}
-            listCitiesHotels={listCitiesHotels}
             tourCountries={tourCountries}
             tours={tours}
             setIsEditItineraryModalOpen={setIsEditItineraryModalOpen}
@@ -398,6 +410,7 @@ export default function From({
           internationalFlights={internationalFlights}
           setDomesticFlights={setDomesticFlights}
           setInternationalFlights={setInternationalFlights}
+          cities={tourCities}
         />
         <ForPage
           {...(["/bookings", "/reservations"].includes(pathname)

@@ -37,7 +37,7 @@ export default function HotelsSection({
   nileCruises,
 }: {
   form: UseFormReturn<z.infer<typeof formSchema>>;
-  citiesHotels: SelectHotels[];
+  citiesHotels?: SelectHotels[];
   nileCruises: SelectNileCruises[];
 }) {
   const [hotelsOpen, setHotelsOpen] = useState(false);

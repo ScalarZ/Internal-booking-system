@@ -23,10 +23,10 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import {
-  updateTrafficSheetBookingRepresentative,
-  updateTrafficSheetBookingBus,
-  updateTrafficSheetBookingDriver,
-  updateTrafficSheetBookingNote,
+  updateDomesticArrivalsRepresentative,
+  updateDomesticArrivalsBus,
+  updateDomesticArrivalsDriver,
+  updateDomesticArrivalsNote,
 } from "@/utils/db-queries/booking";
 import { queryClient } from "@/utils/provider";
 import useURLQuery from "@/hooks/use-url-query";
@@ -45,7 +45,7 @@ const SelectCell = ({
     original: {
       id: number;
       domesticId: string;
-      departure?: { [key: string]: string | undefined };
+      arrival?: { [key: string]: string | undefined };
     };
   };
 
@@ -73,7 +73,7 @@ const SelectCell = ({
   const city = params.get("city");
   const [open, setOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState(
-    row.original.departure?.[type] || "",
+    row.original.arrival?.[type] || "",
   );
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -95,10 +95,10 @@ const SelectCell = ({
                   key={option.id}
                   onSelect={async () => {
                     queryClient.setQueryData(
-                      ["traffic-sheet", date, city],
+                      ["domestic-arrival", date, city],
                       (
                         data: (Bookings & {
-                          departure: DepartureInfo;
+                          arrival: ArrivalInfo;
                           domesticId: string;
                         })[],
                       ) =>
@@ -106,8 +106,8 @@ const SelectCell = ({
                           if (booking.id === row.original.id) {
                             return {
                               ...booking,
-                              departure: {
-                                ...booking.departure,
+                              arrival: {
+                                ...booking.arrival,
                                 [type]: option.name,
                               },
                             };
@@ -139,25 +139,25 @@ const NoteCell = ({
   row,
 }: {
   row: {
-    original: { id: number; domesticId: string; departure?: { note?: string } };
+    original: { id: number; domesticId: string; arrival?: { note?: string } };
   };
 }) => {
   const [open, setOpen] = useState(false);
-  const [note, setNote] = useState(row.original.departure?.note || "");
+  const [note, setNote] = useState(row.original.arrival?.note || "");
   const { params } = useURLQuery();
   const date = params.get("date") ?? format(new Date(), "yyyy-MM-dd");
   const city = params.get("city");
 
   const handleSave = async () => {
     queryClient.setQueryData(
-      ["traffic-sheet", date, city],
-      (data: (Bookings & { departure: DepartureInfo; domesticId: string })[]) =>
+      ["domestic-arrival", date, city],
+      (data: (Bookings & { arrival: ArrivalInfo; domesticId: string })[]) =>
         data.map((booking) => {
           if (booking.id === row.original.id) {
             return {
               ...booking,
-              departure: {
-                ...booking.departure,
+              arrival: {
+                ...booking.arrival,
                 note,
               },
             };
@@ -166,7 +166,7 @@ const NoteCell = ({
         }),
     );
     setOpen(false);
-    await updateTrafficSheetBookingNote(
+    await updateDomesticArrivalsNote(
       row.original.id,
       row.original.domesticId,
       note,
@@ -192,29 +192,29 @@ const NoteCell = ({
   );
 };
 
-export const columns = (
+export const arrivalColumns = (
   representatives: SelectRepresentatives[],
   buses: SelectBuses[],
   drivers: SelectDrivers[],
-): ColumnDef<Bookings & { departure: DepartureInfo; domesticId: string }>[] => [
+): ColumnDef<Bookings & { arrival: ArrivalInfo; domesticId: string }>[] => [
   {
     accessorKey: "internalBookingId",
     header: "File",
   },
   {
-    accessorKey: "departure.from",
+    accessorKey: "arrival.from",
     header: "FROM",
   },
   {
-    accessorKey: "departure.to",
+    accessorKey: "arrival.to",
     header: "To",
   },
   {
-    accessorKey: "departure.flightNumber",
+    accessorKey: "arrival.flightNumber",
     header: "Flight",
   },
   {
-    accessorKey: "departure.departureTime",
+    accessorKey: "arrival.arrivalTime",
     header: "Time",
   },
   {
@@ -230,7 +230,7 @@ export const columns = (
         row={row}
         options={representatives}
         type="representative"
-        updateFunction={updateTrafficSheetBookingRepresentative}
+        updateFunction={updateDomesticArrivalsRepresentative}
       />
     ),
   },
@@ -242,7 +242,7 @@ export const columns = (
         row={row}
         options={buses}
         type="bus"
-        updateFunction={updateTrafficSheetBookingBus}
+        updateFunction={updateDomesticArrivalsBus}
       />
     ),
   },
@@ -254,7 +254,7 @@ export const columns = (
         row={row}
         options={drivers}
         type="driver"
-        updateFunction={updateTrafficSheetBookingDriver}
+        updateFunction={updateDomesticArrivalsDriver}
       />
     ),
   },

@@ -335,8 +335,12 @@ export default function BookingSection({
                       }}
                       onSelect={(value) => {
                         field.onChange({
-                          from: value?.from,
-                          to: value?.to,
+                          from: value?.from
+                            ? new Date(format(value.from, "yyyy-MM-dd"))
+                            : undefined,
+                          to: value?.to
+                            ? new Date(format(value.to, "yyyy-MM-dd"))
+                            : undefined,
                         });
                       }}
                     />

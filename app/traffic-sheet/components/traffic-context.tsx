@@ -6,7 +6,7 @@ import {
   SelectCities,
   SelectRepresentatives,
 } from "@/drizzle/schema";
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, ReactNode } from "react";
 
 interface TrafficContextType {
   buses: SelectBuses[];

@@ -11,9 +11,11 @@ import { UseFormReturn } from "react-hook-form";
 import { formSchema } from "@/utils/zod-schema";
 import { Textarea } from "@/components/ui/textarea";
 import { z } from "zod";
+import { SelectCities } from "@/drizzle/schema";
 
 export function FlightsSection({
   form,
+  cities,
   domesticFlights,
   internationalFlights,
   modalMode,
@@ -23,6 +25,7 @@ export function FlightsSection({
 }: {
   form: UseFormReturn<z.infer<typeof formSchema>>;
   pathname: string;
+  cities: SelectCities[];
   internationalFlights: (InternationalFlights & {
     src?: string;
   })[];
@@ -49,6 +52,7 @@ export function FlightsSection({
           modalMode={modalMode}
           internationalFlights={internationalFlights}
           setInternationalFlights={setInternationalFlights}
+          cities={cities}
         />
       </ForPage>
       <ForPage
@@ -60,6 +64,7 @@ export function FlightsSection({
           modalMode={modalMode}
           domesticFlights={domesticFlights}
           setDomesticFlights={setDomesticFlights}
+          cities={cities}
         />
         <FormField
           control={form.control}

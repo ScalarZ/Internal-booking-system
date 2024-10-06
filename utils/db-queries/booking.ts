@@ -68,28 +68,17 @@ export async function filterBookings(filters: BookingFilters) {
   if (filters.country)
     whereList.push(arrayContains(bookings.countries, [filters.country]));
 
-  if (filters.dateRange?.from && filters.dateRange?.to)
+  if (filters.dateRange?.from && filters.dateRange?.to) {
+    // Convert dates to UTC and adjust for the time zone difference
+    const fromDate = new Date(filters.dateRange.from);
+
+    const toDate = new Date(filters.dateRange.to);
+
     whereList.push(
-      gte(
-        bookings.arrivalDate,
-        new Date(
-          filters.dateRange?.from.toLocaleString(undefined, {
-            timeZone: "Europe/Paris",
-          }),
-        ),
-      ),
-      lte(
-        bookings.departureDate,
-        addDays(
-          new Date(
-            filters.dateRange?.to.toLocaleString(undefined, {
-              timeZone: "Europe/Paris",
-            }),
-          ),
-          1,
-        ),
-      ),
+      gte(bookings.arrivalDate, fromDate),
+      lte(bookings.departureDate, toDate),
     );
+  }
 
   return db.query.bookings.findMany({
     with: {
@@ -203,7 +192,7 @@ export async function updateBooking(
     internationalFlightTicketsPaths: Ticket[][];
   },
 ) {
-  const res = await Promise.allSettled([
+  await Promise.allSettled([
     db
       .update(bookings)
       .set({
@@ -227,7 +216,6 @@ export async function updateBooking(
     deleteBookingTourItineraries(bookingTour.id),
     deleteBookingHotels(booking.id),
   ]);
-
   if (hotels.length)
     await db.insert(bookingHotels).values(
       hotels.map((hotel) => ({
@@ -235,7 +223,6 @@ export async function updateBooking(
         bookingId: booking.id,
       })),
     );
-
   if (bookingTour.itineraries.length)
     await db.insert(bookingItineraries).values(
       bookingTour.itineraries.map(({ id, ...itinerary }) => ({
@@ -243,19 +230,15 @@ export async function updateBooking(
         tourId: bookingTour.id,
       })),
     );
-
   if (lists.reservationsList?.length)
     await addReservations(
       lists.reservationsList.map((reservation) => ({
         ...reservation,
         bookingId: booking.id,
+        start: reservation.start ? new Date(reservation.start) : null,
+        end: reservation.end ? new Date(reservation.end) : null,
       })),
     );
-  // if (lists.reservationsList.every(({ finalPrice }) => finalPrice))
-  //   await db.insert(notifications).values({
-  //     type: "reservation",
-  //     message: "Booking with id " + booking.id + " has received a final price",
-  //   });
   revalidatePath("/bookings");
 }
 
@@ -484,7 +467,7 @@ export async function updateBookingItineraryGuide({
     .where(eq(bookingItineraries.id, itineraryId));
 }
 
-export async function getTrafficSheetDepartures(date: string, city?: string) {
+export async function getDomesticDepartures(date: string, city?: string) {
   return (await db.execute(sql`
    WITH departure_bookings AS (
      SELECT
@@ -526,7 +509,7 @@ export async function getTrafficSheetDepartures(date: string, city?: string) {
 `)) as (Bookings & { departure: DepartureInfo; domesticId: string })[];
 }
 
-export async function updateTrafficSheetBookingRepresentative(
+export async function updateDomesticDeparturesRepresentative(
   bookingId: number,
   domesticId: string,
   representative: string,
@@ -551,7 +534,7 @@ export async function updateTrafficSheetBookingRepresentative(
   `);
 }
 
-export async function updateTrafficSheetBookingBus(
+export async function updateDomesticDeparturesBus(
   bookingId: number,
   domesticId: string,
   bus: string,
@@ -576,7 +559,7 @@ export async function updateTrafficSheetBookingBus(
   `);
 }
 
-export async function updateTrafficSheetBookingDriver(
+export async function updateDomesticDeparturesDriver(
   bookingId: number,
   domesticId: string,
   driver: string,
@@ -601,7 +584,7 @@ export async function updateTrafficSheetBookingDriver(
   `);
 }
 
-export async function updateTrafficSheetBookingNote(
+export async function updateDomesticDeparturesNote(
   bookingId: number,
   domesticId: string,
   note: string,
@@ -615,6 +598,148 @@ export async function updateTrafficSheetBookingNote(
             jsonb_set(
               flight::jsonb, 
               '{departure,note}', 
+              to_jsonb(${note}::text)
+            )
+          ELSE flight
+        END
+      ) 
+      FROM unnest(domestic_flights) AS flight
+    )
+    WHERE id = ${bookingId}
+  `);
+}
+
+export async function getDomesticArrivals(date: string, city?: string) {
+  return (await db.execute(sql`
+   WITH arrival_bookings AS (
+     SELECT
+       r.*,
+       b.*,
+       (
+         SELECT domestic_flights
+         FROM unnest(b.domestic_flights) AS domestic_flights
+         WHERE (domestic_flights ->> 'arrival')::jsonb ->> 'arrivalDate' = ${date}
+         LIMIT 1
+       )::jsonb AS domestic_flight
+     FROM bookings b
+     INNER JOIN reservations r ON r.booking_id = b.id
+     WHERE EXISTS (
+       SELECT 1
+       FROM unnest(b.domestic_flights) AS domestic_flights
+       WHERE (domestic_flights ->> 'arrival')::jsonb ->> 'arrivalDate' = ${date}
+       ${city ? sql`AND (domestic_flights ->> 'arrival')::jsonb ->> 'to' = ${city}` : sql``}
+     )
+   )
+   SELECT
+     db.booking_id AS id,
+     db.internal_booking_id AS "internalBookingId",
+     db.pax,
+     (db.domestic_flight::jsonb->>'id')::text AS "domesticId", 
+     jsonb_set(
+       (db.domestic_flight::jsonb ->> 'arrival')::jsonb,
+       '{to}',
+       to_jsonb(
+         concat(
+           (db.domestic_flight::jsonb ->> 'arrival')::jsonb ->> 'to',
+           '-',
+           db.hotels[1]
+         )
+       )
+     ) AS arrival
+   FROM arrival_bookings db
+   WHERE ((db.domestic_flight::jsonb ->> 'arrival')::jsonb ->> 'arrivalDate')::date = "start";
+`)) as (Bookings & { arrival: ArrivalInfo; domesticId: string })[];
+}
+
+export async function updateDomesticArrivalsRepresentative(
+  bookingId: number,
+  domesticId: string,
+  representative: string,
+) {
+  return await db.execute(sql`
+    UPDATE bookings
+    SET domestic_flights = (
+      SELECT array_agg(
+        CASE
+          WHEN (flight ->> 'id')::text = ${domesticId} THEN 
+            jsonb_set(
+              flight::jsonb, 
+              '{arrival,representative}', 
+              to_jsonb(${representative}::text)
+            )
+          ELSE flight
+        END
+      ) 
+      FROM unnest(domestic_flights) AS flight
+    )
+    WHERE id = ${bookingId}
+  `);
+}
+
+export async function updateDomesticArrivalsBus(
+  bookingId: number,
+  domesticId: string,
+  bus: string,
+) {
+  return await db.execute(sql`
+    UPDATE bookings
+    SET domestic_flights = (
+      SELECT array_agg(
+        CASE
+          WHEN (flight ->> 'id')::text = ${domesticId} THEN 
+            jsonb_set(
+              flight::jsonb, 
+              '{arrival,bus}', 
+              to_jsonb(${bus}::text)
+            )
+          ELSE flight
+        END
+      ) 
+      FROM unnest(domestic_flights) AS flight
+    )
+    WHERE id = ${bookingId}
+  `);
+}
+
+export async function updateDomesticArrivalsDriver(
+  bookingId: number,
+  domesticId: string,
+  driver: string,
+) {
+  return await db.execute(sql`
+    UPDATE bookings
+    SET domestic_flights = (
+      SELECT array_agg(
+        CASE
+          WHEN (flight ->> 'id')::text = ${domesticId} THEN 
+            jsonb_set(
+              flight::jsonb, 
+              '{arrival,driver}', 
+              to_jsonb(${driver}::text)
+            )
+          ELSE flight
+        END
+      ) 
+      FROM unnest(domestic_flights) AS flight
+    )
+    WHERE id = ${bookingId}
+  `);
+}
+
+export async function updateDomesticArrivalsNote(
+  bookingId: number,
+  domesticId: string,
+  note: string,
+) {
+  return await db.execute(sql`
+    UPDATE bookings
+    SET domestic_flights = (
+      SELECT array_agg(
+        CASE
+          WHEN (flight ->> 'id')::text = ${domesticId} THEN 
+            jsonb_set(
+              flight::jsonb, 
+              '{arrival,note}', 
               to_jsonb(${note}::text)
             )
           ELSE flight

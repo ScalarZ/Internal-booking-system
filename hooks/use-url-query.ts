@@ -13,7 +13,7 @@ function useURLQuery() {
   const addQuery = useCallback(
     (name: string, value: string) => {
       params.set(name, value);
-      router.replace(`?${params.toString()}`);
+      router.push(`?${params.toString()}`);
     },
     [params, router],
   );
@@ -21,7 +21,7 @@ function useURLQuery() {
   const removeQuery = useCallback(
     (name: string) => {
       params.delete(name);
-      router.replace(`?${params.toString()}`);
+      router.push(`?${params.toString()}`);
     },
     [params, router],
   );

@@ -7,10 +7,6 @@ import { getNileCruises } from "@/utils/db-queries/nile-cruise";
 import { getTours } from "@/utils/db-queries/tour";
 import { type ClassValue, clsx } from "clsx";
 import { format, parse } from "date-fns";
-import {
-  AppRouterInstance,
-  NavigateOptions,
-} from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { cache } from "react";
 import { twMerge } from "tailwind-merge";
 
@@ -101,21 +97,16 @@ export function getAviationRowStatus(
   return "danger";
 }
 
-export function addQuery(
-  router: AppRouterInstance,
-  params: URLSearchParams,
-  name: string,
-  value: string,
-) {
-  params.set(name, value);
-  router.replace(`?${params.toString()}`);
-}
+export function getUniqueObjectsById<T extends { id: string | number }>(
+  array: T[],
+): T[] {
+  const uniqueMap = new Map<string | number, T>();
 
-export function removeQuery(
-  params: URLSearchParams,
-  name: string,
-  router: AppRouterInstance,
-) {
-  params.delete(name);
-  router.replace(`?${params.toString()}`);
+  for (const item of array) {
+    if (!uniqueMap.has(item.id)) {
+      uniqueMap.set(item.id, item);
+    }
+  }
+
+  return Array.from(uniqueMap.values());
 }

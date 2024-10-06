@@ -18,12 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useState } from "react";
-import {
-  Bookings,
-  SelectBookingOptionalTours,
-  SelectReservations,
-} from "@/drizzle/schema";
-import { cn, getAviationRowStatus, getReservationRowStatus } from "@/lib/utils";
+import { Bookings, SelectBookingOptionalTours } from "@/drizzle/schema";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -37,7 +32,6 @@ interface DataTableProps<TData, TValue> {
 export function DataTable<TData, TValue>({
   columns,
   data,
-  pathname,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
 

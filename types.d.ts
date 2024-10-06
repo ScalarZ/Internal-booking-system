@@ -36,7 +36,8 @@ type Passport = {
 
 type InternationalFlight = {
   flightNumber?: string;
-  destinations?: string;
+  from?: string;
+  to?: string;
   referenceTicket?: string;
 };
 type DomesticFlight = {
@@ -52,6 +53,15 @@ type DepartureInfo = {
   id?: string;
   departureDate?: string;
   departureTime?: string;
+  representative?: string;
+  bus?: string;
+  driver?: string;
+  note?: string;
+};
+type ArrivalInfo = {
+  id?: string;
+  arrivalDate?: string;
+  arrivalTime?: string;
   representative?: string;
   bus?: string;
   driver?: string;
