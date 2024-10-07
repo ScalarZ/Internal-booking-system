@@ -485,7 +485,12 @@ export async function getDomesticDepartures(date: string, city?: string) {
        SELECT 1
        FROM unnest(b.domestic_flights) AS domestic_flights
        WHERE (domestic_flights ->> 'departure')::jsonb ->> 'departureDate' = ${date}
-       ${city ? sql`AND (domestic_flights ->> 'departure')::jsonb ->> 'from' = ${city}` : sql``}
+       ${
+         city
+           ? sql`AND ((domestic_flights ->> 'departure')::jsonb ->> 'from' = ${city}
+                    OR (domestic_flights ->> 'departure')::jsonb ->> 'to' = ${city})`
+           : sql``
+       }
      )
    )
    SELECT
@@ -627,7 +632,12 @@ export async function getDomesticArrivals(date: string, city?: string) {
        SELECT 1
        FROM unnest(b.domestic_flights) AS domestic_flights
        WHERE (domestic_flights ->> 'arrival')::jsonb ->> 'arrivalDate' = ${date}
-       ${city ? sql`AND (domestic_flights ->> 'arrival')::jsonb ->> 'to' = ${city}` : sql``}
+       ${
+         city
+           ? sql`AND ((domestic_flights ->> 'arrival')::jsonb ->> 'to' = ${city}
+                    OR (domestic_flights ->> 'arrival')::jsonb ->> 'from' = ${city})`
+           : sql``
+       }
      )
    )
    SELECT
